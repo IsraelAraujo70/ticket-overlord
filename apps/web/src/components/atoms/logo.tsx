@@ -16,7 +16,14 @@ export function Logo({ compact = false, inverted = false }: LogoProps) {
       )}
       aria-label="Ticket Overlord"
     >
-      <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+      <span
+        className={cn(
+          "flex size-8 items-center justify-center rounded-lg",
+          inverted
+            ? "bg-white text-ticket-ink"
+            : "bg-primary text-primary-foreground",
+        )}
+      >
         <TicketIcon aria-hidden="true" />
       </span>
       {!compact ? (

@@ -1,78 +1,46 @@
-import { ArrowDownIcon, CalendarDaysIcon, MapPinIcon } from "lucide-react";
+import Image from "next/image";
+import { CalendarDaysIcon, MapPinIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
-import { buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import type { CatalogEvent } from "@/features/catalog/catalog.types";
 
-export function LandingHero() {
+export function LandingHero({ event }: { event: CatalogEvent }) {
   return (
-    <section className="public-grid border-b">
-      <div className="mx-auto grid max-w-7xl gap-10 px-5 py-16 lg:grid-cols-[1.05fr_0.95fr] lg:items-center lg:px-8 lg:py-24">
-        <div className="flex flex-col items-start gap-7">
-          <Badge variant="outline">Agenda aberta em São Paulo</Badge>
-          <div className="flex flex-col gap-5">
-            <h1 className="max-w-4xl font-heading text-[clamp(4rem,10vw,8.5rem)] leading-[0.78] font-bold tracking-[-0.045em] uppercase">
-              Seu próximo
-              <span className="block text-primary">evento começa</span>
-              aqui.
-            </h1>
-            <p className="max-w-xl text-base leading-7 text-muted-foreground md:text-lg">
-              Descubra shows, teatro e experiências. Reserve com transparência e
-              leve seu ingresso no celular, do checkout até a entrada.
+    <section className="relative isolate min-h-[31rem] overflow-hidden bg-ticket-ink text-ticket-paper">
+      <Image
+        src={event.imageUrl}
+        alt={event.imageAlt}
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover"
+      />
+      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,10,23,0.94)_0%,rgba(7,10,23,0.72)_42%,rgba(7,10,23,0.12)_78%)]" />
+      <div className="relative mx-auto flex min-h-[31rem] max-w-7xl items-end px-5 py-12 lg:px-8 lg:py-16">
+        <div className="max-w-2xl space-y-5">
+          <div className="flex items-center gap-3">
+            <Badge className="bg-ticket-coral text-ticket-coral-foreground">Em destaque</Badge>
+            <span className="font-mono text-xs tracking-[0.18em] text-ticket-paper/70 uppercase">
+              Agenda 2026
+            </span>
+          </div>
+          <h1 className="font-heading text-[clamp(4rem,10vw,7.5rem)] leading-[0.76] font-bold tracking-[-0.04em] uppercase">
+            {event.title}
+          </h1>
+          <p className="max-w-lg text-base leading-7 text-ticket-paper/80">
+            {event.summary}
+          </p>
+          <div className="flex flex-wrap gap-x-6 gap-y-2 border-t border-white/20 pt-4 text-sm">
+            <p className="flex items-center gap-2">
+              <CalendarDaysIcon className="size-4 text-ticket-coral" aria-hidden="true" />
+              {event.dateLabel}
+            </p>
+            <p className="flex items-center gap-2">
+              <MapPinIcon className="size-4 text-ticket-coral" aria-hidden="true" />
+              {event.venue}, {event.city}
             </p>
           </div>
-          <div className="flex flex-wrap gap-3">
-            <a
-              href="#eventos"
-              className={cn(buttonVariants({ size: "lg" }), "h-11 px-5")}
-            >
-              Ver programação
-              <ArrowDownIcon data-icon="inline-end" />
-            </a>
-            <a
-              href="#como-funciona"
-              className={cn(
-                buttonVariants({ variant: "outline", size: "lg" }),
-                "h-11 px-5",
-              )}
-            >
-              Como funciona
-            </a>
-          </div>
         </div>
-
-        <aside className="hero-poster rounded-3xl p-7 shadow-2xl shadow-primary/10 md:p-10" aria-label="Evento em destaque">
-          <div className="relative z-10 flex min-h-[32rem] flex-col justify-between gap-10">
-            <div className="flex items-start justify-between gap-4">
-              <Badge>Em destaque</Badge>
-              <span className="font-mono text-xs tracking-[0.2em] uppercase">
-                TO / 0001
-              </span>
-            </div>
-            <div className="flex max-w-md flex-col gap-5">
-              <p className="font-mono text-sm font-semibold tracking-[0.18em] text-ticket-coral uppercase">
-                Sábado, 22 AGO
-              </p>
-              <h2 className="font-heading text-6xl leading-[0.84] font-bold tracking-tight uppercase md:text-7xl">
-                Frequência urbana
-              </h2>
-              <p className="max-w-sm text-sm leading-6 text-ticket-paper/70">
-                Uma noite de música independente com três palcos e artistas de
-                diferentes cenas da cidade.
-              </p>
-            </div>
-            <div className="grid gap-3 border-t border-ticket-paper/20 pt-5 text-sm sm:grid-cols-2">
-              <p className="flex items-center gap-2">
-                <CalendarDaysIcon className="size-4" aria-hidden="true" />
-                19h às 02h
-              </p>
-              <p className="flex items-center gap-2">
-                <MapPinIcon className="size-4" aria-hidden="true" />
-                Complexo Barra Funda
-              </p>
-            </div>
-          </div>
-        </aside>
       </div>
     </section>
   );
