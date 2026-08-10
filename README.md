@@ -34,7 +34,6 @@ Toda a documentação necessária para desenvolver e avaliar o projeto é versio
 | Documento | Conteúdo |
 | --- | --- |
 | [`challenge.md`](./challenge.md) | Enunciado normalizado e critérios de sucesso do desafio. |
-| [`docs/api/README.md`](./docs/api/README.md) | Contrato OpenAPI e instruções de importação no Bruno ou Swagger. |
 | [`docs/decisoes/index.md`](./docs/decisoes/index.md) | Índice cronológico das decisões técnicas aprovadas. |
 | [`docs/plans/2026-08-10-monorepo-scaffold.md`](./docs/plans/2026-08-10-monorepo-scaffold.md) | Plano aprovado do scaffold inicial. |
 | [`AGENTS.md`](./AGENTS.md) | Contexto e regras locais para agentes que trabalham no projeto. |
@@ -66,6 +65,7 @@ pnpm dev
 - Web: `http://localhost:3000`
 - API: `http://localhost:3001`
 - Swagger UI: `http://localhost:3001/docs`
+- OpenAPI JSON: `http://localhost:3001/docs/openapi.json`, importável no Bruno.
 - PostgreSQL: `localhost:5432`
 
 Para iniciar somente API e PostgreSQL:

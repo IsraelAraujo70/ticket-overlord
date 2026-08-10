@@ -66,7 +66,7 @@ Record every approved technical decision in `docs/decisoes/`.
 - Keep framework code outside the domain layer.
 - Prefer existing platform features and standard APIs over unnecessary dependencies.
 - Add regression tests for bugs and focused tests for critical behavior.
-- Update `docs/api/openapi.json` in the same change whenever an HTTP contract changes, including methods, paths, parameters, authentication, request bodies, response status codes or response schemas.
+- Keep the Swagger decorators and focused E2E contract assertions synchronized in the same change whenever an HTTP contract changes, including methods, paths, parameters, authentication, request bodies, response status codes or response schemas.
 - Test inventory concurrency, payment idempotency and single-use gate validation against a real PostgreSQL instance.
 - Keep known limitations explicit and separate from implemented behavior.
 

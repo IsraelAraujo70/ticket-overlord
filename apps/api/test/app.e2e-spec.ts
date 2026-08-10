@@ -1,7 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { INestApplication } from '@nestjs/common';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
 import request from 'supertest';
 import { App } from 'supertest/types';
 import { AppModule } from './../src/app.module';
@@ -9,9 +7,6 @@ import { configureOpenApi } from './../src/openapi';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication<App>;
-  const documentedContract = JSON.parse(
-    readFileSync(resolve(__dirname, '../../../docs/api/openapi.json'), 'utf8'),
-  ) as unknown;
 
   beforeEach(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -40,7 +35,56 @@ describe('AppController (e2e)', () => {
       .expect(200)
       .expect('Content-Type', /json/)
       .expect((response) => {
-        expect(response.body as unknown).toEqual(documentedContract);
+        expect(response.body as unknown).toMatchObject({
+          openapi: '3.1.0',
+          info: {
+            title: 'Ticket Overlord API',
+            description:
+              'Contrato HTTP dos endpoints implementados pela API do Ticket Overlord.',
+            version: '0.1.0',
+          },
+          paths: {
+            '/': {
+              get: {
+                operationId: 'getApiStatus',
+                summary: 'Consultar o estado da API',
+                tags: ['Status'],
+                responses: {
+                  200: {
+                    description: 'API disponível.',
+                    content: {
+                      'application/json': {
+                        schema: {
+                          $ref: '#/components/schemas/ApiStatus',
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+          components: {
+            schemas: {
+              ApiStatus: {
+                type: 'object',
+                required: ['name', 'status'],
+                properties: {
+                  name: {
+                    type: 'string',
+                    enum: ['ticket-overlord-api'],
+                    example: 'ticket-overlord-api',
+                  },
+                  status: {
+                    type: 'string',
+                    enum: ['ok'],
+                    example: 'ok',
+                  },
+                },
+              },
+            },
+          },
+        });
       });
   });
 
