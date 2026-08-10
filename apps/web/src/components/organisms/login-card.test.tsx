@@ -4,14 +4,15 @@ import { describe, expect, it } from "vitest";
 import { LoginCard } from "@/components/organisms/login-card";
 
 describe("LoginCard", () => {
-  it("makes the non-functional authentication state explicit", () => {
+  it("provides the organizer login and acquisition paths", () => {
     render(<LoginCard />);
 
-    expect(screen.getByRole("textbox", { name: "E-mail" })).toBeDisabled();
-    expect(screen.getByLabelText("Senha")).toBeDisabled();
-    expect(screen.getByRole("button", { name: "Entrar" })).toBeDisabled();
-    expect(
-      screen.getByText("Autenticação ainda não implementada."),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: "E-mail" })).toBeEnabled();
+    expect(screen.getByLabelText("Senha")).toBeEnabled();
+    expect(screen.getByRole("button", { name: "Entrar" })).toBeEnabled();
+    expect(screen.getByRole("link", { name: "Cadastre sua organização" })).toHaveAttribute(
+      "href",
+      "/admin/cadastro",
+    );
   });
 });

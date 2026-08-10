@@ -1,3 +1,7 @@
+import Link from "next/link";
+import { buttonVariants } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
+
 export function OrganizerBanner() {
   return (
     <section className="relative overflow-hidden bg-ticket-coral text-ticket-coral-foreground">
@@ -10,10 +14,12 @@ export function OrganizerBanner() {
             Seu evento merece uma plateia.
           </h2>
         </div>
-        {/* #todo REMOVE: Replace the temporary completion notice with the organizer acquisition action. */}
-        <p className="max-w-sm text-sm leading-6 font-medium md:text-right">
-          O canal para novos organizadores será disponibilizado após a conclusão da plataforma.
-        </p>
+        <Link
+          href="/admin/login"
+          className={cn(buttonVariants({ size: "lg" }), "bg-ticket-ink text-white hover:bg-ticket-ink/90")}
+        >
+          Postar eventos
+        </Link>
       </div>
     </section>
   );

@@ -14,6 +14,12 @@ export function configureOpenApi(app: INestApplication): void {
     .setVersion('0.1.0')
     .addServer('http://localhost:3001', 'Desenvolvimento local')
     .addTag('Status', 'Disponibilidade básica da API.')
+    .addTag('Authentication', 'Cadastro, sessão e recuperação de conta.')
+    .addTag('Addresses', 'Preenchimento de endereço por CEP.')
+    .addBearerAuth(
+      { type: 'http', scheme: 'bearer', bearerFormat: 'opaque-session' },
+      'bearer',
+    )
     .build();
 
   const documentFactory = () =>

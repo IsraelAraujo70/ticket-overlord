@@ -21,3 +21,7 @@ Este diretório contém as decisões técnicas aprovadas para o Ticket Overlord.
 | 2026-08-10 14:05:54 -03:00 | Aceita | [Swagger como fonte do contrato HTTP](./2026-08-10-1405-swagger-como-fonte-do-contrato.md) |
 | 2026-08-10 14:18:45 -03:00 | Aceita | [Design system e superfícies web](./2026-08-10-1418-design-system-e-superficies-web.md) |
 | 2026-08-10 14:48:25 -03:00 | Aceita | [BFF do catálogo público](./2026-08-10-1448-bff-do-catalogo-publico.md) |
+| 2026-08-10 19:11:16 -03:00 | Aceita | [Identidade, papéis e organizações](./2026-08-10-1911-identidade-papeis-e-organizacoes.md) |
+| 2026-08-10 19:11:16 -03:00 | Aceita | [Sessões, senhas e tokens de autenticação](./2026-08-10-1911-sessoes-senhas-e-tokens.md) |
+| 2026-08-10 19:11:16 -03:00 | Aceita | [E-mail transacional com Resend](./2026-08-10-1911-email-transacional-com-resend.md) |
+| 2026-08-10 19:11:16 -03:00 | Aceita | [Cadastro de organizador e preenchimento pelo ViaCEP](./2026-08-10-1911-cadastro-organizador-e-viacep.md) |

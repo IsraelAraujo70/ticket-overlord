@@ -1,0 +1,27 @@
+export type UserRole =
+  | "CUSTOMER"
+  | "ORGANIZER"
+  | "ADMIN"
+  | "ORGANIZER_STAFF";
+
+export interface AuthUser {
+  id: string;
+  fullName: string;
+  email: string;
+  role: UserRole;
+  organizationId: string | null;
+}
+
+export interface LoginResponse {
+  accessToken: string;
+  expiresAt: string;
+  user: AuthUser;
+}
+
+export interface AuthActionState {
+  status: "idle" | "success" | "error";
+  message?: string;
+  code?: string;
+}
+
+export const initialAuthActionState: AuthActionState = { status: "idle" };

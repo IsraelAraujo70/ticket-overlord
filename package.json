@@ -15,7 +15,10 @@
     "dev:down": "docker compose down",
     "db:up": "docker compose up -d --wait postgres",
     "lint": "pnpm --recursive --if-present lint",
-    "test": "pnpm --recursive --if-present test && pnpm --recursive --if-present test:e2e",
+    "db:migrate": "DATABASE_URL=${DATABASE_URL:-postgresql://ticket_overlord:ticket_overlord@localhost:5432/ticket_overlord} pnpm --filter @ticket-overlord/api db:migrate",
+    "db:seed": "DATABASE_URL=${DATABASE_URL:-postgresql://ticket_overlord:ticket_overlord@localhost:5432/ticket_overlord} pnpm --filter @ticket-overlord/api db:seed",
+    "db:test:up": "docker compose up -d --wait postgres-test",
+    "test": "pnpm db:test:up && pnpm --recursive --if-present test && pnpm --recursive --if-present test:e2e",
     "build": "pnpm --recursive --if-present build"
   }
 }

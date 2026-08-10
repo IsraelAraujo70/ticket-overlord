@@ -21,14 +21,37 @@ services:
       start_period: 10s
     stop_grace_period: 30s
 
+  postgres-test:
+    image: postgres:18.4-alpine
+    environment:
+      POSTGRES_DB: ticket_overlord_test
+      POSTGRES_PASSWORD: ticket_overlord
+      POSTGRES_USER: ticket_overlord
+    ports:
+      - "${POSTGRES_TEST_PORT:-5433}:5432"
+    tmpfs:
+      - /var/lib/postgresql
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+      interval: 2s
+      timeout: 5s
+      retries: 15
+      start_period: 5s
+    stop_grace_period: 10s
+
   api:
     build:
       context: .
       dockerfile: apps/api/Dockerfile
     environment:
+      APP_ENV: local
       DATABASE_URL: postgresql://${POSTGRES_USER:-ticket_overlord}:${POSTGRES_PASSWORD:-ticket_overlord}@postgres:5432/${POSTGRES_DB:-ticket_overlord}
+      EMAIL_PROVIDER: console
       NODE_ENV: production
       PORT: 3001
+      WEB_BASE_URL: http://localhost:${WEB_PORT:-3000}
     ports:
       - "${API_PORT:-3001}:3001"
     depends_on:
@@ -48,11 +71,16 @@ services:
       context: .
       dockerfile: apps/web/Dockerfile
     environment:
+      API_BASE_URL: http://api:3001
       HOSTNAME: 0.0.0.0
       NODE_ENV: production
       PORT: 3000
     ports:
       - "${WEB_PORT:-3000}:3000"
+    depends_on:
+      api:
+        condition: service_healthy
+        restart: true
     healthcheck:
       test: [CMD, wget, --quiet, --spider, http://127.0.0.1:3000/]
       interval: 10s

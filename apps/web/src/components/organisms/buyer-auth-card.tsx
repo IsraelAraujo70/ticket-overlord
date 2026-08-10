@@ -1,8 +1,10 @@
-import Link from "next/link";
+"use client";
 
+import Link from "next/link";
+import { useActionState } from "react";
+import { AuthFeedback } from "@/components/atoms/auth-feedback";
+import { AuthSubmitButton } from "@/components/atoms/auth-submit-button";
 import { Logo } from "@/components/atoms/logo";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -13,6 +15,11 @@ import {
 } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import {
+  customerLoginAction,
+  customerRegisterAction,
+} from "@/server/auth/auth-actions";
+import { initialAuthActionState } from "@/server/auth/auth.types";
 
 interface BuyerAuthCardProps {
   mode: "login" | "register";
@@ -20,14 +27,18 @@ interface BuyerAuthCardProps {
 
 export function BuyerAuthCard({ mode }: BuyerAuthCardProps) {
   const isLogin = mode === "login";
+  const [state, formAction] = useActionState(
+    isLogin ? customerLoginAction : customerRegisterAction,
+    initialAuthActionState,
+  );
 
   return (
     <Card className="w-full max-w-md border-ticket-ink/10 shadow-2xl shadow-ticket-ink/10">
       <CardHeader>
         <div className="mb-5 flex items-center justify-between gap-4">
-          <Link href="/" aria-label="Voltar ao início"><Logo /></Link>
-          {/* #todo REMOVE: Remove the temporary availability badge when customer authentication is connected. */}
-          <Badge variant="secondary">Em breve</Badge>
+          <Link href="/" aria-label="Voltar ao início">
+            <Logo />
+          </Link>
         </div>
         <CardTitle>
           <h1 className="font-heading text-4xl leading-none font-bold uppercase">
@@ -41,32 +52,59 @@ export function BuyerAuthCard({ mode }: BuyerAuthCardProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        {/* #todo REMOVE: Enable and connect the temporary customer authentication fields. */}
-        <form aria-label={isLogin ? "Login do cliente" : "Cadastro do cliente"}>
+        <form action={formAction} aria-label={isLogin ? "Login do cliente" : "Cadastro do cliente"}>
           <FieldGroup>
             {!isLogin ? (
-              <Field data-disabled>
-                <FieldLabel htmlFor="name">Nome completo</FieldLabel>
-                <Input id="name" name="name" autoComplete="name" placeholder="Seu nome" disabled />
+              <Field>
+                <FieldLabel htmlFor="customer-full-name">Nome completo</FieldLabel>
+                <Input id="customer-full-name" name="fullName" autoComplete="name" required maxLength={160} />
               </Field>
             ) : null}
-            <Field data-disabled>
-              <FieldLabel htmlFor="email">E-mail</FieldLabel>
-              <Input id="email" name="email" type="email" autoComplete="email" placeholder="voce@exemplo.com" disabled />
+            <Field>
+              <FieldLabel htmlFor="customer-email">E-mail</FieldLabel>
+              <Input id="customer-email" name="email" type="email" autoComplete="email" required maxLength={320} />
             </Field>
-            <Field data-disabled>
-              <FieldLabel htmlFor="password">Senha</FieldLabel>
-              <Input id="password" name="password" type="password" autoComplete={isLogin ? "current-password" : "new-password"} placeholder="••••••••" disabled />
+            <Field>
+              <FieldLabel htmlFor="customer-password">Senha</FieldLabel>
+              <Input
+                id="customer-password"
+                name="password"
+                type="password"
+                autoComplete={isLogin ? "current-password" : "new-password"}
+                required
+                minLength={isLogin ? undefined : 12}
+                maxLength={128}
+              />
+              {!isLogin ? <p className="text-xs text-muted-foreground">Use pelo menos 12 caracteres.</p> : null}
             </Field>
-            <Button type="submit" disabled className="w-full">
-              {isLogin ? "Entrar" : "Criar conta"}
-            </Button>
+            {!isLogin ? (
+              <Field>
+                <FieldLabel htmlFor="customer-password-confirmation">Confirme a senha</FieldLabel>
+                <Input
+                  id="customer-password-confirmation"
+                  name="passwordConfirmation"
+                  type="password"
+                  autoComplete="new-password"
+                  required
+                  minLength={12}
+                  maxLength={128}
+                />
+              </Field>
+            ) : null}
+            <AuthFeedback state={state} />
+            <AuthSubmitButton
+              idleLabel={isLogin ? "Entrar" : "Criar conta"}
+              pendingLabel={isLogin ? "Entrando..." : "Criando conta..."}
+            />
           </FieldGroup>
         </form>
       </CardContent>
       <CardFooter className="flex-col items-start gap-3 border-t text-sm">
-        {/* #todo REMOVE: Remove the temporary integration notice when authentication is available. */}
-        <p className="text-muted-foreground">Autenticação ainda não conectada.</p>
+        {isLogin ? (
+          <Link href="/esqueci-senha" className="font-semibold text-primary underline underline-offset-4">
+            Esqueci minha senha
+          </Link>
+        ) : null}
         <p>
           {isLogin ? "Ainda não tem conta?" : "Já tem uma conta?"}{" "}
           <Link href={isLogin ? "/cadastro" : "/login"} className="font-semibold text-primary underline underline-offset-4">

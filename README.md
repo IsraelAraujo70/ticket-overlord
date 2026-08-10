@@ -4,7 +4,7 @@ Plataforma de eventos e ingressos desenvolvida para o desafio técnico **Verzel 
 
 O produto permitirá que um organizador publique eventos a partir de um catálogo externo, clientes reservem e comprem ingressos com pagamento simulado e profissionais de portaria validem os ingressos por QR Code ou código manual.
 
-> **Status:** scaffold inicial implementado localmente. Os fluxos do produto ainda não foram implementados e a aplicação não foi publicada.
+> **Status:** fundação web, catálogo demonstrativo e autenticação implementados localmente. Eventos, compra e portaria ainda não foram implementados. A aplicação não foi publicada.
 
 ## Fluxo principal
 
@@ -19,7 +19,7 @@ O produto permitirá que um organizador publique eventos a partir de um catálog
 
 - Next.js 16, React 19 e TypeScript no frontend.
 - NestJS 11 e TypeScript sobre Node.js 24 LTS no backend.
-- PostgreSQL 18 como banco planejado; a integração com Drizzle ainda não foi implementada.
+- PostgreSQL 18 como fonte de verdade, com Drizzle ORM e migrations SQL versionadas.
 - PostgreSQL Full Text Search na primeira versão.
 - pnpm 11 workspaces, sem orquestrador adicional.
 - Docker Compose para validar as imagens de produção localmente.
@@ -36,6 +36,7 @@ Toda a documentação necessária para desenvolver e avaliar o projeto é versio
 | [`challenge.md`](./challenge.md) | Enunciado normalizado e critérios de sucesso do desafio. |
 | [`docs/decisoes/index.md`](./docs/decisoes/index.md) | Índice cronológico das decisões técnicas aprovadas. |
 | [`docs/plans/2026-08-10-monorepo-scaffold.md`](./docs/plans/2026-08-10-monorepo-scaffold.md) | Plano aprovado do scaffold inicial. |
+| [`docs/plans/2026-08-10-auth-cadastro-e-recuperacao.md`](./docs/plans/2026-08-10-auth-cadastro-e-recuperacao.md) | Plano aprovado de autenticação, cadastro e recuperação. |
 | [`AGENTS.md`](./AGENTS.md) | Contexto e regras locais para agentes que trabalham no projeto. |
 
 O repositório é a fonte oficial da documentação. Páginas externas podem ser usadas como material de apresentação no futuro, mas não substituirão os arquivos versionados.
@@ -56,6 +57,14 @@ corepack prepare pnpm@11.10.0 --activate
 pnpm install --frozen-lockfile
 ```
 
+Na primeira execução, crie o schema e os dados de avaliação:
+
+```bash
+pnpm db:up
+pnpm db:migrate
+pnpm db:seed
+```
+
 Para iniciar PostgreSQL, web e API em desenvolvimento, com os logs das duas aplicações no mesmo terminal:
 
 ```bash
@@ -67,6 +76,18 @@ pnpm dev
 - Swagger UI: `http://localhost:3001/docs`
 - OpenAPI JSON: `http://localhost:3001/docs/openapi.json`, importável no Bruno.
 - PostgreSQL: `localhost:5432`
+
+O adapter de e-mail local escreve os links de confirmação e recuperação no terminal da API. Para usar o Resend, configure `EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL` e `WEB_BASE_URL` no ambiente antes de iniciar. Um ambiente publicado também deve usar `APP_ENV=production`; nesse modo a API recusa iniciar com o adapter de console.
+
+### Autenticação implementada
+
+- Clientes: `/cadastro`, `/login`, `/confirmar-email`, `/esqueci-senha` e `/redefinir-senha`.
+- Organizadores: `/admin/cadastro`, `/admin/login`, `/admin/confirmar-email`, `/admin/esqueci-senha` e `/admin/redefinir-senha`.
+- Cadastro público somente para cliente e organizador.
+- Confirmação de e-mail obrigatória, sessões opacas revogáveis e recuperação de senha de uso único.
+- Cadastro de organizador com CNPJ validado localmente e endereço preenchido pelo ViaCEP através da API.
+- `ADMIN` autenticável, ainda sem painel global.
+- `ORGANIZER_STAFF` disponível apenas como fixture; o fluxo de convite será a próxima etapa.
 
 Para iniciar somente API e PostgreSQL:
 
@@ -105,23 +126,29 @@ pnpm build
 docker compose config --quiet
 ```
 
-O endpoint `GET http://localhost:3001/` retorna o estado mínimo do scaffold da API.
+O endpoint `GET http://localhost:3001/` retorna o estado da API. Os contratos implementados estão disponíveis no Swagger.
 
 ## Limitações atuais
 
-- A API ainda não acessa o PostgreSQL.
-- Drizzle, migrations e seeds ainda não existem.
-- Autenticação, eventos, reservas, pagamentos, ingressos e validação na portaria ainda não foram implementados.
+- O painel global do administrador ainda não lista clientes ou organizadores.
+- O convite de funcionários do organizador ainda não foi implementado.
+- Eventos, reservas, pagamentos, ingressos e validação na portaria ainda não foram implementados.
+- O adapter de console revela links somente no desenvolvimento local e é proibido quando `APP_ENV=production`.
 - Nenhum ambiente foi publicado.
 
-## Dados de demonstração esperados
+## Dados de demonstração
 
-- Um organizador.
-- Dois clientes.
-- Um usuário de portaria.
-- Ao menos um evento publicado com ingressos disponíveis.
+Após `pnpm db:seed`, as contas abaixo estão verificadas e usam a senha local `TicketOverlord2026!`:
 
-As credenciais serão registradas após a implementação e validação dos seeds.
+| Papel | E-mail |
+| --- | --- |
+| Administrador | `admin@ticketoverlord.local` |
+| Organizador | `organizer@ticketoverlord.local` |
+| Cliente 1 | `customer.one@ticketoverlord.local` |
+| Cliente 2 | `customer.two@ticketoverlord.local` |
+| Portaria, representando convite aceito | `gate@ticketoverlord.local` |
+
+O evento publicado exigido pelo desafio será adicionado com o módulo de eventos.
 
 ## Uso de IA
 

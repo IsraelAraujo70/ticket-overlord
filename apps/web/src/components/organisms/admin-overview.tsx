@@ -43,11 +43,10 @@ const recentEvents = [
 export function AdminOverview() {
   return (
     <div className="flex flex-col gap-8">
-      {/* #todo REMOVE: Replace the temporary implementation notice when the admin flows are connected. */}
       <PageHeader
         eyebrow="Administração"
         title="Visão geral"
-        description="A estrutura do painel está pronta para receber autenticação, catálogo e criação de eventos nas próximas etapas."
+        description="Sua conta está protegida. Catálogo e criação de eventos entram nas próximas etapas."
       />
 
       {/* #todo REMOVE: Replace the temporary admin metrics with API data. */}
@@ -67,7 +66,7 @@ export function AdminOverview() {
         <MetricCard
           icon={UsersIcon}
           label="Organizadores"
-          note="acesso será conectado"
+          note="conta autenticada"
           value="01"
         />
         <MetricCard
