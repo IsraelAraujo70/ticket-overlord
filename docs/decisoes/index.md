@@ -19,3 +19,4 @@ Este diretório contém as decisões técnicas aprovadas para o Ticket Overlord.
 | 2026-08-10 13:00:57 -03:00 | Aceita | [Evolução da busca](./2026-08-10-1300-evolucao-da-busca.md) |
 | 2026-08-10 13:28:14 -03:00 | Aceita | [Execução local e conteinerizada](./2026-08-10-1328-execucao-local-e-containers.md) |
 | 2026-08-10 14:05:54 -03:00 | Aceita | [Swagger como fonte do contrato HTTP](./2026-08-10-1405-swagger-como-fonte-do-contrato.md) |
+| 2026-08-10 14:18:45 -03:00 | Aceita | [Design system e superfícies web](./2026-08-10-1418-design-system-e-superficies-web.md) |
