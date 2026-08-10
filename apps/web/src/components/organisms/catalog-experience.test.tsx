@@ -21,7 +21,7 @@ const event = {
 };
 
 const catalog: CatalogResponse = {
-  featured: event,
+  highlights: [event],
   sections: [{ id: "shows", title: "Shows e festivais", events: [event] }],
   meta: { query: "", total: 1 },
 };
@@ -48,7 +48,7 @@ describe("CatalogExperience", () => {
   it("shows an empty state when no events match", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(() => jsonResponse({ featured: null, sections: [], meta: { query: "x", total: 0 } })),
+      vi.fn(() => jsonResponse({ highlights: [], sections: [], meta: { query: "x", total: 0 } })),
     );
     render(<CatalogExperience />);
     expect(await screen.findByText("Nenhum evento encontrado")).toBeInTheDocument();

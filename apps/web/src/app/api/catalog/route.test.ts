@@ -10,7 +10,11 @@ describe("GET /api/catalog", () => {
     const body = (await response.json()) as CatalogResponse;
 
     expect(response.status).toBe(200);
-    expect(body.featured?.slug).toBe("frequencia-urbana");
+    expect(body.highlights.map((event) => event.slug)).toEqual([
+      "frequencia-urbana",
+      "pulso-eletrico",
+      "sabores-do-brasil",
+    ]);
     expect(body.meta).toEqual({ query: "", total: 8 });
     expect(body.sections.map((section) => section.title)).toEqual([
       "Shows e festivais",
@@ -27,7 +31,17 @@ describe("GET /api/catalog", () => {
     const body = (await response.json()) as CatalogResponse;
 
     expect(body.meta).toEqual({ query: "frequencia", total: 1 });
-    expect(body.featured?.title).toBe("Frequência Urbana");
+    expect(body.highlights[0]?.title).toBe("Frequência Urbana");
     expect(body.sections).toHaveLength(1);
+  });
+
+  it("uses the first matching event when the result is not a primary highlight", async () => {
+    const response = await GET(
+      new NextRequest("http://localhost/api/catalog?query=campinas"),
+    );
+    const body = (await response.json()) as CatalogResponse;
+
+    expect(body.meta.total).toBe(1);
+    expect(body.highlights[0]?.title).toBe("Rir de Nós Mesmos");
   });
 });

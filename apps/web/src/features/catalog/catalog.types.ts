@@ -21,7 +21,7 @@ export interface CatalogSection {
 }
 
 export interface CatalogResponse {
-  featured: CatalogEvent | null;
+  highlights: CatalogEvent[];
   sections: CatalogSection[];
   meta: {
     query: string;

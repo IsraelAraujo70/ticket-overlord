@@ -29,7 +29,7 @@ export const mockCatalog: CatalogEvent[] = [
     priceLabel: "a partir de R$ 110",
     imageUrl: "/images/events/concert-hero.webp",
     imageAlt: "Festival ao ar livre com luzes azuis e público animado",
-    featured: false,
+    featured: true,
   },
   {
     id: "event-003",
@@ -44,7 +44,7 @@ export const mockCatalog: CatalogEvent[] = [
     priceLabel: "a partir de R$ 45",
     imageUrl: "/images/events/gastronomy.webp",
     imageAlt: "Festival gastronômico ao ar livre durante o pôr do sol",
-    featured: false,
+    featured: true,
   },
   {
     id: "event-004",

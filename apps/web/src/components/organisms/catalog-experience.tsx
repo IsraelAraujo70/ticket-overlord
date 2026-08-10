@@ -72,9 +72,9 @@ export function CatalogExperience() {
             action={<Button onClick={() => void loadCatalog(query)}>Tentar novamente</Button>}
           />
         ) : null}
-        {!isLoading && !error && catalog?.featured ? (
+        {!isLoading && !error && catalog?.highlights.length ? (
           <>
-            <LandingHero event={catalog.featured} />
+            <LandingHero key={catalog.meta.query} events={catalog.highlights} />
             {query ? (
               <div className="border-b bg-card">
                 <p className="mx-auto max-w-7xl px-5 py-4 text-sm text-muted-foreground lg:px-8">
@@ -85,7 +85,7 @@ export function CatalogExperience() {
             <EventLineup sections={catalog.sections} />
           </>
         ) : null}
-        {!isLoading && !error && catalog && !catalog.featured ? (
+        {!isLoading && !error && catalog && !catalog.highlights.length ? (
           <CatalogMessage
             icon={SearchXIcon}
             title="Nenhum evento encontrado"

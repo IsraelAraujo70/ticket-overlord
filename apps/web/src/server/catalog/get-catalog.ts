@@ -29,9 +29,10 @@ export async function getCatalog(query = ""): Promise<CatalogResponse> {
     ? mockCatalog.filter((event) => matchesQuery(event, normalizedQuery))
     : mockCatalog;
   const categories = [...new Set(events.map((event) => event.category))];
+  const featuredEvents = events.filter((event) => event.featured);
 
   return {
-    featured: events.find((event) => event.featured) ?? events[0] ?? null,
+    highlights: featuredEvents.length ? featuredEvents : events.slice(0, 1),
     sections: categories.map((category) => ({
       id: normalize(category).replace(/\s+/g, "-"),
       title: category,
