@@ -17,3 +17,4 @@ Este diretório contém as decisões técnicas aprovadas para o Ticket Overlord.
 | 2026-08-10 13:00:57 -03:00 | Aceita | [Stack principal e plataforma de deploy](./2026-08-10-1300-stack-e-deploy.md) |
 | 2026-08-10 13:00:57 -03:00 | Aceita | [Ports and adapters pragmático](./2026-08-10-1300-ports-and-adapters-pragmatico.md) |
 | 2026-08-10 13:00:57 -03:00 | Aceita | [Evolução da busca](./2026-08-10-1300-evolucao-da-busca.md) |
+| 2026-08-10 13:28:14 -03:00 | Aceita | [Execução local e conteinerizada](./2026-08-10-1328-execucao-local-e-containers.md) |

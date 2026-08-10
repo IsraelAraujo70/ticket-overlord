@@ -1,0 +1,9 @@
+.git
+.gitignore
+.next
+coverage
+dist
+node_modules
+*.log
+.env
+.env.*

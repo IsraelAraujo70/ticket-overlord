@@ -1,0 +1,21 @@
+{
+  "name": "ticket-overlord",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "pnpm@11.10.0",
+  "engines": {
+    "node": ">=24 <25",
+    "pnpm": ">=11 <12"
+  },
+  "scripts": {
+    "dev": "pnpm db:up && DATABASE_URL=${DATABASE_URL:-postgresql://ticket_overlord:ticket_overlord@localhost:5432/ticket_overlord} pnpm --parallel --stream --filter @ticket-overlord/web --filter @ticket-overlord/api dev",
+    "dev:web": "pnpm --filter @ticket-overlord/web dev",
+    "dev:api": "pnpm db:up && DATABASE_URL=${DATABASE_URL:-postgresql://ticket_overlord:ticket_overlord@localhost:5432/ticket_overlord} pnpm --filter @ticket-overlord/api dev",
+    "dev:docker": "docker compose up --build",
+    "dev:down": "docker compose down",
+    "db:up": "docker compose up -d --wait postgres",
+    "lint": "pnpm --recursive --if-present lint",
+    "test": "pnpm --recursive --if-present test && pnpm --recursive --if-present test:e2e",
+    "build": "pnpm --recursive --if-present build"
+  }
+}

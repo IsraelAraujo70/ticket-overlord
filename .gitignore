@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Builds and test output
+.next/
+dist/
+coverage/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Logs and local tooling
+*.log
+.DS_Store
+.idea/
+.vscode/
+
+# TypeScript
+*.tsbuildinfo
