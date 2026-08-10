@@ -8,10 +8,9 @@ import { cn } from "@/lib/utils";
 interface PublicHeaderProps {
   isLoading: boolean;
   query: string;
-  onSearch: (query: string) => void;
 }
 
-export function PublicHeader({ isLoading, query, onSearch }: PublicHeaderProps) {
+export function PublicHeader({ isLoading, query }: PublicHeaderProps) {
   return (
     <header className="sticky top-0 z-50 bg-primary text-primary-foreground shadow-lg shadow-ticket-ink/10">
       <div className="mx-auto grid max-w-7xl grid-cols-[1fr_auto] items-center gap-x-4 gap-y-3 px-5 py-3 md:grid-cols-[auto_minmax(18rem,1fr)_auto] lg:gap-x-8 lg:px-8">
@@ -19,7 +18,7 @@ export function PublicHeader({ isLoading, query, onSearch }: PublicHeaderProps) 
           <Logo inverted />
         </Link>
         <div className="col-span-2 row-start-2 w-full md:col-span-1 md:col-start-2 md:row-start-1 md:mx-auto md:max-w-3xl">
-          <CatalogSearch defaultValue={query} isLoading={isLoading} onSearch={onSearch} />
+          <CatalogSearch defaultValue={query} isLoading={isLoading} />
         </div>
         <nav className="flex items-center gap-2" aria-label="Conta do cliente">
           <Link

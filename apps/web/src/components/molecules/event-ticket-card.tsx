@@ -54,6 +54,7 @@ export function EventTicketCard({
             <MapPinIcon className="size-4" aria-hidden="true" />
             {location}
           </p>
+          {/* #todo REMOVE: Replace the temporary disabled action when ticket sales are connected. */}
           <Button variant="outline" className="self-start" disabled>
             Ingressos em breve
           </Button>

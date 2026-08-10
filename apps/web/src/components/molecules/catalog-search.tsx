@@ -6,23 +6,18 @@ import { Input } from "@/components/ui/input";
 interface CatalogSearchProps {
   defaultValue?: string;
   isLoading?: boolean;
-  onSearch: (query: string) => void;
 }
 
 export function CatalogSearch({
   defaultValue = "",
   isLoading = false,
-  onSearch,
 }: CatalogSearchProps) {
   return (
     <form
+      action="/search"
+      method="get"
       className="flex w-full overflow-hidden rounded-lg bg-white p-1 shadow-lg shadow-ticket-ink/10"
       role="search"
-      onSubmit={(event) => {
-        event.preventDefault();
-        const data = new FormData(event.currentTarget);
-        onSearch(String(data.get("query") ?? ""));
-      }}
     >
       <label htmlFor="catalog-query" className="sr-only">
         Pesquisar eventos
@@ -30,7 +25,7 @@ export function CatalogSearch({
       <Input
         id="catalog-query"
         key={defaultValue}
-        name="query"
+        name="q"
         defaultValue={defaultValue}
         placeholder="Pesquise por evento, cidade ou categoria"
         className="h-11 border-0 bg-transparent text-ticket-ink shadow-none focus-visible:ring-0"

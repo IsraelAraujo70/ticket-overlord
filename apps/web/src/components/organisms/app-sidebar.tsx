@@ -26,6 +26,7 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 
+// #todo REMOVE: Enable the temporary disabled navigation items when their admin routes are available.
 const navItems = [
   { title: "Visão geral", icon: ChartNoAxesCombinedIcon, available: true },
   { title: "Eventos", icon: CalendarDaysIcon, available: false },

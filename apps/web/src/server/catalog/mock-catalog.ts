@@ -1,5 +1,6 @@
 import type { CatalogEvent } from "@/features/catalog/catalog.types";
 
+// #todo REMOVE: Replace the temporary catalog records when the apps/api catalog route is available.
 export const mockCatalog: CatalogEvent[] = [
   {
     id: "event-001",

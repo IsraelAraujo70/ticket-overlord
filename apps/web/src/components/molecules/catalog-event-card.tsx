@@ -44,6 +44,7 @@ export function CatalogEventCard({ event }: { event: CatalogEvent }) {
             {event.priceLabel}
           </p>
         </div>
+        {/* #todo REMOVE: Replace the temporary disabled action when ticket sales are connected. */}
         <Button variant="outline" disabled className="w-full">
           Venda em breve
         </Button>

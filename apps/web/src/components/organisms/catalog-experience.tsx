@@ -14,16 +14,15 @@ import type { CatalogResponse } from "@/features/catalog/catalog.types";
 
 export function CatalogExperience() {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
-  const [query, setQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
 
-  const loadCatalog = useCallback(async (nextQuery: string, signal?: AbortSignal) => {
+  const loadCatalog = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true);
     setError(false);
 
     try {
-      setCatalog(await requestCatalog(nextQuery, signal));
+      setCatalog(await requestCatalog(signal));
     } catch (requestError) {
       if (requestError instanceof DOMException && requestError.name === "AbortError") {
         return;
@@ -38,7 +37,7 @@ export function CatalogExperience() {
 
   useEffect(() => {
     const controller = new AbortController();
-    requestCatalog("", controller.signal)
+    requestCatalog(controller.signal)
       .then(setCatalog)
       .catch((requestError: unknown) => {
         if (!(requestError instanceof DOMException && requestError.name === "AbortError")) {
@@ -53,44 +52,32 @@ export function CatalogExperience() {
     return () => controller.abort();
   }, []);
 
-  function handleSearch(nextQuery: string) {
-    const normalizedQuery = nextQuery.trim();
-    setQuery(normalizedQuery);
-    void loadCatalog(normalizedQuery);
-  }
-
   return (
     <div className="min-h-screen bg-background">
-      <PublicHeader isLoading={isLoading} query={query} onSearch={handleSearch} />
+      <PublicHeader isLoading={isLoading} query="" />
       <main aria-busy={isLoading}>
         {isLoading && !catalog ? <CatalogLoading /> : null}
         {!isLoading && error ? (
           <CatalogMessage
             icon={AlertCircleIcon}
             title="Não foi possível carregar a agenda"
-            description="Tente novamente. Seus dados de busca continuam aqui."
-            action={<Button onClick={() => void loadCatalog(query)}>Tentar novamente</Button>}
+            description="Tente novamente para carregar a programação."
+            action={<Button onClick={() => void loadCatalog()}>Tentar novamente</Button>}
           />
         ) : null}
         {!isLoading && !error && catalog?.highlights.length ? (
           <>
-            <LandingHero key={catalog.meta.query} events={catalog.highlights} />
-            {query ? (
-              <div className="border-b bg-card">
-                <p className="mx-auto max-w-7xl px-5 py-4 text-sm text-muted-foreground lg:px-8">
-                  {catalog.meta.total} {catalog.meta.total === 1 ? "resultado" : "resultados"} para <strong className="text-foreground">“{catalog.meta.query}”</strong>
-                </p>
-              </div>
-            ) : null}
+            <LandingHero events={catalog.highlights} />
             <EventLineup sections={catalog.sections} />
           </>
         ) : null}
         {!isLoading && !error && catalog && !catalog.highlights.length ? (
+          // #todo REMOVE: Replace the temporary catalog availability message when the API is connected.
           <CatalogMessage
             icon={SearchXIcon}
             title="Nenhum evento encontrado"
-            description={`Não encontramos resultados para “${catalog.meta.query}”. Tente outra cidade, atração ou categoria.`}
-            action={<Button variant="outline" onClick={() => handleSearch("")}>Limpar busca</Button>}
+            description="A agenda está vazia. Volte em breve para conferir novos eventos."
+            action={<Button variant="outline" onClick={() => void loadCatalog()}>Atualizar agenda</Button>}
           />
         ) : null}
         <OrganizerBanner />
@@ -100,9 +87,8 @@ export function CatalogExperience() {
   );
 }
 
-async function requestCatalog(nextQuery: string, signal?: AbortSignal) {
-  const search = nextQuery ? `?query=${encodeURIComponent(nextQuery)}` : "";
-  const response = await fetch(`/api/catalog${search}`, {
+async function requestCatalog(signal?: AbortSignal) {
+  const response = await fetch("/api/catalog", {
     headers: { Accept: "application/json" },
     signal,
   });

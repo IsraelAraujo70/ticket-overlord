@@ -21,6 +21,7 @@ export function LoginCard() {
       <CardHeader>
         <div className="mb-5 flex items-center justify-between gap-4">
           <Logo />
+          {/* #todo REMOVE: Remove the temporary stage badge when admin authentication is connected. */}
           <Badge variant="secondary">Próxima etapa</Badge>
         </div>
         <CardTitle>
@@ -34,6 +35,7 @@ export function LoginCard() {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {/* #todo REMOVE: Enable and connect the temporary admin authentication fields. */}
         <form aria-label="Login demonstrativo">
           <FieldGroup>
             <Field data-disabled>
@@ -65,6 +67,7 @@ export function LoginCard() {
         </form>
       </CardContent>
       <CardFooter className="justify-between gap-4">
+        {/* #todo REMOVE: Remove the temporary integration notice when authentication is available. */}
         <p className="text-xs text-muted-foreground">
           Autenticação ainda não implementada.
         </p>

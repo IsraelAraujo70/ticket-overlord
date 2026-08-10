@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 
+// #todo REMOVE: Replace the temporary admin event records with API data.
 const recentEvents = [
   {
     name: "Frequência urbana",
@@ -42,12 +43,14 @@ const recentEvents = [
 export function AdminOverview() {
   return (
     <div className="flex flex-col gap-8">
+      {/* #todo REMOVE: Replace the temporary implementation notice when the admin flows are connected. */}
       <PageHeader
         eyebrow="Administração"
         title="Visão geral"
         description="A estrutura do painel está pronta para receber autenticação, catálogo e criação de eventos nas próximas etapas."
       />
 
+      {/* #todo REMOVE: Replace the temporary admin metrics with API data. */}
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           icon={CalendarCheckIcon}
@@ -75,6 +78,7 @@ export function AdminOverview() {
         />
       </div>
 
+      {/* #todo REMOVE: Replace the temporary static event preview with the event management flow. */}
       <Card id="events">
         <CardHeader>
           <CardTitle>Eventos recentes</CardTitle>

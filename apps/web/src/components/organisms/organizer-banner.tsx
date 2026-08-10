@@ -10,6 +10,7 @@ export function OrganizerBanner() {
             Seu evento merece uma plateia.
           </h2>
         </div>
+        {/* #todo REMOVE: Replace the temporary completion notice with the organizer acquisition action. */}
         <p className="max-w-sm text-sm leading-6 font-medium md:text-right">
           O canal para novos organizadores será disponibilizado após a conclusão da plataforma.
         </p>

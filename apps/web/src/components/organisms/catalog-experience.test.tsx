@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CatalogExperience } from "@/components/organisms/catalog-experience";
@@ -54,27 +54,19 @@ describe("CatalogExperience", () => {
     expect(await screen.findByText("Nenhum evento encontrado")).toBeInTheDocument();
   });
 
-  it("fetches a filtered catalog from the search form", async () => {
-    const fetchMock = vi
-      .fn()
-      .mockImplementationOnce(() => jsonResponse(catalog))
-      .mockImplementationOnce(() =>
-        jsonResponse({ ...catalog, meta: { query: "teatro", total: 1 } }),
-      );
+  it("keeps search navigation separate from the home catalog", async () => {
+    const fetchMock = vi.fn(() => jsonResponse(catalog));
     vi.stubGlobal("fetch", fetchMock);
     render(<CatalogExperience />);
 
     expect(await screen.findAllByText("Frequência Urbana")).toHaveLength(2);
-    fireEvent.change(screen.getByLabelText("Pesquisar eventos"), {
-      target: { value: "teatro" },
-    });
-    fireEvent.submit(screen.getByRole("search"));
-
-    await waitFor(() => {
-      expect(fetchMock).toHaveBeenLastCalledWith(
-        "/api/catalog?query=teatro",
-        expect.objectContaining({ headers: { Accept: "application/json" } }),
-      );
-    });
+    expect(screen.getByRole("search")).toHaveAttribute("action", "/search");
+    expect(screen.getByRole("search")).toHaveAttribute("method", "get");
+    expect(screen.getByLabelText("Pesquisar eventos")).toHaveAttribute("name", "q");
+    expect(fetchMock).toHaveBeenCalledOnce();
+    expect(fetchMock).toHaveBeenCalledWith(
+      "/api/catalog",
+      expect.objectContaining({ headers: { Accept: "application/json" } }),
+    );
   });
 });

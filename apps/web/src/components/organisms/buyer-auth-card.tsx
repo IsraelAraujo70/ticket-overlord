@@ -26,6 +26,7 @@ export function BuyerAuthCard({ mode }: BuyerAuthCardProps) {
       <CardHeader>
         <div className="mb-5 flex items-center justify-between gap-4">
           <Link href="/" aria-label="Voltar ao início"><Logo /></Link>
+          {/* #todo REMOVE: Remove the temporary availability badge when customer authentication is connected. */}
           <Badge variant="secondary">Em breve</Badge>
         </div>
         <CardTitle>
@@ -40,6 +41,7 @@ export function BuyerAuthCard({ mode }: BuyerAuthCardProps) {
         </CardDescription>
       </CardHeader>
       <CardContent>
+        {/* #todo REMOVE: Enable and connect the temporary customer authentication fields. */}
         <form aria-label={isLogin ? "Login do cliente" : "Cadastro do cliente"}>
           <FieldGroup>
             {!isLogin ? (
@@ -63,6 +65,7 @@ export function BuyerAuthCard({ mode }: BuyerAuthCardProps) {
         </form>
       </CardContent>
       <CardFooter className="flex-col items-start gap-3 border-t text-sm">
+        {/* #todo REMOVE: Remove the temporary integration notice when authentication is available. */}
         <p className="text-muted-foreground">Autenticação ainda não conectada.</p>
         <p>
           {isLogin ? "Ainda não tem conta?" : "Já tem uma conta?"}{" "}
