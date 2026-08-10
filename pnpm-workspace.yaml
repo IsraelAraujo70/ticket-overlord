@@ -3,5 +3,6 @@ packages:
 
 allowBuilds:
   '@nestjs/core': true
+  '@scarf/scarf': false
   sharp: true
   unrs-resolver: true

@@ -65,6 +65,7 @@ pnpm dev
 
 - Web: `http://localhost:3000`
 - API: `http://localhost:3001`
+- Swagger UI: `http://localhost:3001/docs`
 - PostgreSQL: `localhost:5432`
 
 Para iniciar somente API e PostgreSQL:

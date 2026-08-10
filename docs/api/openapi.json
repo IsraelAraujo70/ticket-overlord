@@ -3,7 +3,8 @@
   "info": {
     "title": "Ticket Overlord API",
     "version": "0.1.0",
-    "description": "Contrato HTTP dos endpoints implementados pela API do Ticket Overlord."
+    "description": "Contrato HTTP dos endpoints implementados pela API do Ticket Overlord.",
+    "contact": {}
   },
   "servers": [
     {
@@ -24,6 +25,7 @@
         "summary": "Consultar o estado da API",
         "description": "Retorna a identificação do serviço e confirma que o processo HTTP está respondendo.",
         "tags": ["Status"],
+        "parameters": [],
         "responses": {
           "200": {
             "description": "API disponível.",
@@ -31,10 +33,6 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ApiStatus"
-                },
-                "example": {
-                  "name": "ticket-overlord-api",
-                  "status": "ok"
                 }
               }
             }
@@ -47,16 +45,17 @@
     "schemas": {
       "ApiStatus": {
         "type": "object",
-        "additionalProperties": false,
         "required": ["name", "status"],
         "properties": {
           "name": {
             "type": "string",
-            "const": "ticket-overlord-api"
+            "enum": ["ticket-overlord-api"],
+            "example": "ticket-overlord-api"
           },
           "status": {
             "type": "string",
-            "const": "ok"
+            "enum": ["ok"],
+            "example": "ok"
           }
         }
       }
