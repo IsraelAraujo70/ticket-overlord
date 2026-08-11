@@ -1,9 +1,11 @@
-export interface ApiErrorBody {
+import "server-only";
+
+export interface BackendErrorBody {
   code?: string;
   message?: string | string[];
 }
 
-export class ApiRequestError extends Error {
+export class BackendRequestError extends Error {
   constructor(
     readonly status: number,
     readonly code: string | undefined,
@@ -13,18 +15,18 @@ export class ApiRequestError extends Error {
   }
 }
 
-export function apiBaseUrl(): string {
+export function backendBaseUrl(): string {
   return (process.env.API_BASE_URL ?? "http://localhost:3001").replace(/\/$/, "");
 }
 
-export async function apiRequest<T>(
+export async function backendRequest<T>(
   path: string,
   init?: RequestInit,
 ): Promise<T> {
   let response: Response;
 
   try {
-    response = await fetch(`${apiBaseUrl()}${path}`, {
+    response = await fetch(`${backendBaseUrl()}${path}`, {
       ...init,
       headers: {
         Accept: "application/json",
@@ -34,7 +36,7 @@ export async function apiRequest<T>(
       cache: "no-store",
     });
   } catch {
-    throw new ApiRequestError(
+    throw new BackendRequestError(
       503,
       "API_UNAVAILABLE",
       "Não foi possível acessar o serviço. Tente novamente.",
@@ -42,10 +44,10 @@ export async function apiRequest<T>(
   }
 
   if (!response.ok) {
-    let error: ApiErrorBody = {};
+    let error: BackendErrorBody = {};
 
     try {
-      error = (await response.json()) as ApiErrorBody;
+      error = (await response.json()) as BackendErrorBody;
     } catch {
       // The stable fallback below is used for non-JSON upstream failures.
     }
@@ -53,7 +55,7 @@ export async function apiRequest<T>(
     const message = Array.isArray(error.message)
       ? error.message[0]
       : error.message;
-    throw new ApiRequestError(
+    throw new BackendRequestError(
       response.status,
       error.code,
       message ?? "Não foi possível concluir a solicitação.",

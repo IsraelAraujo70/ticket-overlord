@@ -2,14 +2,14 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 vi.mock("next/headers", () => ({ cookies: vi.fn() }));
-vi.mock("@/server/api/api-client", () => ({
-  ApiRequestError: class ApiRequestError extends Error {},
-  apiRequest: vi.fn(),
+vi.mock("@/server/backend-client", () => ({
+  BackendRequestError: class BackendRequestError extends Error {},
+  backendRequest: vi.fn(),
 }));
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { apiRequest } from "@/server/api/api-client";
+import { backendRequest } from "@/server/backend-client";
 import {
   confirmEmailAction,
   customerRegisterAction,
@@ -43,7 +43,7 @@ function organizerRegistrationForm(): FormData {
 describe("registration actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(apiRequest).mockResolvedValue(undefined);
+    vi.mocked(backendRequest).mockResolvedValue(undefined);
   });
 
   it("redirects a customer after registration", async () => {
@@ -56,13 +56,13 @@ describe("registration actions", () => {
     await organizerRegisterAction(initialAuthActionState, organizerRegistrationForm());
 
     expect(redirect).toHaveBeenCalledWith("/admin/cadastro/sucesso");
-    expect(apiRequest).toHaveBeenCalledWith(
+    expect(backendRequest).toHaveBeenCalledWith(
       "/auth/register",
       expect.objectContaining({
         body: expect.stringContaining('"phone":"+5535997421900"'),
       }),
     );
-    expect(apiRequest).toHaveBeenCalledWith(
+    expect(backendRequest).toHaveBeenCalledWith(
       "/auth/register",
       expect.objectContaining({
         body: expect.stringContaining('"cnpj":"12ABC34501DE35"'),
@@ -84,7 +84,7 @@ describe("registration actions", () => {
         }),
       }),
     );
-    expect(apiRequest).not.toHaveBeenCalled();
+    expect(backendRequest).not.toHaveBeenCalled();
   });
 });
 
@@ -101,7 +101,7 @@ describe("email confirmation action", () => {
   });
 
   it("persists the first confirmation session and selects the customer area", async () => {
-    vi.mocked(apiRequest).mockResolvedValue({
+    vi.mocked(backendRequest).mockResolvedValue({
       status: "CONFIRMED",
       session: {
         accessToken: "session-token",
@@ -129,7 +129,9 @@ describe("email confirmation action", () => {
   });
 
   it("does not create a cookie from an already used confirmation link", async () => {
-    vi.mocked(apiRequest).mockResolvedValue({ status: "ALREADY_CONFIRMED" });
+    vi.mocked(backendRequest).mockResolvedValue({
+      status: "ALREADY_CONFIRMED",
+    });
     cookieStore.get.mockReturnValue(undefined);
 
     await expect(confirmEmailAction("used-token", "admin")).resolves.toEqual({

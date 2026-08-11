@@ -1,7 +1,10 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { apiRequest, ApiRequestError } from "@/server/api/api-client";
+import {
+  backendRequest,
+  BackendRequestError,
+} from "@/server/backend-client";
 import {
   clearSession,
   getCurrentUser,
@@ -27,7 +30,7 @@ function field(formData: FormData, name: string): string {
 }
 
 function actionError(error: unknown): AuthActionState {
-  if (error instanceof ApiRequestError) {
+  if (error instanceof BackendRequestError) {
     return {
       status: "error",
       message: error.message,
@@ -46,7 +49,7 @@ async function login(
   expectedSurface: "customer" | "admin",
 ): Promise<AuthActionState> {
   try {
-    const result = await apiRequest<LoginResponse>("/auth/login", {
+    const result = await backendRequest<LoginResponse>("/auth/login", {
       method: "POST",
       body: JSON.stringify({
         email: field(formData, "email"),
@@ -59,7 +62,7 @@ async function login(
         : result.user.role === "ORGANIZER" || result.user.role === "ADMIN";
 
     if (!allowed) {
-      await apiRequest<void>("/auth/logout", {
+      await backendRequest<void>("/auth/logout", {
         method: "POST",
         headers: { Authorization: `Bearer ${result.accessToken}` },
       });
@@ -106,7 +109,7 @@ export async function customerRegisterAction(
   }
 
   try {
-    await apiRequest("/auth/register", {
+    await backendRequest("/auth/register", {
       method: "POST",
       body: JSON.stringify({
         accountType: "customer",
@@ -147,7 +150,7 @@ export async function organizerRegisterAction(
   }
 
   try {
-    await apiRequest("/auth/register", {
+    await backendRequest("/auth/register", {
       method: "POST",
       body: JSON.stringify({
         accountType: "organizer",
@@ -182,10 +185,13 @@ export async function confirmEmailAction(
   surface: "customer" | "admin",
 ): Promise<EmailConfirmationActionState> {
   try {
-    const result = await apiRequest<EmailConfirmationResponse>("/auth/email/confirm", {
-      method: "POST",
-      body: JSON.stringify({ token }),
-    });
+    const result = await backendRequest<EmailConfirmationResponse>(
+      "/auth/email/confirm",
+      {
+        method: "POST",
+        body: JSON.stringify({ token }),
+      },
+    );
 
     if (result.status === "CONFIRMED") {
       await persistSession(result.session);
@@ -220,7 +226,7 @@ export async function resendConfirmationAction(
   formData: FormData,
 ): Promise<AuthActionState> {
   try {
-    await apiRequest<void>("/auth/email/resend", {
+    await backendRequest<void>("/auth/email/resend", {
       method: "POST",
       body: JSON.stringify({ email: field(formData, "email") }),
     });
@@ -238,7 +244,7 @@ export async function forgotPasswordAction(
   formData: FormData,
 ): Promise<AuthActionState> {
   try {
-    await apiRequest<void>("/auth/password/forgot", {
+    await backendRequest<void>("/auth/password/forgot", {
       method: "POST",
       body: JSON.stringify({ email: field(formData, "email") }),
     });
@@ -261,7 +267,7 @@ export async function resetPasswordAction(
   }
 
   try {
-    await apiRequest<void>("/auth/password/reset", {
+    await backendRequest<void>("/auth/password/reset", {
       method: "POST",
       body: JSON.stringify({ token, password }),
     });
@@ -280,7 +286,7 @@ export async function logoutAction(): Promise<void> {
 
   if (token) {
     try {
-      await apiRequest<void>("/auth/logout", {
+      await backendRequest<void>("/auth/logout", {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });

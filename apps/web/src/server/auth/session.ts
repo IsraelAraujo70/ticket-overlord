@@ -1,5 +1,5 @@
 import { cookies } from "next/headers";
-import { apiRequest } from "@/server/api/api-client";
+import { backendRequest } from "@/server/backend-client";
 import type { AuthUser, LoginResponse } from "./auth.types";
 
 export const SESSION_COOKIE = "ticket_overlord_session";
@@ -29,7 +29,7 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   }
 
   try {
-    return await apiRequest<AuthUser>("/auth/me", {
+    return await backendRequest<AuthUser>("/auth/me", {
       headers: { Authorization: `Bearer ${token}` },
     });
   } catch {
