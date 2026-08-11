@@ -1,5 +1,6 @@
 import { isValid as isValidCnpj, strip as stripCnpj } from "@fnando/cnpj";
-import { parsePhoneNumber } from "react-phone-number-input";
+// The package root loads its country-picker UI during Server Action evaluation.
+import { parsePhoneNumber } from "react-phone-number-input/input";
 import { z } from "zod";
 import { BRAZILIAN_STATE_CODES } from "@/lib/brazilian-states";
 
