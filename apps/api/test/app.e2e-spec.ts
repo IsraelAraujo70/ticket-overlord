@@ -14,6 +14,8 @@ import {
 } from '../src/auth/application/ports/email-sender';
 import { STRONG_PASSWORD_PATTERN } from '../src/auth/domain/validation/password';
 import { POSTGRES_POOL } from '../src/database/database.constants';
+import { ExternalMovieCatalog } from '../src/events/application/ports/external-movie-catalog';
+import type { ExternalMovie } from '../src/events/domain/event.types';
 import { configureOpenApi } from '../src/openapi';
 
 class InMemoryEmailSender implements EmailSender {
@@ -59,6 +61,30 @@ class FakeAddressProvider implements AddressProvider {
   }
 }
 
+class FakeMovieCatalog extends ExternalMovieCatalog {
+  private readonly movie: ExternalMovie = {
+    externalId: '157336',
+    title: 'Interestelar',
+    summary: 'Uma jornada para além das estrelas.',
+    releaseDate: '2014-11-05',
+    imageUrl: 'https://image.tmdb.org/t/p/w500/poster.jpg',
+  };
+
+  search(query: string): Promise<ExternalMovie[]> {
+    return Promise.resolve(
+      this.movie.title.toLowerCase().includes(query.toLowerCase())
+        ? [this.movie]
+        : [],
+    );
+  }
+
+  findById(externalId: string): Promise<ExternalMovie | null> {
+    return Promise.resolve(
+      externalId === this.movie.externalId ? this.movie : null,
+    );
+  }
+}
+
 const customerRegistration = {
   accountType: 'customer',
   fullName: 'Maria Cliente',
@@ -79,6 +105,8 @@ describe('Ticket Overlord API (e2e)', () => {
       .useValue(emails)
       .overrideProvider(AddressProvider)
       .useClass(FakeAddressProvider)
+      .overrideProvider(ExternalMovieCatalog)
+      .useClass(FakeMovieCatalog)
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -97,7 +125,7 @@ describe('Ticket Overlord API (e2e)', () => {
   beforeEach(async () => {
     emails.clear();
     await pool.query(
-      'TRUNCATE auth_sessions, auth_tokens, organization_members, organizations, users RESTART IDENTITY CASCADE',
+      'TRUNCATE events, auth_sessions, auth_tokens, organization_members, organizations, users RESTART IDENTITY CASCADE',
     );
   });
 
@@ -150,6 +178,28 @@ describe('Ticket Overlord API (e2e)', () => {
               post: { operationId: 'resetPassword' },
             },
             '/addresses/cep/{cep}': { get: { operationId: 'lookup' } },
+            '/external-catalog/movies': {
+              get: {
+                operationId: 'search',
+                security: [{ bearer: [] }],
+              },
+            },
+            '/events': {
+              get: {
+                operationId: 'forOrganizer',
+                security: [{ bearer: [] }],
+              },
+              post: {
+                operationId: 'create',
+                security: [{ bearer: [] }],
+                requestBody: {
+                  content: { 'multipart/form-data': {} },
+                },
+              },
+            },
+            '/events/published': {
+              get: { operationId: 'published' },
+            },
           },
           components: {
             schemas: {
@@ -438,6 +488,145 @@ describe('Ticket Overlord API (e2e)', () => {
         city: 'São Paulo',
         state: 'SP',
       });
+  });
+
+  it('creates a local draft from the external catalog and stores its cover in MinIO', async () => {
+    const organizer = {
+      accountType: 'organizer',
+      fullName: 'Olívia Organizadora',
+      email: 'events-organizer@example.com',
+      password: 'StrongDemo2026!',
+      organization: {
+        name: 'Aurora Eventos',
+        cnpj: '11222333000181',
+        phone: '+5511999999999',
+        address: {
+          postalCode: '01001000',
+          street: 'Praça da Sé',
+          number: '100',
+          neighborhood: 'Sé',
+          city: 'São Paulo',
+          state: 'SP',
+        },
+      },
+    };
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send(organizer)
+      .expect(201);
+    const confirmation = await request(app.getHttpServer())
+      .post('/auth/email/confirm')
+      .send({ token: emails.confirmations[0].token })
+      .expect(200);
+    const token = (confirmation.body as { session: { accessToken: string } })
+      .session.accessToken;
+
+    await request(app.getHttpServer())
+      .get('/external-catalog/movies?query=inter')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect([
+        {
+          externalId: '157336',
+          title: 'Interestelar',
+          summary: 'Uma jornada para além das estrelas.',
+          releaseDate: '2014-11-05',
+          imageUrl: 'https://image.tmdb.org/t/p/w500/poster.jpg',
+        },
+      ]);
+
+    const png = Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+      'base64',
+    );
+    const created = await request(app.getHttpServer())
+      .post('/events')
+      .set('Authorization', `Bearer ${token}`)
+      .field('externalId', '157336')
+      .field('startsAt', '2099-09-05T22:00:00.000Z')
+      .field('venue', 'Cine Belas Artes')
+      .field('city', 'São Paulo')
+      .field('capacity', '150')
+      .field('priceInCents', '4500')
+      .attach('cover', png, { filename: 'cover.png', contentType: 'image/png' })
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          externalSource: 'TMDB',
+          externalId: '157336',
+          title: 'Interestelar',
+          status: 'DRAFT',
+          capacity: 150,
+          priceInCents: 4500,
+          coverContentType: 'image/png',
+        });
+      });
+
+    await request(app.getHttpServer())
+      .get('/events')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect((response) => {
+        expect(response.body).toHaveLength(1);
+      });
+    await request(app.getHttpServer())
+      .get('/events/published')
+      .expect(200)
+      .expect([]);
+
+    const eventId = (created.body as { id: string }).id;
+    const cover = await request(app.getHttpServer())
+      .get(`/events/${eventId}/cover`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200);
+    const storedImage = await fetch((cover.body as { url: string }).url);
+    expect(storedImage.status).toBe(200);
+    expect(storedImage.headers.get('content-type')).toBe('image/png');
+
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({
+        ...organizer,
+        email: 'other-organizer@example.com',
+        organization: {
+          ...organizer.organization,
+          name: 'Outra Organização',
+          cnpj: '12ABC34501DE35',
+          phone: '+5511888888888',
+        },
+      })
+      .expect(201);
+    const otherConfirmation = await request(app.getHttpServer())
+      .post('/auth/email/confirm')
+      .send({ token: emails.confirmations[1].token })
+      .expect(200);
+    const otherToken = (
+      otherConfirmation.body as { session: { accessToken: string } }
+    ).session.accessToken;
+    await request(app.getHttpServer())
+      .get('/events')
+      .set('Authorization', `Bearer ${otherToken}`)
+      .expect(200)
+      .expect([]);
+    await request(app.getHttpServer())
+      .get(`/events/${eventId}/cover`)
+      .set('Authorization', `Bearer ${otherToken}`)
+      .expect(404)
+      .expect({
+        code: 'EVENT_NOT_FOUND',
+        message: 'Evento não encontrado.',
+      });
+
+    const result = await pool.query<{
+      organization_id: string;
+      status: string;
+    }>('SELECT organization_id, status FROM events WHERE id = $1', [eventId]);
+    expect(result.rows).toEqual([
+      {
+        organization_id: expect.any(String) as string,
+        status: 'DRAFT',
+      },
+    ]);
   });
 
   afterAll(async () => {

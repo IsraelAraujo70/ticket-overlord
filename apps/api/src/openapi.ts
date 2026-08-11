@@ -16,6 +16,8 @@ export function configureOpenApi(app: INestApplication): void {
     .addTag('Status', 'Disponibilidade básica da API.')
     .addTag('Authentication', 'Cadastro, sessão e recuperação de conta.')
     .addTag('Addresses', 'Preenchimento de endereço por CEP.')
+    .addTag('External catalog', 'Catálogo de filmes usado para criar eventos.')
+    .addTag('Events', 'Eventos locais e suas capas.')
     .addBearerAuth(
       { type: 'http', scheme: 'bearer', bearerFormat: 'opaque-session' },
       'bearer',

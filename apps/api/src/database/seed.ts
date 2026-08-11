@@ -1,9 +1,12 @@
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import type { UserRole } from '../auth/domain/user-role';
 import { ScryptPasswordHasher } from '../auth/infrastructure/security/scrypt-password-hasher';
-import { organizationMembers, organizations, users } from './schema';
+import { events, organizationMembers, organizations, users } from './schema';
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -15,6 +18,92 @@ const demoPassword = process.env.DEMO_PASSWORD ?? 'TicketOverlord2026!';
 const pool = new Pool({ connectionString });
 const database = drizzle(pool);
 const passwordHasher = new ScryptPasswordHasher();
+const s3Bucket = process.env.S3_BUCKET ?? 'ticket-overlord-events';
+const isProduction = process.env.APP_ENV === 'production';
+const s3Endpoint =
+  process.env.S3_ENDPOINT_URL ??
+  (isProduction ? undefined : 'http://localhost:9000');
+const s3AccessKeyId =
+  process.env.S3_ACCESS_KEY_ID ??
+  (isProduction ? undefined : 'ticket_overlord');
+const s3SecretAccessKey =
+  process.env.S3_SECRET_ACCESS_KEY ??
+  (isProduction ? undefined : 'ticket_overlord_secret');
+const s3Credentials =
+  s3AccessKeyId && s3SecretAccessKey
+    ? { accessKeyId: s3AccessKeyId, secretAccessKey: s3SecretAccessKey }
+    : undefined;
+const s3Client = new S3Client({
+  region: process.env.S3_REGION ?? 'us-east-1',
+  forcePathStyle:
+    (process.env.S3_FORCE_PATH_STYLE ?? (isProduction ? 'false' : 'true')) ===
+    'true',
+  ...(s3Endpoint ? { endpoint: s3Endpoint } : {}),
+  ...(s3Credentials ? { credentials: s3Credentials } : {}),
+});
+
+const demoEvents = [
+  {
+    id: '10000000-0000-4000-8000-000000000001',
+    externalId: '598',
+    slug: 'cidade-de-deus-no-bel-as-artes',
+    title: 'Cidade de Deus',
+    summary:
+      'Uma sessão especial do marco do cinema brasileiro, seguida de conversa sobre direção e montagem.',
+    sourceReleaseDate: '2002-08-30',
+    startsAt: new Date('2026-08-22T19:00:00-03:00'),
+    venue: 'Cine Belas Artes',
+    city: 'São Paulo',
+    capacity: 180,
+    priceInCents: 4500,
+    image: 'concert-hero.webp',
+  },
+  {
+    id: '10000000-0000-4000-8000-000000000002',
+    externalId: '40096',
+    slug: 'o-auto-da-compadecida-sessao-aberta',
+    title: 'O Auto da Compadecida',
+    summary:
+      'Cinema brasileiro ao ar livre com uma das histórias mais queridas do país.',
+    sourceReleaseDate: '2000-09-15',
+    startsAt: new Date('2026-09-05T18:30:00-03:00'),
+    venue: 'Cinemateca Brasileira',
+    city: 'São Paulo',
+    capacity: 320,
+    priceInCents: 3500,
+    image: 'comedy.webp',
+  },
+  {
+    id: '10000000-0000-4000-8000-000000000003',
+    externalId: '446159',
+    slug: 'bacurau-debate-e-cinema',
+    title: 'Bacurau',
+    summary:
+      'Exibição seguida de debate sobre território, memória e o cinema brasileiro contemporâneo.',
+    sourceReleaseDate: '2019-08-29',
+    startsAt: new Date('2026-09-18T20:00:00-03:00'),
+    venue: 'Cine Passeio',
+    city: 'Curitiba',
+    capacity: 140,
+    priceInCents: 4200,
+    image: 'theatre.webp',
+  },
+  {
+    id: '10000000-0000-4000-8000-000000000004',
+    externalId: '666',
+    slug: 'central-do-brasil-restaurado',
+    title: 'Central do Brasil',
+    summary:
+      'Sessão restaurada de um clássico sobre encontros, distância e pertencimento.',
+    sourceReleaseDate: '1998-04-03',
+    startsAt: new Date('2026-09-26T20:30:00-03:00'),
+    venue: 'Estação NET Rio',
+    city: 'Rio de Janeiro',
+    capacity: 210,
+    priceInCents: 4800,
+    image: 'gastronomy.webp',
+  },
+] as const;
 
 async function upsertUser(input: {
   fullName: string;
@@ -142,8 +231,68 @@ async function run(): Promise<void> {
     ])
     .onConflictDoNothing();
 
+  for (const event of demoEvents) {
+    const coverObjectKey = `organizations/${organizationId}/events/${event.id}/cover.webp`;
+    const cover = await readFile(
+      resolve(process.cwd(), '../web/public/images/events', event.image),
+    );
+    await s3Client.send(
+      new PutObjectCommand({
+        Bucket: s3Bucket,
+        Key: coverObjectKey,
+        Body: cover,
+        ContentLength: cover.length,
+        ContentType: 'image/webp',
+      }),
+    );
+    await database
+      .insert(events)
+      .values({
+        id: event.id,
+        organizationId,
+        externalSource: 'TMDB',
+        externalId: event.externalId,
+        slug: event.slug,
+        title: event.title,
+        summary: event.summary,
+        category: 'Cinema',
+        sourceReleaseDate: event.sourceReleaseDate,
+        sourceImageUrl: null,
+        startsAt: event.startsAt,
+        venue: event.venue,
+        city: event.city,
+        capacity: event.capacity,
+        priceInCents: event.priceInCents,
+        currency: 'BRL',
+        coverObjectKey,
+        coverContentType: 'image/webp',
+        status: 'PUBLISHED',
+      })
+      .onConflictDoUpdate({
+        target: events.slug,
+        set: {
+          organizationId,
+          externalSource: 'TMDB',
+          externalId: event.externalId,
+          title: event.title,
+          summary: event.summary,
+          category: 'Cinema',
+          sourceReleaseDate: event.sourceReleaseDate,
+          startsAt: event.startsAt,
+          venue: event.venue,
+          city: event.city,
+          capacity: event.capacity,
+          priceInCents: event.priceInCents,
+          coverObjectKey,
+          coverContentType: 'image/webp',
+          status: 'PUBLISHED',
+          updatedAt: new Date(),
+        },
+      });
+  }
+
   console.log(
-    `Seeded users ${[adminId, organizerId, customerOneId, customerTwoId, staffId].join(', ')} and organization ${organizationId}.`,
+    `Seeded users ${[adminId, organizerId, customerOneId, customerTwoId, staffId].join(', ')}, organization ${organizationId}, and ${demoEvents.length} published events.`,
   );
 }
 

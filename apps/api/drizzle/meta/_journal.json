@@ -8,6 +8,13 @@
       "when": 1786400399378,
       "tag": "0000_auth_foundation",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1786474927235,
+      "tag": "0001_flawless_pandemic",
+      "breakpoints": true
     }
   ]
 }

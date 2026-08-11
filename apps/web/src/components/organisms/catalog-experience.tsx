@@ -73,7 +73,6 @@ export function CatalogExperience({ user = null }: { user?: AuthUser | null }) {
           </>
         ) : null}
         {!isLoading && !error && catalog && !catalog.highlights.length ? (
-          // #todo REMOVE: Replace the temporary catalog availability message when the API is connected.
           <CatalogMessage
             icon={SearchXIcon}
             title="Nenhum evento encontrado"

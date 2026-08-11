@@ -3,6 +3,7 @@ import {
   IsIn,
   IsInt,
   IsNotEmpty,
+  IsOptional,
   IsString,
   IsUrl,
   Max,
@@ -48,11 +49,63 @@ export class EnvironmentVariables {
 
   @IsUrl({ require_tld: false, protocols: ['http', 'https'] })
   WEB_BASE_URL = 'http://localhost:3000';
+
+  @ValidateIf(
+    (environment: EnvironmentVariables) =>
+      environment.APP_ENV === 'production' ||
+      environment.TMDB_READ_ACCESS_TOKEN !== undefined,
+  )
+  @IsString()
+  @IsNotEmpty()
+  TMDB_READ_ACCESS_TOKEN?: string;
+
+  @IsOptional()
+  @IsUrl({ require_tld: false, protocols: ['http', 'https'] })
+  S3_ENDPOINT_URL?: string;
+
+  @IsOptional()
+  @IsUrl({ require_tld: false, protocols: ['http', 'https'] })
+  S3_PUBLIC_ENDPOINT_URL?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  S3_BUCKET = 'ticket-overlord-events';
+
+  @IsString()
+  @IsNotEmpty()
+  S3_REGION = 'us-east-1';
+
+  @ValidateIf(
+    (environment: EnvironmentVariables) =>
+      environment.S3_ACCESS_KEY_ID !== undefined ||
+      environment.S3_SECRET_ACCESS_KEY !== undefined,
+  )
+  @IsString()
+  @IsNotEmpty()
+  S3_ACCESS_KEY_ID?: string;
+
+  @ValidateIf(
+    (environment: EnvironmentVariables) =>
+      environment.S3_ACCESS_KEY_ID !== undefined ||
+      environment.S3_SECRET_ACCESS_KEY !== undefined,
+  )
+  @IsString()
+  @IsNotEmpty()
+  S3_SECRET_ACCESS_KEY?: string;
+
+  @IsIn(['true', 'false'])
+  S3_FORCE_PATH_STYLE = 'true';
+
+  @IsInt()
+  @Min(60)
+  @Max(3600)
+  S3_PRESIGNED_URL_TTL_SECONDS = 900;
 }
 
 export function validateEnvironment(
   values: Record<string, unknown>,
 ): EnvironmentVariables {
+  const isProduction = values.APP_ENV === 'production';
   const environment = plainToInstance(
     EnvironmentVariables,
     {
@@ -61,6 +114,23 @@ export function validateEnvironment(
       EMAIL_PROVIDER: values.EMAIL_PROVIDER ?? 'console',
       PORT: values.PORT ?? 3001,
       WEB_BASE_URL: values.WEB_BASE_URL ?? 'http://localhost:3000',
+      S3_ENDPOINT_URL:
+        values.S3_ENDPOINT_URL ??
+        (isProduction ? undefined : 'http://localhost:9000'),
+      S3_PUBLIC_ENDPOINT_URL:
+        values.S3_PUBLIC_ENDPOINT_URL ??
+        (isProduction ? undefined : 'http://localhost:9000'),
+      S3_BUCKET: values.S3_BUCKET ?? 'ticket-overlord-events',
+      S3_REGION: values.S3_REGION ?? 'us-east-1',
+      S3_ACCESS_KEY_ID:
+        values.S3_ACCESS_KEY_ID ??
+        (isProduction ? undefined : 'ticket_overlord'),
+      S3_SECRET_ACCESS_KEY:
+        values.S3_SECRET_ACCESS_KEY ??
+        (isProduction ? undefined : 'ticket_overlord_secret'),
+      S3_FORCE_PATH_STYLE:
+        values.S3_FORCE_PATH_STYLE ?? (isProduction ? 'false' : 'true'),
+      S3_PRESIGNED_URL_TTL_SECONDS: values.S3_PRESIGNED_URL_TTL_SECONDS ?? 900,
     },
     { enableImplicitConversion: true },
   );

@@ -6,6 +6,7 @@ import { AddressModule } from './address/address.module';
 import { AuthModule } from './auth/auth.module';
 import { validateEnvironment } from './config/environment';
 import { DatabaseModule } from './database/database.module';
+import { EventsModule } from './events/events.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { DatabaseModule } from './database/database.module';
     DatabaseModule,
     AuthModule,
     AddressModule,
+    EventsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

@@ -1,6 +1,6 @@
 # SETUP
 
-Este guia prepara o Ticket Overlord para avaliação local. O fluxo padrão não exige conta em serviços externos: PostgreSQL roda pelo Docker e os links de e-mail são escritos no terminal da API.
+Este guia prepara o Ticket Overlord para avaliação local. PostgreSQL e MinIO rodam pelo Docker, e os links de e-mail são escritos no terminal da API. O catálogo público funciona com os dados do seed; somente a busca administrativa de novos filmes exige um token do TMDb.
 
 ## 1. Pré-requisitos
 
@@ -29,19 +29,21 @@ cp .env.example .env
 
 O `.env.example` usa `EMAIL_PROVIDER=console`. Esse modo permite testar cadastro, confirmação e recuperação sem criar uma conta no Resend. Os links são exibidos nos logs da API e nenhum e-mail real é enviado.
 
+Para testar a criação de eventos, crie um token de leitura da API no TMDb e preencha `TMDB_READ_ACCESS_TOKEN`. Sem ele, o catálogo público continua funcionando, mas a busca em `/admin/eventos/novo` retorna uma mensagem de configuração.
+
 A API carrega automaticamente o arquivo `.env` da raiz. No startup, ela valida as variáveis obrigatórias e encerra com uma mensagem de configuração quando faltarem `DATABASE_URL` ou, no modo Resend, `RESEND_API_KEY` e `RESEND_FROM_EMAIL` válidos.
 
-Nunca versione o `.env` nem uma chave `RESEND_API_KEY`.
+Nunca versione o `.env`, `RESEND_API_KEY` ou `TMDB_READ_ACCESS_TOKEN`.
 
 ## 3. Banco, migrations e dados de avaliação
 
-Prepare o PostgreSQL e aplique as migrations:
+Prepare PostgreSQL e MinIO, crie o bucket local e aplique as migrations:
 
 ```bash
 pnpm dev:prepare
 ```
 
-Carregue um organizador, dois clientes, um administrador e um profissional de portaria:
+Carregue os usuários de avaliação e quatro eventos publicados com suas capas:
 
 ```bash
 pnpm db:seed
@@ -73,8 +75,10 @@ O comando aguarda o healthcheck do PostgreSQL, aplica migrations pendentes e val
 - API: `http://localhost:3001`
 - Swagger: `http://localhost:3001/docs`
 - PostgreSQL: `localhost:5432`
+- MinIO API: `http://localhost:9000`
+- MinIO Console: `http://localhost:9001`
 
-Para iniciar somente API e banco, use `pnpm dev:api`. Para iniciar somente a web, use `pnpm dev:web`.
+Para iniciar somente API e infraestrutura, use `pnpm dev:api`. Para iniciar somente a web, use `pnpm dev:web`.
 
 ## 5. E-mails reais com Resend
 
@@ -108,7 +112,7 @@ pnpm db:seed
 pnpm dev:docker
 ```
 
-Use `Ctrl+C` e depois `pnpm dev:down` para encerrar. O volume do PostgreSQL é preservado.
+Use `Ctrl+C` e depois `pnpm dev:down` para encerrar. Os volumes do PostgreSQL e do MinIO são preservados.
 
 ## 7. Ambiente publicado
 
@@ -131,4 +135,14 @@ Execute `pnpm dev:prepare`. O comando cria o banco, aguarda o healthcheck e apli
 
 ### Portas ocupadas
 
-Altere `WEB_PORT`, `API_PORT`, `POSTGRES_PORT` ou `POSTGRES_TEST_PORT` no `.env` antes de iniciar os serviços.
+Altere `WEB_PORT`, `API_PORT`, `POSTGRES_PORT`, `POSTGRES_TEST_PORT`, `MINIO_PORT` ou `MINIO_CONSOLE_PORT` no `.env` antes de iniciar os serviços.
+
+### A busca do TMDb não está configurada
+
+Crie um token de leitura da API do TMDb, configure `TMDB_READ_ACCESS_TOKEN` no `.env` e reinicie a API. Os eventos publicados pelo seed não dependem desse token.
+
+## 9. Armazenamento em produção
+
+Com `APP_ENV=production`, a API usa o endpoint nativo da AWS, `S3_FORCE_PATH_STYLE=false` e a cadeia padrão de credenciais do AWS SDK. Configure `S3_BUCKET` e `S3_REGION`; prefira uma role IAM da plataforma. Credenciais explícitas continuam aceitas por `S3_ACCESS_KEY_ID` e `S3_SECRET_ACCESS_KEY` quando o ambiente exigir.
+
+Não configure `S3_ENDPOINT_URL` ou `S3_PUBLIC_ENDPOINT_URL` na AWS. Essas variáveis existem para serviços compatíveis com S3, como o MinIO local.

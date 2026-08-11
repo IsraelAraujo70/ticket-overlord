@@ -2,7 +2,7 @@ import type {
   CatalogEvent,
   CatalogResponse,
 } from "@/features/catalog/catalog.types";
-import { mockCatalog } from "@/server/catalog/mock-catalog";
+import { listPublishedEvents } from "@/server/events/events";
 
 function normalize(value: string) {
   return value
@@ -25,9 +25,11 @@ function matchesQuery(event: CatalogEvent, query: string) {
 
 export async function getCatalog(query = ""): Promise<CatalogResponse> {
   const normalizedQuery = query.trim().slice(0, 100);
+  const publishedEvents = await listPublishedEvents();
+  const catalogEvents = publishedEvents.map(toCatalogEvent);
   const events = normalizedQuery
-    ? mockCatalog.filter((event) => matchesQuery(event, normalizedQuery))
-    : mockCatalog;
+    ? catalogEvents.filter((event) => matchesQuery(event, normalizedQuery))
+    : catalogEvents;
   const categories = [...new Set(events.map((event) => event.category))];
   const featuredEvents = events.filter((event) => event.featured);
 
@@ -42,5 +44,41 @@ export async function getCatalog(query = ""): Promise<CatalogResponse> {
       query: normalizedQuery,
       total: events.length,
     },
+  };
+}
+
+function toCatalogEvent(
+  event: Awaited<ReturnType<typeof listPublishedEvents>>[number],
+  index: number,
+): CatalogEvent {
+  const startsAt = new Date(event.startsAt);
+  const date = new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "America/Sao_Paulo",
+  })
+    .format(startsAt)
+    .replace(".", "")
+    .toLocaleUpperCase("pt-BR");
+
+  return {
+    id: event.id,
+    slug: event.slug,
+    title: event.title,
+    summary: event.summary,
+    category: event.category,
+    city: event.city,
+    venue: event.venue,
+    dateLabel: date,
+    startsAt: event.startsAt,
+    priceLabel: `a partir de ${new Intl.NumberFormat("pt-BR", {
+      style: "currency",
+      currency: event.currency,
+    }).format(event.priceInCents / 100)}`,
+    imageUrl: `/api/event-covers/${event.id}`,
+    imageAlt: `Capa do evento ${event.title}`,
+    featured: index < 3,
   };
 }

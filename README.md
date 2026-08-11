@@ -4,7 +4,7 @@ Plataforma de eventos e ingressos desenvolvida para o desafio técnico **Verzel 
 
 O produto permitirá que um organizador publique eventos a partir de um catálogo externo, clientes reservem e comprem ingressos com pagamento simulado e profissionais de portaria validem os ingressos por QR Code ou código manual.
 
-> **Status:** fundação web, catálogo demonstrativo e autenticação implementados localmente. Eventos, compra e portaria ainda não foram implementados. A aplicação não foi publicada.
+> **Status:** autenticação, catálogo público persistido e criação de eventos em rascunho implementados localmente. Compra, ingressos e portaria ainda não foram implementados. A aplicação não foi publicada.
 
 ## Fluxo principal
 
@@ -20,6 +20,8 @@ O produto permitirá que um organizador publique eventos a partir de um catálog
 - Next.js 16, React 19 e TypeScript no frontend.
 - NestJS 11 e TypeScript sobre Node.js 24 LTS no backend.
 - PostgreSQL 18 como fonte de verdade, com Drizzle ORM e migrations SQL versionadas.
+- TMDb como catálogo externo de filmes e eventos locais persistidos no PostgreSQL.
+- MinIO local e AWS S3 em produção para capas privadas com URLs temporárias.
 - PostgreSQL Full Text Search na primeira versão.
 - pnpm 11 workspaces, sem orquestrador adicional.
 - Docker Compose para validar as imagens de produção localmente.
@@ -45,6 +47,7 @@ Toda a documentação necessária para desenvolver e avaliar o projeto é versio
 | [`docs/plans/2026-08-11-admin-under-construction.md`](./docs/plans/2026-08-11-admin-under-construction.md) | Plano aprovado do estado temporário das áreas administrativas. |
 | [`docs/plans/2026-08-11-backend-client-naming.md`](./docs/plans/2026-08-11-backend-client-naming.md) | Plano aprovado para tornar explícito o cliente interno do backend no Next.js. |
 | [`docs/plans/2026-08-11-organizer-registration-fields.md`](./docs/plans/2026-08-11-organizer-registration-fields.md) | Plano aprovado dos campos validados no cadastro de organizadores. |
+| [`docs/plans/2026-08-11-admin-event-creation.md`](./docs/plans/2026-08-11-admin-event-creation.md) | Plano aprovado da criação administrativa de eventos. |
 | [`AGENTS.md`](./AGENTS.md) | Contexto e regras locais para agentes que trabalham no projeto. |
 
 O repositório é a fonte oficial da documentação. Páginas externas podem ser usadas como material de apresentação no futuro, mas não substituirão os arquivos versionados.
@@ -65,7 +68,7 @@ corepack prepare pnpm@11.10.0 --activate
 pnpm install --frozen-lockfile
 ```
 
-`pnpm dev` e `pnpm dev:api` iniciam o PostgreSQL, aguardam o healthcheck, aplicam automaticamente as migrations pendentes e carregam o `.env` da raiz antes de iniciar a API. Se a preparação ou a validação das variáveis falhar, as aplicações não são iniciadas.
+`pnpm dev` e `pnpm dev:api` iniciam PostgreSQL e MinIO, criam o bucket local, aguardam os healthchecks, aplicam automaticamente as migrations pendentes e carregam o `.env` da raiz antes de iniciar a API. Se a preparação ou a validação das variáveis falhar, as aplicações não são iniciadas.
 
 Na primeira execução, prepare o banco e carregue os dados de avaliação:
 
@@ -87,8 +90,12 @@ As migrations podem ser executadas novamente com segurança; o Drizzle aplica so
 - Swagger UI: `http://localhost:3001/docs`
 - OpenAPI JSON: `http://localhost:3001/docs/openapi.json`, importável no Bruno.
 - PostgreSQL: `localhost:5432`
+- MinIO API: `http://localhost:9000`
+- MinIO Console: `http://localhost:9001`
 
 O adapter de e-mail local escreve os links de confirmação e recuperação no terminal da API. Para usar o Resend, configure `EMAIL_PROVIDER=resend`, `RESEND_API_KEY`, `RESEND_FROM_EMAIL` e `WEB_BASE_URL` no ambiente antes de iniciar. Um ambiente publicado também deve usar `APP_ENV=production`; nesse modo a API recusa iniciar com o adapter de console.
+
+O catálogo público e o seed funcionam sem chamar serviços externos. Para buscar e selecionar um filme em `/admin/eventos/novo`, crie um token de leitura da API do TMDb e configure `TMDB_READ_ACCESS_TOKEN` no `.env`.
 
 ### Autenticação implementada
 
@@ -99,6 +106,14 @@ O adapter de e-mail local escreve os links de confirmação e recuperação no t
 - Cadastro de organizador com CNPJ numérico ou alfanumérico, telefone brasileiro em E.164, UF restrita às 27 unidades federativas e endereço preenchido pelo ViaCEP através da API.
 - `ADMIN` autenticável, ainda sem painel global.
 - `ORGANIZER_STAFF` disponível apenas como fixture; o fluxo de convite será a próxima etapa.
+
+### Eventos implementados
+
+- `/admin/eventos` lista somente os eventos da organização autenticada.
+- `/admin/eventos/novo` busca filmes no TMDb e cria um evento local em rascunho com data, local, capacidade, preço e capa.
+- Capas obrigatórias em JPEG, PNG ou WebP, com limite de 5 MiB, são armazenadas no MinIO local através da API compatível com S3.
+- O catálogo público lê somente eventos locais `PUBLISHED`; rascunhos não ficam visíveis.
+- O seed cria quatro sessões publicadas com capas locais, sem depender do TMDb durante a carga.
 
 Para iniciar somente API e PostgreSQL:
 
@@ -143,7 +158,8 @@ O endpoint `GET http://localhost:3001/` retorna o estado da API. Os contratos im
 
 - O painel global do administrador ainda não lista clientes ou organizadores.
 - O convite de funcionários do organizador ainda não foi implementado.
-- Eventos, reservas, pagamentos, ingressos e validação na portaria ainda não foram implementados.
+- Edição, publicação, cancelamento e exclusão de eventos pelo painel ainda não foram implementados.
+- Reservas, pagamentos, ingressos e validação na portaria ainda não foram implementados.
 - O adapter de console revela links somente no desenvolvimento local e é proibido quando `APP_ENV=production`.
 - Nenhum ambiente foi publicado.
 
@@ -159,7 +175,7 @@ Após `pnpm db:seed`, as contas abaixo estão verificadas e usam a senha local `
 | Cliente 2 | `customer.two@ticketoverlord.local` |
 | Portaria, representando convite aceito | `gate@ticketoverlord.local` |
 
-O evento publicado exigido pelo desafio será adicionado com o módulo de eventos.
+O seed também cria quatro eventos de cinema publicados para navegação imediata no catálogo.
 
 ## Uso de IA
 

@@ -13,6 +13,7 @@ export function CatalogEventCard({ event }: { event: CatalogEvent }) {
           src={event.imageUrl}
           alt={event.imageAlt}
           fill
+          unoptimized
           sizes="(max-width: 640px) 92vw, (max-width: 1024px) 45vw, 30vw"
           className="object-cover transition-transform duration-500 group-hover:scale-[1.03]"
         />

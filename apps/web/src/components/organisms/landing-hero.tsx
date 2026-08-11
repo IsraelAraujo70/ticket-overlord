@@ -69,6 +69,7 @@ export function LandingHero({ events }: { events: CatalogEvent[] }) {
           src={event.imageUrl}
           alt={event.imageAlt}
           fill
+          unoptimized
           priority={currentIndex === 0}
           sizes="100vw"
           className="object-cover"

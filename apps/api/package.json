@@ -24,6 +24,8 @@
     "test:e2e": "DATABASE_URL=${TEST_DATABASE_URL:-postgresql://ticket_overlord:ticket_overlord@localhost:5433/ticket_overlord_test} drizzle-kit migrate && DATABASE_URL=${TEST_DATABASE_URL:-postgresql://ticket_overlord:ticket_overlord@localhost:5433/ticket_overlord_test} NODE_ENV=test jest --config ./test/jest-e2e.json --runInBand"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1106.0",
+    "@aws-sdk/s3-request-presigner": "^3.1107.0",
     "@fnando/cnpj": "2.0.0",
     "@nestjs/common": "11.1.28",
     "@nestjs/config": "4.0.4",
@@ -47,6 +49,7 @@
     "@nestjs/testing": "11.1.28",
     "@types/express": "5.0.6",
     "@types/jest": "30.0.0",
+    "@types/multer": "^2.2.0",
     "@types/node": "24.13.3",
     "@types/pg": "^8.21.0",
     "@types/supertest": "7.2.1",

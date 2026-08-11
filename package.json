@@ -9,17 +9,19 @@
   },
   "scripts": {
     "dev": "pnpm dev:prepare && DATABASE_URL=${DATABASE_URL:-postgresql://ticket_overlord:ticket_overlord@localhost:5432/ticket_overlord} pnpm --parallel --stream --filter @ticket-overlord/web --filter @ticket-overlord/api dev",
-    "dev:prepare": "pnpm db:up && pnpm db:migrate",
+    "dev:prepare": "pnpm infra:up && pnpm db:migrate",
     "dev:web": "pnpm --filter @ticket-overlord/web dev",
     "dev:api": "pnpm dev:prepare && DATABASE_URL=${DATABASE_URL:-postgresql://ticket_overlord:ticket_overlord@localhost:5432/ticket_overlord} pnpm --filter @ticket-overlord/api dev",
     "dev:docker": "docker compose up --build",
     "dev:down": "docker compose down",
     "db:up": "docker compose up -d --wait postgres",
+    "infra:up": "docker compose up -d --wait postgres minio && docker compose run --rm minio-init",
     "lint": "pnpm --recursive --if-present lint",
     "db:migrate": "DATABASE_URL=${DATABASE_URL:-postgresql://ticket_overlord:ticket_overlord@localhost:5432/ticket_overlord} pnpm --filter @ticket-overlord/api db:migrate",
     "db:seed": "DATABASE_URL=${DATABASE_URL:-postgresql://ticket_overlord:ticket_overlord@localhost:5432/ticket_overlord} pnpm --filter @ticket-overlord/api db:seed",
     "db:test:up": "docker compose up -d --wait postgres-test",
-    "test": "pnpm db:test:up && pnpm --recursive --if-present test && pnpm --recursive --if-present test:e2e",
+    "test:infra:up": "docker compose up -d --wait postgres-test minio && docker compose run --rm minio-init",
+    "test": "pnpm test:infra:up && pnpm --recursive --if-present test && pnpm --recursive --if-present test:e2e",
     "build": "pnpm --recursive --if-present build"
   }
 }
