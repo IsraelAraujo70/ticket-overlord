@@ -38,6 +38,9 @@ describe("AccountMenu", () => {
     );
 
     expect(await screen.findByText("maria@example.com")).toBeInTheDocument();
-    expect(screen.getByRole("menuitem", { name: "Sair" })).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Sair" })).toHaveClass(
+      "hover:text-accent-foreground",
+      "hover:**:text-accent-foreground",
+    );
   });
 });
