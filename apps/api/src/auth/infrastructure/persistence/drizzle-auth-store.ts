@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, gt, isNull } from 'drizzle-orm';
+import { and, eq, gt, isNotNull, isNull } from 'drizzle-orm';
 import {
   AuthStore,
   type AccountCredentials,
@@ -114,7 +114,22 @@ export class DrizzleAuthStore extends AuthStore {
         .returning({ userId: authTokens.userId });
 
       if (!consumedToken) {
-        return false;
+        const [alreadyConfirmed] = await transaction
+          .select({ userId: authTokens.userId })
+          .from(authTokens)
+          .innerJoin(users, eq(users.id, authTokens.userId))
+          .where(
+            and(
+              eq(authTokens.tokenHash, tokenHash),
+              eq(authTokens.purpose, 'EMAIL_CONFIRMATION'),
+              isNotNull(authTokens.consumedAt),
+              gt(authTokens.expiresAt, now),
+              isNotNull(users.emailVerifiedAt),
+            ),
+          )
+          .limit(1);
+
+        return Boolean(alreadyConfirmed);
       }
 
       await transaction

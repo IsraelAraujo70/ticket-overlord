@@ -171,7 +171,7 @@ describe('Ticket Overlord API (e2e)', () => {
       });
   });
 
-  it('requires one-time email confirmation before creating a session', async () => {
+  it('confirms email idempotently before creating a session', async () => {
     await request(app.getHttpServer())
       .post('/auth/register')
       .send(customerRegistration)
@@ -199,6 +199,10 @@ describe('Ticket Overlord API (e2e)', () => {
     await request(app.getHttpServer())
       .post('/auth/email/confirm')
       .send({ token: confirmationToken })
+      .expect(204);
+    await request(app.getHttpServer())
+      .post('/auth/email/confirm')
+      .send({ token: 'unknown-confirmation-token' })
       .expect(400)
       .expect(({ body }) => {
         expect(body).toMatchObject({ code: 'INVALID_OR_EXPIRED_TOKEN' });
