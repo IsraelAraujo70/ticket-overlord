@@ -57,11 +57,12 @@ corepack prepare pnpm@11.10.0 --activate
 pnpm install --frozen-lockfile
 ```
 
-Na primeira execução, crie o schema e os dados de avaliação:
+`pnpm dev` e `pnpm dev:api` iniciam o PostgreSQL, aguardam o healthcheck e aplicam automaticamente as migrations pendentes antes de iniciar a API. Se a preparação falhar, as aplicações não são iniciadas.
+
+Na primeira execução, prepare o banco e carregue os dados de avaliação:
 
 ```bash
-pnpm db:up
-pnpm db:migrate
+pnpm dev:prepare
 pnpm db:seed
 ```
 
@@ -70,6 +71,8 @@ Para iniciar PostgreSQL, web e API em desenvolvimento, com os logs das duas apli
 ```bash
 pnpm dev
 ```
+
+As migrations podem ser executadas novamente com segurança; o Drizzle aplica somente as que ainda não constam no journal do banco.
 
 - Web: `http://localhost:3000`
 - API: `http://localhost:3001`

@@ -38,6 +38,7 @@ export default function RootLayout({
   return (
     <html
       lang="pt-BR"
+      data-scroll-behavior="smooth"
       className={cn(
         bodyFont.variable,
         displayFont.variable,

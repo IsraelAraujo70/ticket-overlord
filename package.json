@@ -8,9 +8,10 @@
     "pnpm": ">=11 <12"
   },
   "scripts": {
-    "dev": "pnpm db:up && DATABASE_URL=${DATABASE_URL:-postgresql://ticket_overlord:ticket_overlord@localhost:5432/ticket_overlord} pnpm --parallel --stream --filter @ticket-overlord/web --filter @ticket-overlord/api dev",
+    "dev": "pnpm dev:prepare && DATABASE_URL=${DATABASE_URL:-postgresql://ticket_overlord:ticket_overlord@localhost:5432/ticket_overlord} pnpm --parallel --stream --filter @ticket-overlord/web --filter @ticket-overlord/api dev",
+    "dev:prepare": "pnpm db:up && pnpm db:migrate",
     "dev:web": "pnpm --filter @ticket-overlord/web dev",
-    "dev:api": "pnpm db:up && DATABASE_URL=${DATABASE_URL:-postgresql://ticket_overlord:ticket_overlord@localhost:5432/ticket_overlord} pnpm --filter @ticket-overlord/api dev",
+    "dev:api": "pnpm dev:prepare && DATABASE_URL=${DATABASE_URL:-postgresql://ticket_overlord:ticket_overlord@localhost:5432/ticket_overlord} pnpm --filter @ticket-overlord/api dev",
     "dev:docker": "docker compose up --build",
     "dev:down": "docker compose down",
     "db:up": "docker compose up -d --wait postgres",
