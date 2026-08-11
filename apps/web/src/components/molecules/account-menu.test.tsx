@@ -1,0 +1,43 @@
+import { fireEvent, render, screen } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+
+vi.mock("@/server/auth/auth-actions", () => ({ logoutAction: vi.fn() }));
+
+import { AccountMenu } from "@/components/molecules/account-menu";
+import type { AuthUser, UserRole } from "@/server/auth/auth.types";
+
+const labels: Array<[UserRole, string]> = [
+  ["CUSTOMER", "Perfil cliente"],
+  ["ORGANIZER", "Perfil organizador"],
+  ["ADMIN", "Perfil administrador"],
+  ["ORGANIZER_STAFF", "Perfil portaria"],
+];
+
+function user(role: UserRole): AuthUser {
+  return {
+    id: "user-id",
+    fullName: "Maria da Silva",
+    email: "maria@example.com",
+    role,
+    organizationId: role === "CUSTOMER" ? null : "organization-id",
+  };
+}
+
+describe("AccountMenu", () => {
+  it.each(labels)("maps %s to its product label", (role, label) => {
+    render(<AccountMenu user={user(role)} />);
+
+    expect(screen.getByText(label)).toBeInTheDocument();
+  });
+
+  it("opens the account details and logout action", async () => {
+    render(<AccountMenu user={user("CUSTOMER")} />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Abrir menu de Maria da Silva" }),
+    );
+
+    expect(await screen.findByText("maria@example.com")).toBeInTheDocument();
+    expect(screen.getByRole("menuitem", { name: "Sair" })).toBeInTheDocument();
+  });
+});

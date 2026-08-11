@@ -18,10 +18,18 @@ export interface LoginResponse {
   user: AuthUser;
 }
 
+export type EmailConfirmationResponse =
+  | { status: "CONFIRMED"; session: LoginResponse }
+  | { status: "ALREADY_CONFIRMED" };
+
 export interface AuthActionState {
   status: "idle" | "success" | "error";
   message?: string;
   code?: string;
+}
+
+export interface EmailConfirmationActionState extends AuthActionState {
+  redirectTo?: string;
 }
 
 export const initialAuthActionState: AuthActionState = { status: "idle" };

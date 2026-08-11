@@ -124,7 +124,12 @@ describe('Ticket Overlord API (e2e)', () => {
                 responses: { 201: {}, 400: {}, 409: {} },
               },
             },
-            '/auth/email/confirm': { post: { operationId: 'confirmEmail' } },
+            '/auth/email/confirm': {
+              post: {
+                operationId: 'confirmEmail',
+                responses: { 200: {}, 400: {} },
+              },
+            },
             '/auth/login': {
               post: {
                 operationId: 'login',
@@ -171,7 +176,7 @@ describe('Ticket Overlord API (e2e)', () => {
       });
   });
 
-  it('confirms email idempotently before creating a session', async () => {
+  it('confirms email idempotently and creates only one session', async () => {
     await request(app.getHttpServer())
       .post('/auth/register')
       .send(customerRegistration)
@@ -192,14 +197,40 @@ describe('Ticket Overlord API (e2e)', () => {
       });
 
     const confirmationToken = emails.confirmations[0].token;
+    const confirmation = await request(app.getHttpServer())
+      .post('/auth/email/confirm')
+      .send({ token: confirmationToken })
+      .expect(200)
+      .expect((response) => {
+        const body = response.body as {
+          status: string;
+          session: {
+            accessToken: string;
+            user: { email: string; role: string };
+          };
+        };
+        expect(body).toMatchObject({
+          status: 'CONFIRMED',
+          session: {
+            user: {
+              email: customerRegistration.email,
+              role: 'CUSTOMER',
+            },
+          },
+        });
+        expect(body.session.accessToken).toEqual(expect.any(String));
+      });
     await request(app.getHttpServer())
       .post('/auth/email/confirm')
       .send({ token: confirmationToken })
-      .expect(204);
-    await request(app.getHttpServer())
-      .post('/auth/email/confirm')
-      .send({ token: confirmationToken })
-      .expect(204);
+      .expect(200)
+      .expect({ status: 'ALREADY_CONFIRMED' });
+
+    const sessions = await pool.query<{ count: string }>(
+      'SELECT count(*)::text AS count FROM auth_sessions',
+    );
+    expect(sessions.rows[0]?.count).toBe('1');
+
     await request(app.getHttpServer())
       .post('/auth/email/confirm')
       .send({ token: 'unknown-confirmation-token' })
@@ -208,14 +239,9 @@ describe('Ticket Overlord API (e2e)', () => {
         expect(body).toMatchObject({ code: 'INVALID_OR_EXPIRED_TOKEN' });
       });
 
-    const login = await request(app.getHttpServer())
-      .post('/auth/login')
-      .send({
-        email: customerRegistration.email,
-        password: customerRegistration.password,
-      })
-      .expect(200);
-    const accessToken = (login.body as { accessToken: string }).accessToken;
+    const accessToken = (
+      confirmation.body as { session: { accessToken: string } }
+    ).session.accessToken;
 
     await request(app.getHttpServer())
       .get('/auth/me')
@@ -333,7 +359,7 @@ describe('Ticket Overlord API (e2e)', () => {
     await request(app.getHttpServer())
       .post('/auth/email/confirm')
       .send({ token: emails.confirmations[0].token })
-      .expect(204);
+      .expect(200);
     const login = await request(app.getHttpServer())
       .post('/auth/login')
       .send({

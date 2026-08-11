@@ -4,10 +4,17 @@ import { redirect } from "next/navigation";
 import { apiRequest, ApiRequestError } from "@/server/api/api-client";
 import {
   clearSession,
+  getCurrentUser,
   persistSession,
   SESSION_COOKIE,
 } from "@/server/auth/session";
-import type { AuthActionState, LoginResponse } from "./auth.types";
+import type {
+  AuthActionState,
+  AuthUser,
+  EmailConfirmationActionState,
+  EmailConfirmationResponse,
+  LoginResponse,
+} from "./auth.types";
 import { cookies } from "next/headers";
 
 function field(formData: FormData, name: string): string {
@@ -151,16 +158,42 @@ export async function organizerRegisterAction(
   redirect("/admin/cadastro/sucesso");
 }
 
-export async function confirmEmailAction(token: string): Promise<AuthActionState> {
+export async function confirmEmailAction(
+  token: string,
+  surface: "customer" | "admin",
+): Promise<EmailConfirmationActionState> {
   try {
-    await apiRequest<void>("/auth/email/confirm", {
+    const result = await apiRequest<EmailConfirmationResponse>("/auth/email/confirm", {
       method: "POST",
       body: JSON.stringify({ token }),
     });
-    return { status: "success", message: "E-mail confirmado. Você já pode entrar." };
+
+    if (result.status === "CONFIRMED") {
+      await persistSession(result.session);
+      return {
+        status: "success",
+        message: "Seu e-mail foi confirmado.",
+        redirectTo: authenticatedPath(result.session.user),
+      };
+    }
+
+    const currentUser = await getCurrentUser();
+    return {
+      status: "success",
+      message: "Seu e-mail já estava confirmado.",
+      redirectTo: currentUser
+        ? authenticatedPath(currentUser)
+        : surface === "customer"
+          ? "/login"
+          : "/admin/login",
+    };
   } catch (error) {
     return actionError(error);
   }
+}
+
+function authenticatedPath(user: AuthUser): string {
+  return user.role === "CUSTOMER" ? "/" : "/admin";
 }
 
 export async function resendConfirmationAction(

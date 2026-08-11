@@ -52,6 +52,18 @@ export interface CreateSessionInput {
   expiresAt: Date;
 }
 
+export interface ConfirmEmailInput {
+  tokenHash: string;
+  sessionTokenHash: string;
+  sessionExpiresAt: Date;
+  now: Date;
+}
+
+export type ConfirmEmailResult =
+  | { status: 'confirmed'; user: AuthenticatedUser }
+  | { status: 'already_confirmed' }
+  | { status: 'invalid' };
+
 export interface ResetPasswordInput {
   tokenHash: string;
   passwordHash: string;
@@ -63,7 +75,7 @@ export abstract class AuthStore {
     input: RegisterAccountInput,
   ): Promise<EmailRecipient>;
 
-  abstract confirmEmail(tokenHash: string, now: Date): Promise<boolean>;
+  abstract confirmEmail(input: ConfirmEmailInput): Promise<ConfirmEmailResult>;
 
   abstract replaceEmailConfirmationToken(
     input: ReplaceTokenInput,

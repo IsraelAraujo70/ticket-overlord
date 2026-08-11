@@ -36,6 +36,7 @@ import {
   TokenDto,
 } from './dto/auth.dto';
 import {
+  EmailConfirmationResponseDto,
   LoginResponseDto,
   RegistrationResponseDto,
   UserDto,
@@ -62,11 +63,11 @@ export class AuthController {
   }
 
   @Post('email/confirm')
-  @HttpCode(HttpStatus.NO_CONTENT)
+  @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Confirmar o e-mail' })
-  @ApiNoContentResponse({ description: 'E-mail confirmado.' })
+  @ApiOkResponse({ type: EmailConfirmationResponseDto })
   @ApiBadRequestResponse({ description: 'Token inválido ou expirado.' })
-  confirmEmail(@Body() dto: TokenDto): Promise<void> {
+  confirmEmail(@Body() dto: TokenDto): Promise<EmailConfirmationResponseDto> {
     return this.emailVerification.confirm(dto.token);
   }
 

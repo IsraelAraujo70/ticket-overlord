@@ -11,8 +11,9 @@ import { PublicHeader } from "@/components/organisms/public-header";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { CatalogResponse } from "@/features/catalog/catalog.types";
+import type { AuthUser } from "@/server/auth/auth.types";
 
-export function CatalogExperience() {
+export function CatalogExperience({ user = null }: { user?: AuthUser | null }) {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -54,7 +55,7 @@ export function CatalogExperience() {
 
   return (
     <div className="min-h-screen bg-background">
-      <PublicHeader isLoading={isLoading} query="" />
+      <PublicHeader isLoading={isLoading} query="" user={user} />
       <main aria-busy={isLoading}>
         {isLoading && !catalog ? <CatalogLoading /> : null}
         {!isLoading && error ? (

@@ -34,3 +34,11 @@ export class LoginResponseDto {
   @ApiProperty({ type: UserDto })
   user!: UserDto;
 }
+
+export class EmailConfirmationResponseDto {
+  @ApiProperty({ enum: ['CONFIRMED', 'ALREADY_CONFIRMED'] })
+  status!: 'CONFIRMED' | 'ALREADY_CONFIRMED';
+
+  @ApiProperty({ type: LoginResponseDto, required: false })
+  session?: LoginResponseDto;
+}

@@ -3,6 +3,8 @@ import { and, eq, gt, isNotNull, isNull } from 'drizzle-orm';
 import {
   AuthStore,
   type AccountCredentials,
+  type ConfirmEmailInput,
+  type ConfirmEmailResult,
   type CreateSessionInput,
   type EmailRecipient,
   type RegisterAccountInput,
@@ -98,17 +100,17 @@ export class DrizzleAuthStore extends AuthStore {
     }
   }
 
-  async confirmEmail(tokenHash: string, now: Date): Promise<boolean> {
+  async confirmEmail(input: ConfirmEmailInput): Promise<ConfirmEmailResult> {
     return this.database.transaction(async (transaction) => {
       const [consumedToken] = await transaction
         .update(authTokens)
-        .set({ consumedAt: now })
+        .set({ consumedAt: input.now })
         .where(
           and(
-            eq(authTokens.tokenHash, tokenHash),
+            eq(authTokens.tokenHash, input.tokenHash),
             eq(authTokens.purpose, 'EMAIL_CONFIRMATION'),
             isNull(authTokens.consumedAt),
-            gt(authTokens.expiresAt, now),
+            gt(authTokens.expiresAt, input.now),
           ),
         )
         .returning({ userId: authTokens.userId });
@@ -120,24 +122,49 @@ export class DrizzleAuthStore extends AuthStore {
           .innerJoin(users, eq(users.id, authTokens.userId))
           .where(
             and(
-              eq(authTokens.tokenHash, tokenHash),
+              eq(authTokens.tokenHash, input.tokenHash),
               eq(authTokens.purpose, 'EMAIL_CONFIRMATION'),
               isNotNull(authTokens.consumedAt),
-              gt(authTokens.expiresAt, now),
+              gt(authTokens.expiresAt, input.now),
               isNotNull(users.emailVerifiedAt),
             ),
           )
           .limit(1);
 
-        return Boolean(alreadyConfirmed);
+        return alreadyConfirmed
+          ? { status: 'already_confirmed' }
+          : { status: 'invalid' };
       }
 
       await transaction
         .update(users)
-        .set({ emailVerifiedAt: now, updatedAt: now })
+        .set({ emailVerifiedAt: input.now, updatedAt: input.now })
         .where(eq(users.id, consumedToken.userId));
 
-      return true;
+      await transaction.insert(authSessions).values({
+        userId: consumedToken.userId,
+        tokenHash: input.sessionTokenHash,
+        expiresAt: input.sessionExpiresAt,
+      });
+
+      const [user] = await transaction
+        .select({
+          id: users.id,
+          fullName: users.fullName,
+          email: users.email,
+          role: users.role,
+          organizationId: organizationMembers.organizationId,
+        })
+        .from(users)
+        .leftJoin(organizationMembers, eq(organizationMembers.userId, users.id))
+        .where(eq(users.id, consumedToken.userId))
+        .limit(1);
+
+      if (!user) {
+        throw new Error('Confirmed user could not be loaded.');
+      }
+
+      return { status: 'confirmed', user };
     });
   }
 
