@@ -98,7 +98,6 @@ interface EventCreationDraft extends SessionDraft {
 interface CoverSelection {
   file: File;
   previewUrl: string;
-  originalBytes: number;
 }
 
 const emptySession: SessionDraft = {
@@ -263,14 +262,13 @@ export function EventCreationForm() {
         input.value = "";
         replaceCover(null);
         setCoverError(
-          "Não foi possível reduzir essa imagem o suficiente. Escolha outro arquivo.",
+          "Não foi possível preparar essa imagem. Escolha outro arquivo.",
         );
         return;
       }
 
       replaceCover({
         file,
-        originalBytes: original.size,
         previewUrl: URL.createObjectURL(file),
       });
     } catch {
@@ -278,7 +276,7 @@ export function EventCreationForm() {
       input.value = "";
       replaceCover(null);
       setCoverError(
-        "Não foi possível compactar essa imagem. Escolha outro arquivo.",
+        "Não foi possível preparar essa imagem. Escolha outro arquivo.",
       );
     } finally {
       if (attempt === compressionAttemptRef.current) {
@@ -523,7 +521,7 @@ export function EventCreationForm() {
               <StepHeading
                 eyebrow="Identidade visual"
                 title="Escolha a capa"
-                description="A imagem será otimizada no navegador antes de seguir para a API."
+                description="Use uma imagem horizontal que represente bem o evento."
               />
 
               <form
@@ -572,7 +570,7 @@ export function EventCreationForm() {
                       required={!cover}
                     />
                     <FieldDescription>
-                      JPEG, PNG ou WebP com até 5 MiB. A versão enviada será WebP.
+                      Imagem em JPEG, PNG ou WebP com até 5 MiB.
                     </FieldDescription>
                     <FieldError>{coverError}</FieldError>
                   </Field>
@@ -581,22 +579,11 @@ export function EventCreationForm() {
                 {isCompressing ? (
                   <Alert>
                     <Spinner />
-                    <AlertTitle>Compactando imagem</AlertTitle>
+                    <AlertTitle>Preparando imagem</AlertTitle>
                     <AlertDescription>
-                      O arquivo ainda não está sendo enviado.
+                      Aguarde um instante para continuar.
                     </AlertDescription>
                   </Alert>
-                ) : null}
-
-                {cover ? (
-                  <div className="flex flex-wrap gap-2">
-                    <Badge variant="outline">
-                      Original: {formatBytes(cover.originalBytes)}
-                    </Badge>
-                    <Badge variant="secondary">
-                      Pronta para envio: {formatBytes(cover.file.size)} · WebP
-                    </Badge>
-                  </div>
                 ) : null}
               </form>
             </CardContent>
@@ -679,11 +666,6 @@ export function EventCreationForm() {
                       />
                     </dl>
                   </CardContent>
-                  <CardFooter>
-                    <span className="text-sm text-muted-foreground">
-                      Capa otimizada para {formatBytes(cover.file.size)}
-                    </span>
-                  </CardFooter>
                 </Card>
               </div>
 
@@ -958,11 +940,6 @@ function webpFile(compressed: File, original: File): File {
     type: "image/webp",
     lastModified: original.lastModified,
   });
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KiB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MiB`;
 }
 
 function formatStartsAt(value: string): string {

@@ -90,7 +90,7 @@ describe("EventCreationForm", () => {
     fireEvent.change(coverInput, { target: { files: [original] } });
 
     expect(
-      await screen.findByText("Pronta para envio: 512 KiB · WebP"),
+      await screen.findByRole("img", { name: "Prévia da capa compactada" }),
     ).toBeInTheDocument();
     expect(mocks.compress).toHaveBeenCalledWith(
       original,
