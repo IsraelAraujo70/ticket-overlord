@@ -9,10 +9,9 @@ describe("AdminEventsList", () => {
     render(<AdminEventsList created={false} events={[]} />);
 
     expect(screen.getByText("Nenhum evento criado")).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "Criar primeiro evento" })).toHaveAttribute(
-      "href",
-      "/admin/eventos/novo",
-    );
+    expect(
+      screen.getByRole("link", { name: "Criar primeiro evento" }),
+    ).toHaveAttribute("href", "/admin/eventos/novo");
   });
 
   it("shows the created feedback and the organization events", () => {
@@ -22,6 +21,9 @@ describe("AdminEventsList", () => {
     expect(screen.getByText("Interestelar")).toBeInTheDocument();
     expect(screen.getByText("Rascunho")).toBeInTheDocument();
     expect(screen.getByText(/150 lugares/)).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Publicar evento" }),
+    ).toBeInTheDocument();
   });
 });
 

@@ -109,11 +109,11 @@ O catálogo público e o seed funcionam sem chamar serviços externos. Para busc
 
 ### Eventos implementados
 
-- `/admin/eventos` lista somente os eventos da organização autenticada.
+- `/admin/eventos` lista somente os eventos da organização autenticada e permite publicar seus rascunhos futuros.
 - `/admin/eventos/novo` busca filmes no TMDb e cria um evento local em rascunho com data, local, capacidade, preço e capa.
 - Capas obrigatórias em JPEG, PNG ou WebP, com limite de 5 MiB, são armazenadas no MinIO local através da API compatível com S3.
 - O catálogo público lê somente eventos locais `PUBLISHED`; rascunhos não ficam visíveis.
-- O seed cria quatro sessões publicadas com capas locais, sem depender do TMDb durante a carga.
+- O seed cria uma sessão de cinema publicada com capa local, sem depender do TMDb durante a carga.
 
 Para iniciar somente API e PostgreSQL:
 
@@ -175,7 +175,7 @@ Após `pnpm db:seed`, as contas abaixo estão verificadas e usam a senha local `
 | Cliente 2 | `customer.two@ticketoverlord.local` |
 | Portaria, representando convite aceito | `gate@ticketoverlord.local` |
 
-O seed também cria quatro eventos de cinema publicados para navegação imediata no catálogo.
+O seed também cria um evento de cinema publicado para navegação imediata no catálogo.
 
 ## Uso de IA
 

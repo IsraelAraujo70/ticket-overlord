@@ -4,6 +4,7 @@ import { AuthModule } from '../auth/auth.module';
 import { DatabaseModule } from '../database/database.module';
 import { CreateEventService } from './application/create-event.service';
 import { ListEventsService } from './application/list-events.service';
+import { PublishEventService } from './application/publish-event.service';
 import { EventImageStorage } from './application/ports/event-image-storage';
 import { EventStore } from './application/ports/event-store';
 import { ExternalMovieCatalog } from './application/ports/external-movie-catalog';
@@ -21,6 +22,7 @@ import { ExternalCatalogController } from './presentation/external-catalog.contr
   providers: [
     CreateEventService,
     ListEventsService,
+    PublishEventService,
     SearchExternalMoviesService,
     EventExceptionFilter,
     { provide: ExternalMovieCatalog, useClass: TmdbMovieCatalog },

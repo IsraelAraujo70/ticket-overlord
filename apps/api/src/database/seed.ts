@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { eq } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import type { UserRole } from '../auth/domain/user-role';
@@ -58,51 +58,12 @@ const demoEvents = [
     priceInCents: 4500,
     image: 'concert-hero.webp',
   },
-  {
-    id: '10000000-0000-4000-8000-000000000002',
-    externalId: '40096',
-    slug: 'o-auto-da-compadecida-sessao-aberta',
-    title: 'O Auto da Compadecida',
-    summary:
-      'Cinema brasileiro ao ar livre com uma das histórias mais queridas do país.',
-    sourceReleaseDate: '2000-09-15',
-    startsAt: new Date('2026-09-05T18:30:00-03:00'),
-    venue: 'Cinemateca Brasileira',
-    city: 'São Paulo',
-    capacity: 320,
-    priceInCents: 3500,
-    image: 'comedy.webp',
-  },
-  {
-    id: '10000000-0000-4000-8000-000000000003',
-    externalId: '446159',
-    slug: 'bacurau-debate-e-cinema',
-    title: 'Bacurau',
-    summary:
-      'Exibição seguida de debate sobre território, memória e o cinema brasileiro contemporâneo.',
-    sourceReleaseDate: '2019-08-29',
-    startsAt: new Date('2026-09-18T20:00:00-03:00'),
-    venue: 'Cine Passeio',
-    city: 'Curitiba',
-    capacity: 140,
-    priceInCents: 4200,
-    image: 'theatre.webp',
-  },
-  {
-    id: '10000000-0000-4000-8000-000000000004',
-    externalId: '666',
-    slug: 'central-do-brasil-restaurado',
-    title: 'Central do Brasil',
-    summary:
-      'Sessão restaurada de um clássico sobre encontros, distância e pertencimento.',
-    sourceReleaseDate: '1998-04-03',
-    startsAt: new Date('2026-09-26T20:30:00-03:00'),
-    venue: 'Estação NET Rio',
-    city: 'Rio de Janeiro',
-    capacity: 210,
-    priceInCents: 4800,
-    image: 'gastronomy.webp',
-  },
+] as const;
+
+const obsoleteDemoEventIds = [
+  '10000000-0000-4000-8000-000000000002',
+  '10000000-0000-4000-8000-000000000003',
+  '10000000-0000-4000-8000-000000000004',
 ] as const;
 
 async function upsertUser(input: {
@@ -230,6 +191,10 @@ async function run(): Promise<void> {
       { organizationId, userId: staffId, role: 'STAFF' },
     ])
     .onConflictDoNothing();
+
+  await database
+    .delete(events)
+    .where(inArray(events.id, [...obsoleteDemoEventIds]));
 
   for (const event of demoEvents) {
     const coverObjectKey = `organizations/${organizationId}/events/${event.id}/cover.webp`;

@@ -15,6 +15,7 @@ import { backendRequest } from "@/server/backend-client";
 import { initialEventActionState } from "@/features/events/event.types";
 import {
   createEventAction,
+  publishEventAction,
   searchExternalMoviesAction,
 } from "@/server/events/event-actions";
 
@@ -84,6 +85,27 @@ describe("event actions", () => {
     expect(body.get("capacity")).toBe("150");
     expect(body.get("priceInCents")).toBe("4550");
     expect(revalidatePath).toHaveBeenCalledWith("/admin/eventos");
+  });
+
+  it("publishes an organizer event and refreshes public catalogs", async () => {
+    vi.mocked(backendRequest).mockResolvedValue({});
+    const formData = new FormData();
+    formData.set("eventId", "11111111-1111-4111-8111-111111111111");
+
+    await expect(
+      publishEventAction(initialEventActionState, formData),
+    ).resolves.toEqual({ status: "success" });
+
+    expect(backendRequest).toHaveBeenCalledWith(
+      "/events/11111111-1111-4111-8111-111111111111/publish",
+      {
+        method: "POST",
+        headers: { Authorization: "Bearer session-token" },
+      },
+    );
+    expect(revalidatePath).toHaveBeenCalledWith("/admin/eventos");
+    expect(revalidatePath).toHaveBeenCalledWith("/");
+    expect(revalidatePath).toHaveBeenCalledWith("/search");
   });
 });
 

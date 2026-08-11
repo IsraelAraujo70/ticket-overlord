@@ -43,7 +43,7 @@ Prepare PostgreSQL e MinIO, crie o bucket local e aplique as migrations:
 pnpm dev:prepare
 ```
 
-Carregue os usuários de avaliação e quatro eventos publicados com suas capas:
+Carregue os usuários de avaliação e um evento publicado com sua capa:
 
 ```bash
 pnpm db:seed

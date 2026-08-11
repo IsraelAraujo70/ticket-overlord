@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, desc, eq } from 'drizzle-orm';
+import { and, asc, desc, eq, gt } from 'drizzle-orm';
 import { DATABASE } from '../../../database/database.constants';
 import { events } from '../../../database/schema';
 import type { Database } from '../../../database/database.types';
@@ -24,6 +24,27 @@ export class DrizzleEventStore extends EventStore {
     }
 
     return eventRecord(created);
+  }
+
+  async publishDraftForOrganization(
+    eventId: string,
+    organizationId: string,
+    publishedAt: Date,
+  ): Promise<EventRecord | null> {
+    const [published] = await this.database
+      .update(events)
+      .set({ status: 'PUBLISHED', updatedAt: publishedAt })
+      .where(
+        and(
+          eq(events.id, eventId),
+          eq(events.organizationId, organizationId),
+          eq(events.status, 'DRAFT'),
+          gt(events.startsAt, publishedAt),
+        ),
+      )
+      .returning();
+
+    return published ? eventRecord(published) : null;
   }
 
   async listForOrganization(organizationId: string): Promise<EventRecord[]> {

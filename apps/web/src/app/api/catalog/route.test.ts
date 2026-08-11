@@ -55,7 +55,10 @@ const publishedEvents: AdminEvent[] = [
 
 describe("GET /api/catalog", () => {
   beforeEach(() => {
-    vi.mocked(listPublishedEvents).mockResolvedValue(publishedEvents);
+    vi.mocked(listPublishedEvents).mockResolvedValue([
+      ...publishedEvents,
+      { ...publishedEvents[0], id: "event-5", category: "Shows" },
+    ]);
   });
 
   it("returns the catalog grouped by category", async () => {
@@ -70,6 +73,7 @@ describe("GET /api/catalog", () => {
     ]);
     expect(body.meta).toEqual({ query: "", total: 4 });
     expect(body.sections.map((section) => section.title)).toEqual(["Cinema"]);
+    expect(body.sections[0]?.events).toHaveLength(4);
   });
 
   it("filters by query without requiring accents", async () => {

@@ -2,6 +2,8 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
+  HttpStatus,
   MaxFileSizeValidator,
   Param,
   ParseFilePipe,
@@ -31,6 +33,7 @@ import { AuthGuard } from '../../auth/presentation/auth.guard';
 import { CurrentAuth } from '../../auth/presentation/current-auth.decorator';
 import { CreateEventService } from '../application/create-event.service';
 import { ListEventsService } from '../application/list-events.service';
+import { PublishEventService } from '../application/publish-event.service';
 import { EVENT_IMAGE_MAX_BYTES } from '../domain/event.types';
 import { EventExceptionFilter } from './event-exception.filter';
 import { CreateEventDto, EventCoverUrlDto, EventDto } from './dto/event.dto';
@@ -42,6 +45,7 @@ export class EventsController {
   constructor(
     private readonly createEvent: CreateEventService,
     private readonly listEvents: ListEventsService,
+    private readonly publishEvent: PublishEventService,
   ) {}
 
   @Get('published')
@@ -140,5 +144,24 @@ export class EventsController {
       ...dto,
       cover: cover.buffer,
     });
+  }
+
+  @Post(':eventId/publish')
+  @HttpCode(HttpStatus.OK)
+  @ApiBearerAuth('bearer')
+  @UseGuards(AuthGuard)
+  @ApiOperation({ summary: 'Publicar um evento da organização autenticada' })
+  @ApiOkResponse({ type: EventDto })
+  @ApiBadRequestResponse({
+    description: 'A sessão do evento já começou.',
+  })
+  @ApiUnauthorizedResponse({ description: 'Sessão ausente ou inválida.' })
+  @ApiForbiddenResponse({ description: 'Conta sem permissão de organizador.' })
+  @ApiNotFoundResponse({ description: 'Evento da organização não encontrado.' })
+  publish(
+    @CurrentAuth() auth: AuthenticatedSession,
+    @Param('eventId', ParseUUIDPipe) eventId: string,
+  ): Promise<EventDto> {
+    return this.publishEvent.publish(auth.user, eventId);
   }
 }

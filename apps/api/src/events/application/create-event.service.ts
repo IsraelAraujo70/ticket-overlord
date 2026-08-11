@@ -6,6 +6,7 @@ import {
   EVENT_IMAGE_MAX_BYTES,
   EVENT_IMAGE_TYPES,
   type EventImageType,
+  type EventRecord,
   type PresentedEvent,
 } from '../domain/event.types';
 import { EventImageStorage } from './ports/event-image-storage';
@@ -121,7 +122,7 @@ export function organizerOrganization(user: AuthenticatedUser): string {
 
 /** Converts a stored object key into a response with a short-lived read URL. */
 export async function presentEvent(
-  event: Awaited<ReturnType<EventStore['create']>>,
+  event: EventRecord,
   images: EventImageStorage,
 ): Promise<PresentedEvent> {
   const { coverObjectKey, ...stored } = event;

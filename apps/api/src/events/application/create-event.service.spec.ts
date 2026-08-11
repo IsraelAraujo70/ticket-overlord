@@ -70,6 +70,10 @@ class FakeEventStore extends EventStore {
     });
   }
 
+  publishDraftForOrganization(): Promise<EventRecord | null> {
+    return Promise.resolve(null);
+  }
+
   listForOrganization(): Promise<EventRecord[]> {
     return Promise.resolve([]);
   }

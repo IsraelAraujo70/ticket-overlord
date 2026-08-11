@@ -200,6 +200,19 @@ describe('Ticket Overlord API (e2e)', () => {
             '/events/published': {
               get: { operationId: 'published' },
             },
+            '/events/{eventId}/publish': {
+              post: {
+                operationId: 'publish',
+                security: [{ bearer: [] }],
+                responses: {
+                  200: {},
+                  400: {},
+                  401: {},
+                  403: {},
+                  404: {},
+                },
+              },
+            },
           },
           components: {
             schemas: {
@@ -575,6 +588,9 @@ describe('Ticket Overlord API (e2e)', () => {
       .expect([]);
 
     const eventId = (created.body as { id: string }).id;
+    await request(app.getHttpServer())
+      .get(`/events/published/${eventId}/cover`)
+      .expect(404);
     const cover = await request(app.getHttpServer())
       .get(`/events/${eventId}/cover`)
       .set('Authorization', `Bearer ${token}`)
@@ -616,6 +632,43 @@ describe('Ticket Overlord API (e2e)', () => {
         code: 'EVENT_NOT_FOUND',
         message: 'Evento não encontrado.',
       });
+    await request(app.getHttpServer())
+      .post(`/events/${eventId}/publish`)
+      .set('Authorization', `Bearer ${otherToken}`)
+      .expect(404)
+      .expect({
+        code: 'EVENT_NOT_FOUND',
+        message: 'Evento não encontrado.',
+      });
+
+    await request(app.getHttpServer())
+      .post(`/events/${eventId}/publish`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({ id: eventId, status: 'PUBLISHED' });
+      });
+    await request(app.getHttpServer())
+      .post(`/events/${eventId}/publish`)
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({ id: eventId, status: 'PUBLISHED' });
+      });
+    await request(app.getHttpServer())
+      .get('/events/published')
+      .expect(200)
+      .expect((response) => {
+        const body = response.body as Array<{ id: string; status: string }>;
+        expect(body).toHaveLength(1);
+        expect(body[0]).toMatchObject({
+          id: eventId,
+          status: 'PUBLISHED',
+        });
+      });
+    await request(app.getHttpServer())
+      .get(`/events/published/${eventId}/cover`)
+      .expect(200);
 
     const result = await pool.query<{
       organization_id: string;
@@ -624,7 +677,7 @@ describe('Ticket Overlord API (e2e)', () => {
     expect(result.rows).toEqual([
       {
         organization_id: expect.any(String) as string,
-        status: 'DRAFT',
+        status: 'PUBLISHED',
       },
     ]);
   });

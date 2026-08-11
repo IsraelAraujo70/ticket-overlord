@@ -7,10 +7,7 @@ import type {
   ExternalMovie,
   MovieSearchResult,
 } from "@/features/events/event.types";
-import {
-  backendRequest,
-  BackendRequestError,
-} from "@/server/backend-client";
+import { backendRequest, BackendRequestError } from "@/server/backend-client";
 import { getSessionToken } from "@/server/auth/session";
 
 const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
@@ -122,6 +119,47 @@ export async function createEventAction(
   return { status: "success" };
 }
 
+export async function publishEventAction(
+  _state: EventActionState,
+  formData: FormData,
+): Promise<EventActionState> {
+  const eventId = field(formData, "eventId");
+
+  if (!eventId) {
+    return { status: "error", message: "Evento inválido." };
+  }
+
+  const token = await getSessionToken();
+
+  if (!token) {
+    return { status: "error", message: "Sua sessão expirou. Entre novamente." };
+  }
+
+  try {
+    await backendRequest<AdminEvent>(
+      `/events/${encodeURIComponent(eventId)}/publish`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+  } catch (error) {
+    return {
+      status: "error",
+      code: error instanceof BackendRequestError ? error.code : undefined,
+      message:
+        error instanceof BackendRequestError
+          ? error.message
+          : "Não foi possível publicar o evento.",
+    };
+  }
+
+  revalidatePath("/admin/eventos");
+  revalidatePath("/");
+  revalidatePath("/search");
+  return { status: "success" };
+}
+
 function field(formData: FormData, name: string): string {
   return String(formData.get(name) ?? "").trim();
 }
@@ -133,5 +171,7 @@ function positiveInteger(value: string): number | null {
 
 function priceToCents(value: string): number | null {
   const parsed = Number(value.replace(",", "."));
-  return Number.isFinite(parsed) && parsed > 0 ? Math.round(parsed * 100) : null;
+  return Number.isFinite(parsed) && parsed > 0
+    ? Math.round(parsed * 100)
+    : null;
 }
