@@ -27,6 +27,8 @@ O produto permitirá que um organizador publique eventos a partir de um catálog
 
 As justificativas e consequências dessas escolhas estão registradas nas decisões técnicas.
 
+O backend é organizado por feature. Dentro de cada módulo, `presentation` concentra HTTP, `application` coordena os casos de uso, `domain` mantém regras sem dependência do framework e `infrastructure` implementa persistência e integrações. Ports são usados apenas nas fronteiras reais, como banco de dados, e-mail e ViaCEP.
+
 ## Documentação
 
 Toda a documentação necessária para desenvolver e avaliar o projeto é versionada neste repositório.
@@ -38,6 +40,7 @@ Toda a documentação necessária para desenvolver e avaliar o projeto é versio
 | [`docs/decisoes/index.md`](./docs/decisoes/index.md) | Índice cronológico das decisões técnicas aprovadas. |
 | [`docs/plans/2026-08-10-monorepo-scaffold.md`](./docs/plans/2026-08-10-monorepo-scaffold.md) | Plano aprovado do scaffold inicial. |
 | [`docs/plans/2026-08-10-auth-cadastro-e-recuperacao.md`](./docs/plans/2026-08-10-auth-cadastro-e-recuperacao.md) | Plano aprovado de autenticação, cadastro e recuperação. |
+| [`docs/plans/2026-08-11-backend-modular-refactor.md`](./docs/plans/2026-08-11-backend-modular-refactor.md) | Plano aprovado da refatoração modular do backend. |
 | [`AGENTS.md`](./AGENTS.md) | Contexto e regras locais para agentes que trabalham no projeto. |
 
 O repositório é a fonte oficial da documentação. Páginas externas podem ser usadas como material de apresentação no futuro, mas não substituirão os arquivos versionados.
@@ -58,7 +61,7 @@ corepack prepare pnpm@11.10.0 --activate
 pnpm install --frozen-lockfile
 ```
 
-`pnpm dev` e `pnpm dev:api` iniciam o PostgreSQL, aguardam o healthcheck e aplicam automaticamente as migrations pendentes antes de iniciar a API. Se a preparação falhar, as aplicações não são iniciadas.
+`pnpm dev` e `pnpm dev:api` iniciam o PostgreSQL, aguardam o healthcheck, aplicam automaticamente as migrations pendentes e carregam o `.env` da raiz antes de iniciar a API. Se a preparação ou a validação das variáveis falhar, as aplicações não são iniciadas.
 
 Na primeira execução, prepare o banco e carregue os dados de avaliação:
 

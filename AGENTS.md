@@ -30,7 +30,10 @@ Do not treat plans, README text or an agent completion message as evidence that 
 - Use NestJS and TypeScript on a Node.js LTS release for the backend.
 - Use PostgreSQL as the system of record and Drizzle ORM for database access.
 - Keep critical locking and transactional behavior explicit in SQL when needed.
-- Apply ports and adapters only at real boundaries such as catalog, search, payment and ticket-code generation.
+- Organize each backend feature into `presentation`, `application`, `domain` and `infrastructure` responsibilities.
+- Keep the domain free of NestJS, Drizzle and integration-specific imports.
+- Apply ports only at persistence, transactional and external-integration boundaries.
+- Prefer capability-oriented ports over generic repositories; do not add CQRS, base repositories or speculative abstractions.
 - Start event search with PostgreSQL Full Text Search behind a port.
 - Consider outbox, a worker and Elasticsearch only after the required flow is complete and deployed.
 - Use Railway as the planned deployment platform.

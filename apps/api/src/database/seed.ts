@@ -1,13 +1,9 @@
 import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
-import { PasswordHasher } from '../auth/security/password-hasher';
-import {
-  organizationMembers,
-  organizations,
-  users,
-  type UserRole,
-} from './schema';
+import type { UserRole } from '../auth/domain/user-role';
+import { ScryptPasswordHasher } from '../auth/infrastructure/security/scrypt-password-hasher';
+import { organizationMembers, organizations, users } from './schema';
 
 const connectionString = process.env.DATABASE_URL;
 
@@ -18,7 +14,7 @@ if (!connectionString) {
 const demoPassword = process.env.DEMO_PASSWORD ?? 'TicketOverlord2026!';
 const pool = new Pool({ connectionString });
 const database = drizzle(pool);
-const passwordHasher = new PasswordHasher();
+const passwordHasher = new ScryptPasswordHasher();
 
 async function upsertUser(input: {
   fullName: string;

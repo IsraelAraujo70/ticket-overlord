@@ -4,18 +4,15 @@ import type { INestApplication } from '@nestjs/common';
 import type { Pool } from 'pg';
 import request from 'supertest';
 import type { App } from 'supertest/types';
-import {
-  ADDRESS_PROVIDER,
-  type AddressProvider,
-} from '../src/address/address-provider';
-import { AddressLookupError } from '../src/address/address.types';
+import { AddressProvider } from '../src/address/application/ports/address-provider';
+import { AddressLookupError } from '../src/address/domain/address';
 import { AppModule } from '../src/app.module';
 import {
   EMAIL_SENDER,
   type EmailSender,
   type TransactionalEmail,
-} from '../src/auth/email/email-sender';
-import { STRONG_PASSWORD_PATTERN } from '../src/auth/validation/password';
+} from '../src/auth/application/ports/email-sender';
+import { STRONG_PASSWORD_PATTERN } from '../src/auth/domain/validation/password';
 import { POSTGRES_POOL } from '../src/database/database.constants';
 import { configureOpenApi } from '../src/openapi';
 
@@ -80,7 +77,7 @@ describe('Ticket Overlord API (e2e)', () => {
     })
       .overrideProvider(EMAIL_SENDER)
       .useValue(emails)
-      .overrideProvider(ADDRESS_PROVIDER)
+      .overrideProvider(AddressProvider)
       .useClass(FakeAddressProvider)
       .compile();
 

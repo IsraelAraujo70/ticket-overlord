@@ -1,10 +1,10 @@
 import {
-  Global,
   Inject,
   Injectable,
   Module,
   OnApplicationShutdown,
 } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import * as schema from './schema';
@@ -19,20 +19,16 @@ class DatabaseLifecycle implements OnApplicationShutdown {
   }
 }
 
-@Global()
 @Module({
+  imports: [ConfigModule],
   providers: [
     {
       provide: POSTGRES_POOL,
-      useFactory: () => {
-        const connectionString = process.env.DATABASE_URL;
-
-        if (!connectionString) {
-          throw new Error('DATABASE_URL must be set to start the API.');
-        }
-
-        return new Pool({ connectionString });
-      },
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) =>
+        new Pool({
+          connectionString: config.getOrThrow<string>('DATABASE_URL'),
+        }),
     },
     {
       provide: DATABASE,

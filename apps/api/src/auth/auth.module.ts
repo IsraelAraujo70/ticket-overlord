@@ -1,56 +1,36 @@
 import { Module } from '@nestjs/common';
-import { AuthController } from './auth.controller';
-import { AuthGuard } from './auth.guard';
-import { AuthService } from './auth.service';
-import { ConsoleEmailSender } from './email/console-email-sender';
-import { EMAIL_SENDER, type EmailSender } from './email/email-sender';
-import { ResendEmailSender } from './email/resend-email-sender';
-import { PasswordHasher } from './security/password-hasher';
-import { TokenService } from './security/token-service';
-
-function createEmailSender(): EmailSender {
-  const provider = process.env.EMAIL_PROVIDER ?? 'console';
-  const isProduction =
-    process.env.APP_ENV === 'production' ||
-    (process.env.NODE_ENV === 'production' && process.env.APP_ENV !== 'local');
-  const baseUrl = (process.env.WEB_BASE_URL ?? 'http://localhost:3000').replace(
-    /\/$/,
-    '',
-  );
-
-  if (isProduction && provider !== 'resend') {
-    throw new Error('EMAIL_PROVIDER must be resend in production.');
-  }
-
-  if (provider === 'console' && !isProduction) {
-    return new ConsoleEmailSender(baseUrl);
-  }
-
-  if (provider !== 'resend') {
-    throw new Error(`Unsupported EMAIL_PROVIDER: ${provider}`);
-  }
-
-  const apiKey = process.env.RESEND_API_KEY;
-  const from = process.env.RESEND_FROM_EMAIL;
-
-  if (!apiKey || !from) {
-    throw new Error(
-      'RESEND_API_KEY and RESEND_FROM_EMAIL must be set for the Resend provider.',
-    );
-  }
-
-  return new ResendEmailSender(apiKey, from, baseUrl);
-}
+import { ConfigModule } from '@nestjs/config';
+import { DatabaseModule } from '../database/database.module';
+import { EmailVerificationService } from './application/email-verification.service';
+import { PasswordRecoveryService } from './application/password-recovery.service';
+import { AuthStore } from './application/ports/auth-store';
+import { PasswordHasher } from './application/ports/password-hasher';
+import { TokenGenerator } from './application/ports/token-generator';
+import { RegistrationService } from './application/registration.service';
+import { SessionService } from './application/session.service';
+import { emailSenderProvider } from './infrastructure/email/email-sender.provider';
+import { DrizzleAuthStore } from './infrastructure/persistence/drizzle-auth-store';
+import { ScryptPasswordHasher } from './infrastructure/security/scrypt-password-hasher';
+import { SecureTokenGenerator } from './infrastructure/security/secure-token-generator';
+import { AuthController } from './presentation/auth.controller';
+import { AuthExceptionFilter } from './presentation/auth-exception.filter';
+import { AuthGuard } from './presentation/auth.guard';
 
 @Module({
+  imports: [ConfigModule, DatabaseModule],
   controllers: [AuthController],
   providers: [
-    AuthService,
+    RegistrationService,
+    EmailVerificationService,
+    SessionService,
+    PasswordRecoveryService,
     AuthGuard,
-    PasswordHasher,
-    TokenService,
-    { provide: EMAIL_SENDER, useFactory: createEmailSender },
+    AuthExceptionFilter,
+    emailSenderProvider,
+    { provide: AuthStore, useClass: DrizzleAuthStore },
+    { provide: PasswordHasher, useClass: ScryptPasswordHasher },
+    { provide: TokenGenerator, useClass: SecureTokenGenerator },
   ],
-  exports: [AuthService, AuthGuard],
+  exports: [SessionService, AuthGuard],
 })
 export class AuthModule {}

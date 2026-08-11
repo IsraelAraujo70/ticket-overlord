@@ -29,6 +29,8 @@ cp .env.example .env
 
 O `.env.example` usa `EMAIL_PROVIDER=console`. Esse modo permite testar cadastro, confirmação e recuperação sem criar uma conta no Resend. Os links são exibidos nos logs da API e nenhum e-mail real é enviado.
 
+A API carrega automaticamente o arquivo `.env` da raiz. No startup, ela valida as variáveis obrigatórias e encerra com uma mensagem de configuração quando faltarem `DATABASE_URL` ou, no modo Resend, `RESEND_API_KEY` e `RESEND_FROM_EMAIL` válidos.
+
 Nunca versione o `.env` nem uma chave `RESEND_API_KEY`.
 
 ## 3. Banco, migrations e dados de avaliação
@@ -65,7 +67,7 @@ Inicie PostgreSQL, web e API:
 pnpm dev
 ```
 
-O comando aguarda o healthcheck do PostgreSQL e aplica migrations pendentes antes de iniciar as aplicações.
+O comando aguarda o healthcheck do PostgreSQL, aplica migrations pendentes e valida o `.env` da raiz antes de iniciar as aplicações.
 
 - Web: `http://localhost:3000`
 - API: `http://localhost:3001`
@@ -121,6 +123,7 @@ Esse endereço ainda não deve ser tratado como disponível até o deploy ser co
 - Com `EMAIL_PROVIDER=console`, use o link mostrado no terminal da API.
 - Com `EMAIL_PROVIDER=resend`, confirme a chave, o status `verified` do domínio e o endereço `RESEND_FROM_EMAIL`.
 - Reinicie a API após alterar o `.env`.
+- Verifique no painel do Resend se a mensagem foi aceita, entregue, rejeitada ou suprimida. Uma resposta aceita pela API do Resend não garante que o provedor destinatário a colocou na caixa principal.
 
 ### `relation "users" does not exist`
 

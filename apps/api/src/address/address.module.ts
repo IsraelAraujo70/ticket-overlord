@@ -1,14 +1,16 @@
 import { Module } from '@nestjs/common';
-import { AddressController } from './address.controller';
-import { ADDRESS_PROVIDER } from './address-provider';
-import { AddressService } from './address.service';
-import { ViaCepAddressProvider } from './viacep-address-provider';
+import { AddressService } from './application/address.service';
+import { AddressProvider } from './application/ports/address-provider';
+import { ViaCepAddressProvider } from './infrastructure/viacep-address-provider';
+import { AddressController } from './presentation/address.controller';
+import { AddressExceptionFilter } from './presentation/address-exception.filter';
 
 @Module({
   controllers: [AddressController],
   providers: [
     AddressService,
-    { provide: ADDRESS_PROVIDER, useClass: ViaCepAddressProvider },
+    AddressExceptionFilter,
+    { provide: AddressProvider, useClass: ViaCepAddressProvider },
   ],
   exports: [AddressService],
 })
