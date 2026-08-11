@@ -34,6 +34,7 @@ Toda a documentação necessária para desenvolver e avaliar o projeto é versio
 | Documento | Conteúdo |
 | --- | --- |
 | [`challenge.md`](./challenge.md) | Enunciado normalizado e critérios de sucesso do desafio. |
+| [`docs/SETUP.md`](./docs/SETUP.md) | Setup local, dados de avaliação, e-mail em console ou Resend e solução de problemas. |
 | [`docs/decisoes/index.md`](./docs/decisoes/index.md) | Índice cronológico das decisões técnicas aprovadas. |
 | [`docs/plans/2026-08-10-monorepo-scaffold.md`](./docs/plans/2026-08-10-monorepo-scaffold.md) | Plano aprovado do scaffold inicial. |
 | [`docs/plans/2026-08-10-auth-cadastro-e-recuperacao.md`](./docs/plans/2026-08-10-auth-cadastro-e-recuperacao.md) | Plano aprovado de autenticação, cadastro e recuperação. |

@@ -103,13 +103,11 @@ export async function customerRegisterAction(
         password,
       }),
     });
-    return {
-      status: "success",
-      message: "Conta criada. Confira seu e-mail para confirmar o cadastro.",
-    };
   } catch (error) {
     return actionError(error);
   }
+
+  redirect("/cadastro/sucesso");
 }
 
 export async function organizerRegisterAction(
@@ -146,13 +144,11 @@ export async function organizerRegisterAction(
         },
       }),
     });
-    return {
-      status: "success",
-      message: "Organização criada. Confira seu e-mail para confirmar o cadastro.",
-    };
   } catch (error) {
     return actionError(error);
   }
+
+  redirect("/admin/cadastro/sucesso");
 }
 
 export async function confirmEmailAction(token: string): Promise<AuthActionState> {

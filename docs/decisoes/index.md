@@ -27,3 +27,4 @@ Este diretório contém as decisões técnicas aprovadas para o Ticket Overlord.
 | 2026-08-10 19:11:16 -03:00 | Aceita | [Cadastro de organizador e preenchimento pelo ViaCEP](./2026-08-10-1911-cadastro-organizador-e-viacep.md) |
 | 2026-08-11 10:00:34 -03:00 | Aceita | [Política de senhas fortes](./2026-08-11-1000-politica-de-senhas-fortes.md) |
 | 2026-08-11 10:13:25 -03:00 | Aceita | [Migrations no startup local](./2026-08-11-1013-migrations-no-startup-local.md) |
+| 2026-08-11 10:31:56 -03:00 | Aceita | [Conclusão do cadastro em página dedicada](./2026-08-11-1031-conclusao-do-cadastro.md) |
