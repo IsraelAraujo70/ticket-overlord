@@ -42,6 +42,7 @@ Toda a documentação necessária para desenvolver e avaliar o projeto é versio
 | [`docs/plans/2026-08-10-auth-cadastro-e-recuperacao.md`](./docs/plans/2026-08-10-auth-cadastro-e-recuperacao.md) | Plano aprovado de autenticação, cadastro e recuperação. |
 | [`docs/plans/2026-08-11-backend-modular-refactor.md`](./docs/plans/2026-08-11-backend-modular-refactor.md) | Plano aprovado da refatoração modular do backend. |
 | [`docs/plans/2026-08-11-confirmacao-autologin-cabecalho-autenticado.md`](./docs/plans/2026-08-11-confirmacao-autologin-cabecalho-autenticado.md) | Plano aprovado do login automático após confirmação e do cabeçalho autenticado. |
+| [`docs/plans/2026-08-11-admin-under-construction.md`](./docs/plans/2026-08-11-admin-under-construction.md) | Plano aprovado do estado temporário das áreas administrativas. |
 | [`docs/plans/2026-08-11-organizer-registration-fields.md`](./docs/plans/2026-08-11-organizer-registration-fields.md) | Plano aprovado dos campos validados no cadastro de organizadores. |
 | [`AGENTS.md`](./AGENTS.md) | Contexto e regras locais para agentes que trabalham no projeto. |
 

@@ -1,5 +1,5 @@
-import { AdminOverview } from "@/components/organisms/admin-overview";
+import { UnderConstruction } from "@/components/organisms/under-construction";
 
 export default function AdminPage() {
-  return <AdminOverview />;
+  return <UnderConstruction section="Visão geral" />;
 }

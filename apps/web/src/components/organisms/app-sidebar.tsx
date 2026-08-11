@@ -26,13 +26,12 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar";
 
-// #todo REMOVE: Enable the temporary disabled navigation items when their admin routes are available.
 const navItems = [
-  { title: "Visão geral", icon: ChartNoAxesCombinedIcon, available: true },
-  { title: "Eventos", icon: CalendarDaysIcon, available: false },
-  { title: "Ingressos", icon: TicketCheckIcon, available: false },
-  { title: "Pedidos", icon: ShoppingBagIcon, available: false },
-  { title: "Portaria", icon: ClipboardCheckIcon, available: false },
+  { title: "Visão geral", icon: ChartNoAxesCombinedIcon, href: "/admin" },
+  { title: "Eventos", icon: CalendarDaysIcon, href: "/admin/eventos" },
+  { title: "Ingressos", icon: TicketCheckIcon, href: "/admin/ingressos" },
+  { title: "Pedidos", icon: ShoppingBagIcon, href: "/admin/pedidos" },
+  { title: "Portaria", icon: ClipboardCheckIcon, href: "/admin/portaria" },
 ];
 
 export function AppSidebar() {
@@ -63,24 +62,14 @@ export function AppSidebar() {
             <SidebarMenu>
               {navItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
-                  {item.available ? (
-                    <SidebarMenuButton
-                      render={<Link href="/admin" />}
-                      isActive={pathname === "/admin"}
-                      tooltip={item.title}
-                    >
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </SidebarMenuButton>
-                  ) : (
-                    <SidebarMenuButton
-                      disabled
-                      tooltip={`${item.title}: próxima etapa`}
-                    >
-                      <item.icon />
-                      <span>{item.title}</span>
-                    </SidebarMenuButton>
-                  )}
+                  <SidebarMenuButton
+                    render={<Link href={item.href} />}
+                    isActive={pathname === item.href}
+                    tooltip={item.title}
+                  >
+                    <item.icon />
+                    <span>{item.title}</span>
+                  </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
