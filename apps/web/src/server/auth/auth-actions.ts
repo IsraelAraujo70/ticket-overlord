@@ -14,7 +14,12 @@ import type {
   EmailConfirmationActionState,
   EmailConfirmationResponse,
   LoginResponse,
+  OrganizerRegistrationActionState,
 } from "./auth.types";
+import {
+  firstFieldErrors,
+  organizerRegistrationFieldsSchema,
+} from "@/lib/validation/organizer-registration";
 import { cookies } from "next/headers";
 
 function field(formData: FormData, name: string): string {
@@ -118,13 +123,27 @@ export async function customerRegisterAction(
 }
 
 export async function organizerRegisterAction(
-  _state: AuthActionState,
+  _state: OrganizerRegistrationActionState,
   formData: FormData,
-): Promise<AuthActionState> {
+): Promise<OrganizerRegistrationActionState> {
   const password = String(formData.get("password") ?? "");
 
   if (password !== String(formData.get("passwordConfirmation") ?? "")) {
     return { status: "error", message: "As senhas não coincidem." };
+  }
+
+  const registrationFields = organizerRegistrationFieldsSchema.safeParse({
+    cnpj: field(formData, "cnpj"),
+    phone: field(formData, "phone"),
+    state: field(formData, "state"),
+  });
+
+  if (!registrationFields.success) {
+    return {
+      status: "error",
+      message: "Revise os campos destacados.",
+      fieldErrors: firstFieldErrors(registrationFields.error),
+    };
   }
 
   try {
@@ -137,8 +156,8 @@ export async function organizerRegisterAction(
         password,
         organization: {
           name: field(formData, "organizationName"),
-          cnpj: field(formData, "cnpj"),
-          phone: field(formData, "phone"),
+          cnpj: registrationFields.data.cnpj,
+          phone: registrationFields.data.phone,
           address: {
             postalCode: field(formData, "postalCode"),
             street: field(formData, "street"),
@@ -146,7 +165,7 @@ export async function organizerRegisterAction(
             complement: field(formData, "complement") || undefined,
             neighborhood: field(formData, "neighborhood"),
             city: field(formData, "city"),
-            state: field(formData, "state"),
+            state: registrationFields.data.state,
           },
         },
       }),

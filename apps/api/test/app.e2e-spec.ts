@@ -307,8 +307,8 @@ describe('Ticket Overlord API (e2e)', () => {
       password: 'StrongDemo2026!',
       organization: {
         name: 'Aurora Eventos',
-        cnpj: '11.222.333/0001-81',
-        phone: '(11) 99999-9999',
+        cnpj: '12.ABC.345/01DE-35',
+        phone: '+55 35 99742-1900',
         address: {
           postalCode: '01001-000',
           street: 'Praça da Sé',
@@ -328,9 +328,11 @@ describe('Ticket Overlord API (e2e)', () => {
     const result = await pool.query<{
       role: string;
       cnpj: string;
+      phone: string;
+      state: string;
       member_role: string;
     }>(
-      `SELECT u.role, o.cnpj, om.role AS member_role
+      `SELECT u.role, o.cnpj, o.phone, o.state, om.role AS member_role
        FROM users u
        JOIN organization_members om ON om.user_id = u.id
        JOIN organizations o ON o.id = om.organization_id
@@ -338,7 +340,13 @@ describe('Ticket Overlord API (e2e)', () => {
       [organizer.email],
     );
     expect(result.rows).toEqual([
-      { role: 'ORGANIZER', cnpj: '11222333000181', member_role: 'OWNER' },
+      {
+        role: 'ORGANIZER',
+        cnpj: '12ABC34501DE35',
+        phone: '+5535997421900',
+        state: 'SP',
+        member_role: 'OWNER',
+      },
     ]);
 
     await request(app.getHttpServer())

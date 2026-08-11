@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { AuthError } from '../domain/auth.errors';
 import { isValidCnpj, normalizeCnpj } from '../domain/validation/cnpj';
+import { isBrazilianState } from '../domain/validation/brazilian-state';
+import { normalizeBrazilianPhone } from '../domain/validation/phone';
 import { EmailVerificationService } from './email-verification.service';
 import { AuthStore, type OrganizationRegistration } from './ports/auth-store';
 import { PasswordHasher } from './ports/password-hasher';
@@ -88,7 +90,7 @@ function normalizeOrganization(
   }
 
   const cnpj = normalizeCnpj(command.organization.cnpj);
-  const phone = command.organization.phone.replace(/\D/g, '');
+  const phone = normalizeBrazilianPhone(command.organization.phone);
   const postalCode = command.organization.address.postalCode.replace(/\D/g, '');
   const state = command.organization.address.state.trim().toUpperCase();
 
@@ -96,7 +98,7 @@ function normalizeOrganization(
     throw new AuthError('INVALID_CNPJ', 'Informe um CNPJ válido.');
   }
 
-  if (!/^\d{10,11}$/.test(phone)) {
+  if (!phone) {
     throw new AuthError('INVALID_PHONE', 'Informe um telefone válido.');
   }
 
@@ -104,7 +106,7 @@ function normalizeOrganization(
     throw new AuthError('INVALID_POSTAL_CODE', 'Informe um CEP válido.');
   }
 
-  if (!/^[A-Z]{2}$/.test(state)) {
+  if (!isBrazilianState(state)) {
     throw new AuthError('INVALID_STATE', 'Informe uma UF válida.');
   }
 

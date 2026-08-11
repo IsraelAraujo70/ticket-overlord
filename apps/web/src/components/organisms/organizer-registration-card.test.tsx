@@ -36,6 +36,28 @@ describe("OrganizerRegistrationCard", () => {
     expect(screen.getByLabelText("Logradouro")).toHaveValue("Praça da Sé");
     expect(screen.getByLabelText("Bairro")).toHaveValue("Sé");
     expect(screen.getByLabelText("Cidade")).toHaveValue("São Paulo");
-    expect(screen.getByLabelText("UF")).toHaveValue("SP");
+    expect(screen.getByRole("combobox", { name: "UF" })).toHaveTextContent(
+      "SP - São Paulo",
+    );
+  });
+
+  it("shows every Brazilian federative unit in the UF selector", async () => {
+    render(<OrganizerRegistrationCard />);
+
+    fireEvent.click(screen.getByRole("combobox", { name: "UF" }));
+
+    expect(await screen.findAllByRole("option")).toHaveLength(27);
+    expect(screen.getByRole("option", { name: "DF - Distrito Federal" })).toBeVisible();
+  });
+
+  it("shows CNPJ errors inline on blur", () => {
+    render(<OrganizerRegistrationCard />);
+
+    const cnpj = screen.getByLabelText("CNPJ");
+    fireEvent.change(cnpj, { target: { value: "11.222.333/0001-82" } });
+    fireEvent.blur(cnpj);
+
+    expect(screen.getByText("Informe um CNPJ válido.")).toBeInTheDocument();
+    expect(cnpj).toHaveAttribute("aria-invalid", "true");
   });
 });

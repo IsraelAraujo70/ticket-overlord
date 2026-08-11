@@ -58,4 +58,70 @@ describe('RegistrationService', () => {
       }),
     );
   });
+
+  it('normalizes organizer CNPJ, Brazilian phone and state before persistence', async () => {
+    const registerAccount = jest.fn().mockResolvedValue({
+      id: 'organizer-id',
+      fullName: 'Olívia Organizadora',
+      email: 'organizer@example.com',
+      role: 'ORGANIZER',
+    });
+    const service = new RegistrationService(
+      { registerAccount } as unknown as AuthStore,
+      {
+        hash: jest.fn().mockResolvedValue('password-hash'),
+      } as unknown as PasswordHasher,
+      {
+        generate: jest.fn().mockReturnValue({
+          raw: 'confirmation-token',
+          hash: 'confirmation-hash',
+          expiresAt: new Date('2026-08-12T12:00:00Z'),
+        }),
+      } as unknown as TokenGenerator,
+      {
+        deliver: jest.fn().mockResolvedValue(undefined),
+      } as unknown as EmailVerificationService,
+    );
+
+    await service.register({
+      accountType: 'organizer',
+      fullName: 'Olívia Organizadora',
+      email: 'organizer@example.com',
+      password: 'StrongPassword2026!',
+      organization: {
+        name: 'Aurora Eventos',
+        cnpj: '12.abc.345/01de-35',
+        phone: '+55 35 99742-1900',
+        address: {
+          postalCode: '37705-202',
+          street: 'Rua Lasarina Alvisi Torraca',
+          number: '850',
+          neighborhood: 'Jardim Amaryllis',
+          city: 'Poços de Caldas',
+          state: 'mg',
+        },
+      },
+    });
+
+    expect(registerAccount).toHaveBeenCalledWith({
+      fullName: 'Olívia Organizadora',
+      email: 'organizer@example.com',
+      passwordHash: 'password-hash',
+      role: 'ORGANIZER',
+      organization: {
+        name: 'Aurora Eventos',
+        cnpj: '12ABC34501DE35',
+        phone: '+5535997421900',
+        postalCode: '37705202',
+        street: 'Rua Lasarina Alvisi Torraca',
+        number: '850',
+        complement: null,
+        neighborhood: 'Jardim Amaryllis',
+        city: 'Poços de Caldas',
+        state: 'MG',
+      },
+      confirmationTokenHash: 'confirmation-hash',
+      confirmationExpiresAt: new Date('2026-08-12T12:00:00Z'),
+    });
+  });
 });

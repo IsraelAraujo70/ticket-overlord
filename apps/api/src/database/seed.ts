@@ -101,7 +101,7 @@ async function run(): Promise<void> {
       .update(organizations)
       .set({
         name: 'Aurora Eventos',
-        phone: '11999999999',
+        phone: '+5511999999999',
         postalCode: '01001000',
         street: 'Praça da Sé',
         number: '100',
@@ -118,7 +118,7 @@ async function run(): Promise<void> {
       .values({
         name: 'Aurora Eventos',
         cnpj: '11222333000181',
-        phone: '11999999999',
+        phone: '+5511999999999',
         postalCode: '01001000',
         street: 'Praça da Sé',
         number: '100',

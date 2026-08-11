@@ -24,6 +24,22 @@ function registrationForm(): FormData {
   return formData;
 }
 
+function organizerRegistrationForm(): FormData {
+  const formData = registrationForm();
+  formData.set("fullName", "Olívia Organizadora");
+  formData.set("email", "organizer@example.com");
+  formData.set("organizationName", "Aurora Eventos");
+  formData.set("cnpj", "12.abc.345/01de-35");
+  formData.set("phone", "+55 35 99742-1900");
+  formData.set("postalCode", "37705-202");
+  formData.set("street", "Rua Lasarina Alvisi Torraca");
+  formData.set("number", "850");
+  formData.set("neighborhood", "Jardim Amaryllis");
+  formData.set("city", "Poços de Caldas");
+  formData.set("state", "MG");
+  return formData;
+}
+
 describe("registration actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -37,9 +53,38 @@ describe("registration actions", () => {
   });
 
   it("redirects an organizer after registration", async () => {
-    await organizerRegisterAction(initialAuthActionState, registrationForm());
+    await organizerRegisterAction(initialAuthActionState, organizerRegistrationForm());
 
     expect(redirect).toHaveBeenCalledWith("/admin/cadastro/sucesso");
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/auth/register",
+      expect.objectContaining({
+        body: expect.stringContaining('"phone":"+5535997421900"'),
+      }),
+    );
+    expect(apiRequest).toHaveBeenCalledWith(
+      "/auth/register",
+      expect.objectContaining({
+        body: expect.stringContaining('"cnpj":"12ABC34501DE35"'),
+      }),
+    );
+  });
+
+  it("does not call the API when organizer fields are invalid", async () => {
+    const formData = organizerRegistrationForm();
+    formData.set("phone", "+1 202-555-0104");
+
+    await expect(
+      organizerRegisterAction(initialAuthActionState, formData),
+    ).resolves.toEqual(
+      expect.objectContaining({
+        status: "error",
+        fieldErrors: expect.objectContaining({
+          phone: "Informe um telefone brasileiro válido.",
+        }),
+      }),
+    );
+    expect(apiRequest).not.toHaveBeenCalled();
   });
 });
 

@@ -42,6 +42,7 @@ Toda a documentação necessária para desenvolver e avaliar o projeto é versio
 | [`docs/plans/2026-08-10-auth-cadastro-e-recuperacao.md`](./docs/plans/2026-08-10-auth-cadastro-e-recuperacao.md) | Plano aprovado de autenticação, cadastro e recuperação. |
 | [`docs/plans/2026-08-11-backend-modular-refactor.md`](./docs/plans/2026-08-11-backend-modular-refactor.md) | Plano aprovado da refatoração modular do backend. |
 | [`docs/plans/2026-08-11-confirmacao-autologin-cabecalho-autenticado.md`](./docs/plans/2026-08-11-confirmacao-autologin-cabecalho-autenticado.md) | Plano aprovado do login automático após confirmação e do cabeçalho autenticado. |
+| [`docs/plans/2026-08-11-organizer-registration-fields.md`](./docs/plans/2026-08-11-organizer-registration-fields.md) | Plano aprovado dos campos validados no cadastro de organizadores. |
 | [`AGENTS.md`](./AGENTS.md) | Contexto e regras locais para agentes que trabalham no projeto. |
 
 O repositório é a fonte oficial da documentação. Páginas externas podem ser usadas como material de apresentação no futuro, mas não substituirão os arquivos versionados.
@@ -93,7 +94,7 @@ O adapter de e-mail local escreve os links de confirmação e recuperação no t
 - Organizadores: `/admin/cadastro`, `/admin/login`, `/admin/confirmar-email`, `/admin/esqueci-senha` e `/admin/redefinir-senha`.
 - Cadastro público somente para cliente e organizador.
 - Confirmação de e-mail obrigatória com login automático, sessões opacas revogáveis e recuperação de senha de uso único.
-- Cadastro de organizador com CNPJ validado localmente e endereço preenchido pelo ViaCEP através da API.
+- Cadastro de organizador com CNPJ numérico ou alfanumérico, telefone brasileiro em E.164, UF restrita às 27 unidades federativas e endereço preenchido pelo ViaCEP através da API.
 - `ADMIN` autenticável, ainda sem painel global.
 - `ORGANIZER_STAFF` disponível apenas como fixture; o fluxo de convite será a próxima etapa.
 

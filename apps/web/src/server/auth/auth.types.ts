@@ -28,8 +28,15 @@ export interface AuthActionState {
   code?: string;
 }
 
+export interface OrganizerRegistrationActionState extends AuthActionState {
+  fieldErrors?: Partial<Record<"cnpj" | "phone" | "state", string>>;
+}
+
 export interface EmailConfirmationActionState extends AuthActionState {
   redirectTo?: string;
 }
 
 export const initialAuthActionState: AuthActionState = { status: "idle" };
+export const initialOrganizerRegistrationActionState: OrganizerRegistrationActionState = {
+  status: "idle",
+};

@@ -62,7 +62,10 @@ export class OrganizerAddressDto {
   @MaxLength(120)
   city!: string;
 
-  @ApiProperty({ example: 'SP' })
+  @ApiProperty({
+    example: 'SP',
+    description: 'Sigla de uma das 27 unidades federativas brasileiras.',
+  })
   @IsString()
   @Length(2, 2)
   state!: string;
@@ -75,12 +78,20 @@ export class OrganizerRegistrationDto {
   @MaxLength(180)
   name!: string;
 
-  @ApiProperty({ example: '11.222.333/0001-81' })
+  @ApiProperty({
+    example: '12.ABC.345/01DE-35',
+    description:
+      'CNPJ numérico ou alfanumérico. É persistido sem pontuação e em maiúsculas.',
+  })
   @IsString()
   @IsNotEmpty()
   cnpj!: string;
 
-  @ApiProperty({ example: '(11) 99999-9999' })
+  @ApiProperty({
+    example: '+55 35 99742-1900',
+    description:
+      'Telefone brasileiro em formato nacional ou com +55. É persistido em E.164.',
+  })
   @IsString()
   @IsNotEmpty()
   phone!: string;
