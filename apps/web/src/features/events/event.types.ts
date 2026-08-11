@@ -31,7 +31,7 @@ export interface AdminEvent {
 }
 
 export interface EventActionState {
-  status: "idle" | "error";
+  status: "idle" | "success" | "error";
   message?: string;
   code?: string;
 }

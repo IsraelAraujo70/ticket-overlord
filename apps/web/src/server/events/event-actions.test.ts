@@ -1,7 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
-vi.mock("next/navigation", () => ({ redirect: vi.fn() }));
 vi.mock("@/server/auth/session", () => ({ getSessionToken: vi.fn() }));
 vi.mock("@/server/backend-client", () => ({
   BackendRequestError: class BackendRequestError extends Error {
@@ -11,7 +10,6 @@ vi.mock("@/server/backend-client", () => ({
 }));
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { getSessionToken } from "@/server/auth/session";
 import { backendRequest } from "@/server/backend-client";
 import { initialEventActionState } from "@/features/events/event.types";
@@ -71,7 +69,9 @@ describe("event actions", () => {
     vi.mocked(backendRequest).mockResolvedValue({});
     const formData = eventForm();
 
-    await createEventAction(initialEventActionState, formData);
+    await expect(
+      createEventAction(initialEventActionState, formData),
+    ).resolves.toEqual({ status: "success" });
 
     const request = vi.mocked(backendRequest).mock.calls[0]?.[1];
     expect(request).toMatchObject({
@@ -84,7 +84,6 @@ describe("event actions", () => {
     expect(body.get("capacity")).toBe("150");
     expect(body.get("priceInCents")).toBe("4550");
     expect(revalidatePath).toHaveBeenCalledWith("/admin/eventos");
-    expect(redirect).toHaveBeenCalledWith("/admin/eventos?created=1");
   });
 });
 

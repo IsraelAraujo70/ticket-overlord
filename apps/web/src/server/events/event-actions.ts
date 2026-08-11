@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import type {
   AdminEvent,
   EventActionState,
@@ -120,7 +119,7 @@ export async function createEventAction(
   revalidatePath("/admin/eventos");
   revalidatePath("/");
   revalidatePath("/search");
-  redirect("/admin/eventos?created=1");
+  return { status: "success" };
 }
 
 function field(formData: FormData, name: string): string {
