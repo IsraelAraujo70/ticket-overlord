@@ -25,3 +25,4 @@ Este diretório contém as decisões técnicas aprovadas para o Ticket Overlord.
 | 2026-08-10 19:11:16 -03:00 | Aceita | [Sessões, senhas e tokens de autenticação](./2026-08-10-1911-sessoes-senhas-e-tokens.md) |
 | 2026-08-10 19:11:16 -03:00 | Aceita | [E-mail transacional com Resend](./2026-08-10-1911-email-transacional-com-resend.md) |
 | 2026-08-10 19:11:16 -03:00 | Aceita | [Cadastro de organizador e preenchimento pelo ViaCEP](./2026-08-10-1911-cadastro-organizador-e-viacep.md) |
+| 2026-08-11 10:00:34 -03:00 | Aceita | [Política de senhas fortes](./2026-08-11-1000-politica-de-senhas-fortes.md) |

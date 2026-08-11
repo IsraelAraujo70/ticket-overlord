@@ -25,6 +25,7 @@ describe("OrganizerRegistrationCard", () => {
     );
     render(<OrganizerRegistrationCard />);
 
+    expect(screen.getByRole("meter", { name: "Força da senha" })).toBeInTheDocument();
     const postalCode = screen.getByLabelText("CEP");
     fireEvent.change(postalCode, { target: { value: "01001-000" } });
     fireEvent.blur(postalCode);

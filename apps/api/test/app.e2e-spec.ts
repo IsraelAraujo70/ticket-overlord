@@ -15,6 +15,7 @@ import {
   type EmailSender,
   type TransactionalEmail,
 } from '../src/auth/email/email-sender';
+import { STRONG_PASSWORD_PATTERN } from '../src/auth/validation/password';
 import { POSTGRES_POOL } from '../src/database/database.constants';
 import { configureOpenApi } from '../src/openapi';
 
@@ -65,7 +66,7 @@ const customerRegistration = {
   accountType: 'customer',
   fullName: 'Maria Cliente',
   email: 'maria@example.com',
-  password: 'a secure demo password',
+  password: 'StrongDemo2026!',
 };
 
 describe('Ticket Overlord API (e2e)', () => {
@@ -149,6 +150,18 @@ describe('Ticket Overlord API (e2e)', () => {
             '/addresses/cep/{cep}': { get: { operationId: 'lookup' } },
           },
           components: {
+            schemas: {
+              RegisterDto: {
+                properties: {
+                  password: { pattern: STRONG_PASSWORD_PATTERN.source },
+                },
+              },
+              ResetPasswordDto: {
+                properties: {
+                  password: { pattern: STRONG_PASSWORD_PATTERN.source },
+                },
+              },
+            },
             securitySchemes: {
               bearer: {
                 type: 'http',
@@ -224,12 +237,47 @@ describe('Ticket Overlord API (e2e)', () => {
       .expect(401);
   });
 
+  it('returns a conflict instead of leaking a duplicate-email database error', async () => {
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send(customerRegistration)
+      .expect(201);
+
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({ ...customerRegistration, fullName: 'Outra Pessoa' })
+      .expect(409)
+      .expect({
+        code: 'EMAIL_ALREADY_REGISTERED',
+        message: 'Já existe uma conta com este e-mail.',
+      });
+
+    expect(emails.confirmations).toHaveLength(1);
+  });
+
+  it('rejects passwords that do not meet the strong-password policy', async () => {
+    await request(app.getHttpServer())
+      .post('/auth/register')
+      .send({ ...customerRegistration, password: 'lowercase only password' })
+      .expect(400)
+      .expect((response) => {
+        const body = response.body as { message: unknown };
+        expect(body.message).toEqual(
+          expect.arrayContaining([
+            expect.stringContaining(
+              'A senha deve ter entre 12 e 128 caracteres',
+            ),
+          ]),
+        );
+      });
+  });
+
   it('creates organizer data transactionally and blocks public role injection', async () => {
     const organizer = {
       accountType: 'organizer',
       fullName: 'Olívia Organizadora',
       email: 'organizer@example.com',
-      password: 'a secure demo password',
+      password: 'StrongDemo2026!',
       organization: {
         name: 'Aurora Eventos',
         cnpj: '11.222.333/0001-81',
@@ -310,7 +358,11 @@ describe('Ticket Overlord API (e2e)', () => {
     expect(emails.passwordResets).toHaveLength(2);
 
     const resetToken = emails.passwordResets[1].token;
-    const newPassword = 'a different secure password';
+    const newPassword = 'DifferentDemo2026!';
+    await request(app.getHttpServer())
+      .post('/auth/password/reset')
+      .send({ token: resetToken, password: 'lowercase only password' })
+      .expect(400);
     await request(app.getHttpServer())
       .post('/auth/password/reset')
       .send({ token: supersededResetToken, password: newPassword })

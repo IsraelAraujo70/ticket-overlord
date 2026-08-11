@@ -4,10 +4,10 @@ import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { AuthFeedback } from "@/components/atoms/auth-feedback";
 import { Logo } from "@/components/atoms/logo";
+import { PasswordInput } from "@/components/molecules/password-input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
 import { resetPasswordAction } from "@/server/auth/auth-actions";
 import type { AuthActionState } from "@/server/auth/auth.types";
 
@@ -54,8 +54,8 @@ export function ResetPasswordCard({ admin = false }: { admin?: boolean }) {
       <CardContent>
         <form onSubmit={(event) => void submit(event)} aria-label="Redefinir senha">
           <FieldGroup>
-            <Field><FieldLabel htmlFor={admin ? "admin-new-password" : "new-password"}>Nova senha</FieldLabel><Input id={admin ? "admin-new-password" : "new-password"} name="password" type="password" autoComplete="new-password" minLength={12} maxLength={128} required /></Field>
-            <Field><FieldLabel htmlFor={admin ? "admin-new-password-confirmation" : "new-password-confirmation"}>Confirme a nova senha</FieldLabel><Input id={admin ? "admin-new-password-confirmation" : "new-password-confirmation"} name="passwordConfirmation" type="password" autoComplete="new-password" minLength={12} maxLength={128} required /></Field>
+            <Field><FieldLabel htmlFor={admin ? "admin-new-password" : "new-password"}>Nova senha</FieldLabel><PasswordInput id={admin ? "admin-new-password" : "new-password"} name="password" autoComplete="new-password" minLength={12} maxLength={128} required showStrength /></Field>
+            <Field><FieldLabel htmlFor={admin ? "admin-new-password-confirmation" : "new-password-confirmation"}>Confirme a nova senha</FieldLabel><PasswordInput id={admin ? "admin-new-password-confirmation" : "new-password-confirmation"} name="passwordConfirmation" autoComplete="new-password" minLength={12} maxLength={128} required /></Field>
             <AuthFeedback state={state} />
             <Button type="submit" disabled={pending || !token} className="w-full">{pending ? "Redefinindo..." : "Redefinir senha"}</Button>
           </FieldGroup>

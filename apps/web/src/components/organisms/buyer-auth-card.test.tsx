@@ -8,6 +8,7 @@ describe("BuyerAuthCard", () => {
 
     expect(screen.getByRole("form", { name: "Cadastro do cliente" })).toBeInTheDocument();
     expect(screen.getByLabelText("Nome completo")).toBeEnabled();
+    expect(screen.getByRole("meter", { name: "Força da senha" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Criar conta" })).toBeEnabled();
     expect(screen.queryByText(/organização/i)).not.toBeInTheDocument();
   });

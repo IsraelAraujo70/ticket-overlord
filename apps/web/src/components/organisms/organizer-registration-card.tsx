@@ -5,6 +5,7 @@ import { useActionState, useState } from "react";
 import { AuthFeedback } from "@/components/atoms/auth-feedback";
 import { AuthSubmitButton } from "@/components/atoms/auth-submit-button";
 import { Logo } from "@/components/atoms/logo";
+import { PasswordInput } from "@/components/molecules/password-input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -80,8 +81,8 @@ export function OrganizerRegistrationCard() {
               <Field><FieldLabel htmlFor="organization-neighborhood">Bairro</FieldLabel><Input id="organization-neighborhood" name="neighborhood" required value={address.neighborhood} onChange={(event) => updateAddress("neighborhood", event.target.value)} /></Field>
               <Field><FieldLabel htmlFor="organization-city">Cidade</FieldLabel><Input id="organization-city" name="city" autoComplete="address-level2" required value={address.city} onChange={(event) => updateAddress("city", event.target.value)} /></Field>
               <Field><FieldLabel htmlFor="organization-state">UF</FieldLabel><Input id="organization-state" name="state" autoComplete="address-level1" required maxLength={2} value={address.state} onChange={(event) => updateAddress("state", event.target.value.toUpperCase())} /></Field>
-              <Field><FieldLabel htmlFor="organizer-register-password">Senha</FieldLabel><Input id="organizer-register-password" name="password" type="password" autoComplete="new-password" required minLength={12} maxLength={128} /><p className="text-xs text-muted-foreground">Use pelo menos 12 caracteres.</p></Field>
-              <Field><FieldLabel htmlFor="organizer-password-confirmation">Confirme a senha</FieldLabel><Input id="organizer-password-confirmation" name="passwordConfirmation" type="password" autoComplete="new-password" required minLength={12} maxLength={128} /></Field>
+              <Field><FieldLabel htmlFor="organizer-register-password">Senha</FieldLabel><PasswordInput id="organizer-register-password" name="password" autoComplete="new-password" required minLength={12} maxLength={128} showStrength /></Field>
+              <Field><FieldLabel htmlFor="organizer-password-confirmation">Confirme a senha</FieldLabel><PasswordInput id="organizer-password-confirmation" name="passwordConfirmation" autoComplete="new-password" required minLength={12} maxLength={128} /></Field>
             </div>
             <AuthFeedback state={state} />
             <AuthSubmitButton idleLabel="Criar organização" pendingLabel="Criando organização..." />

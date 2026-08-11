@@ -42,14 +42,32 @@ function normalizePostalCode(postalCode: string): string {
 }
 
 function postgresConstraint(error: unknown): string | undefined {
-  if (typeof error !== 'object' || error === null) {
-    return undefined;
+  const visited = new Set<object>();
+  let current = error;
+
+  while (typeof current === 'object' && current !== null) {
+    if (visited.has(current)) {
+      return undefined;
+    }
+
+    visited.add(current);
+    const candidate = current as {
+      cause?: unknown;
+      code?: unknown;
+      constraint?: unknown;
+    };
+
+    if (
+      candidate.code === '23505' &&
+      typeof candidate.constraint === 'string'
+    ) {
+      return candidate.constraint;
+    }
+
+    current = candidate.cause;
   }
 
-  const candidate = error as { code?: unknown; constraint?: unknown };
-  return candidate.code === '23505' && typeof candidate.constraint === 'string'
-    ? candidate.constraint
-    : undefined;
+  return undefined;
 }
 
 @Injectable()

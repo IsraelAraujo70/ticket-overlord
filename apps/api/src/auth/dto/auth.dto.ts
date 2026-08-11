@@ -6,11 +6,25 @@ import {
   IsOptional,
   IsString,
   Length,
+  Matches,
   MaxLength,
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import {
+  STRONG_PASSWORD_MESSAGE,
+  STRONG_PASSWORD_PATTERN,
+} from '../validation/password';
+
+const strongPasswordApiProperty = {
+  minLength: 12,
+  maxLength: 128,
+  pattern: STRONG_PASSWORD_PATTERN.source,
+  description:
+    'Deve incluir letra maiúscula, letra minúscula, número e símbolo.',
+  writeOnly: true,
+} as const;
 
 export class OrganizerAddressDto {
   @ApiProperty({ example: '01001000' })
@@ -93,9 +107,10 @@ export class RegisterDto {
   @MaxLength(320)
   email!: string;
 
-  @ApiProperty({ minLength: 12, maxLength: 128, writeOnly: true })
+  @ApiProperty(strongPasswordApiProperty)
   @IsString()
   @Length(12, 128)
+  @Matches(STRONG_PASSWORD_PATTERN, { message: STRONG_PASSWORD_MESSAGE })
   password!: string;
 
   @ApiPropertyOptional({ type: OrganizerRegistrationDto })
@@ -129,8 +144,9 @@ export class TokenDto {
 }
 
 export class ResetPasswordDto extends TokenDto {
-  @ApiProperty({ minLength: 12, maxLength: 128, writeOnly: true })
+  @ApiProperty(strongPasswordApiProperty)
   @IsString()
   @Length(12, 128)
+  @Matches(STRONG_PASSWORD_PATTERN, { message: STRONG_PASSWORD_MESSAGE })
   password!: string;
 }

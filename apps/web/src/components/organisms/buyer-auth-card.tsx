@@ -5,6 +5,7 @@ import { useActionState } from "react";
 import { AuthFeedback } from "@/components/atoms/auth-feedback";
 import { AuthSubmitButton } from "@/components/atoms/auth-submit-button";
 import { Logo } from "@/components/atoms/logo";
+import { PasswordInput } from "@/components/molecules/password-input";
 import {
   Card,
   CardContent,
@@ -66,24 +67,33 @@ export function BuyerAuthCard({ mode }: BuyerAuthCardProps) {
             </Field>
             <Field>
               <FieldLabel htmlFor="customer-password">Senha</FieldLabel>
-              <Input
-                id="customer-password"
-                name="password"
-                type="password"
-                autoComplete={isLogin ? "current-password" : "new-password"}
-                required
-                minLength={isLogin ? undefined : 12}
-                maxLength={128}
-              />
-              {!isLogin ? <p className="text-xs text-muted-foreground">Use pelo menos 12 caracteres.</p> : null}
+              {isLogin ? (
+                <Input
+                  id="customer-password"
+                  name="password"
+                  type="password"
+                  autoComplete="current-password"
+                  required
+                  maxLength={128}
+                />
+              ) : (
+                <PasswordInput
+                  id="customer-password"
+                  name="password"
+                  autoComplete="new-password"
+                  required
+                  minLength={12}
+                  maxLength={128}
+                  showStrength
+                />
+              )}
             </Field>
             {!isLogin ? (
               <Field>
                 <FieldLabel htmlFor="customer-password-confirmation">Confirme a senha</FieldLabel>
-                <Input
+                <PasswordInput
                   id="customer-password-confirmation"
                   name="passwordConfirmation"
-                  type="password"
                   autoComplete="new-password"
                   required
                   minLength={12}
