@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@/server/auth/auth-actions", () => ({ logoutAction: vi.fn() }));
@@ -41,6 +41,19 @@ describe("AccountMenu", () => {
     expect(screen.getByRole("menuitem", { name: "Sair" })).toHaveClass(
       "hover:text-accent-foreground",
       "hover:**:text-accent-foreground",
+    );
+  });
+
+  it("keeps the role readable while the inverted trigger is expanded", () => {
+    render(<AccountMenu appearance="inverted" user={user("CUSTOMER")} />);
+
+    const trigger = screen.getByRole("button", {
+      name: "Abrir menu de Maria da Silva",
+    });
+    fireEvent.click(trigger);
+
+    expect(within(trigger).getByText("Perfil cliente")).toHaveClass(
+      "group-aria-expanded/button:text-muted-foreground",
     );
   });
 });

@@ -66,7 +66,9 @@ export function AccountMenu({
           <span
             className={cn(
               "font-mono text-[0.65rem] leading-4 tracking-wide uppercase",
-              inverted ? "text-primary-foreground/70" : "text-muted-foreground",
+              inverted
+                ? "text-primary-foreground/70 group-aria-expanded/button:text-muted-foreground"
+                : "text-muted-foreground",
             )}
           >
             {roleLabel}
