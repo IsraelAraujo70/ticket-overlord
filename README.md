@@ -49,6 +49,7 @@ Toda a documentação necessária para desenvolver e avaliar o projeto é versio
 | [`docs/plans/2026-08-11-organizer-registration-fields.md`](./docs/plans/2026-08-11-organizer-registration-fields.md) | Plano aprovado dos campos validados no cadastro de organizadores. |
 | [`docs/plans/2026-08-11-admin-event-creation.md`](./docs/plans/2026-08-11-admin-event-creation.md) | Plano aprovado da criação administrativa de eventos. |
 | [`docs/plans/2026-08-11-reservation-checkout-payment.md`](./docs/plans/2026-08-11-reservation-checkout-payment.md) | Plano implementado de reserva concorrente, checkout e pagamento simulado. |
+| [`docs/plans/2026-08-11-redis-inventory-holds.md`](./docs/plans/2026-08-11-redis-inventory-holds.md) | Plano proposto para mover holds temporários de inventário ao Redis. |
 | [`AGENTS.md`](./AGENTS.md) | Contexto e regras locais para agentes que trabalham no projeto. |
 
 O repositório é a fonte oficial da documentação. Páginas externas podem ser usadas como material de apresentação no futuro, mas não substituirão os arquivos versionados.
