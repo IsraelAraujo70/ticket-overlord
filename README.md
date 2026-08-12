@@ -4,7 +4,7 @@ Plataforma de eventos e ingressos desenvolvida para o desafio técnico **Verzel 
 
 O produto permitirá que um organizador publique eventos a partir de um catálogo externo, clientes reservem e comprem ingressos com pagamento simulado e profissionais de portaria validem os ingressos por QR Code ou código manual.
 
-> **Status:** autenticação, catálogo público persistido e criação de eventos em rascunho implementados localmente. Compra, ingressos e portaria ainda não foram implementados. A aplicação não foi publicada.
+> **Status:** autenticação, publicação de eventos, reserva concorrente e pagamento simulado implementados localmente. Ingressos e portaria ainda não foram implementados. A aplicação não foi publicada.
 
 ## Fluxo principal
 
@@ -48,7 +48,7 @@ Toda a documentação necessária para desenvolver e avaliar o projeto é versio
 | [`docs/plans/2026-08-11-backend-client-naming.md`](./docs/plans/2026-08-11-backend-client-naming.md) | Plano aprovado para tornar explícito o cliente interno do backend no Next.js. |
 | [`docs/plans/2026-08-11-organizer-registration-fields.md`](./docs/plans/2026-08-11-organizer-registration-fields.md) | Plano aprovado dos campos validados no cadastro de organizadores. |
 | [`docs/plans/2026-08-11-admin-event-creation.md`](./docs/plans/2026-08-11-admin-event-creation.md) | Plano aprovado da criação administrativa de eventos. |
-| [`docs/plans/2026-08-11-reservation-checkout-payment.md`](./docs/plans/2026-08-11-reservation-checkout-payment.md) | Plano proposto de reserva concorrente, checkout e pagamento simulado. |
+| [`docs/plans/2026-08-11-reservation-checkout-payment.md`](./docs/plans/2026-08-11-reservation-checkout-payment.md) | Plano implementado de reserva concorrente, checkout e pagamento simulado. |
 | [`AGENTS.md`](./AGENTS.md) | Contexto e regras locais para agentes que trabalham no projeto. |
 
 O repositório é a fonte oficial da documentação. Páginas externas podem ser usadas como material de apresentação no futuro, mas não substituirão os arquivos versionados.
@@ -116,6 +116,13 @@ O catálogo público e o seed funcionam sem chamar serviços externos. Para busc
 - O catálogo público lê somente eventos locais `PUBLISHED`; rascunhos não ficam visíveis.
 - O seed cria uma sessão de cinema publicada com capa local, sem depender do TMDb durante a carga.
 
+### Reserva e pagamento implementados
+
+- `/eventos/[slug]` apresenta o detalhe de uma sessão publicada, sua disponibilidade e a compra de 1 a 10 ingressos.
+- Reservas autenticadas seguram a quantidade por 10 minutos e usam locking explícito no PostgreSQL para impedir venda acima da capacidade.
+- `/checkout/[reservationId]` permite simular aprovação e recusa sem coletar dados financeiros.
+- Pagamentos são idempotentes; aprovação mantém o inventário alocado, enquanto recusa ou expiração devolvem a quantidade à venda.
+
 Para iniciar somente API e PostgreSQL:
 
 ```bash
@@ -160,7 +167,7 @@ O endpoint `GET http://localhost:3001/` retorna o estado da API. Os contratos im
 - O painel global do administrador ainda não lista clientes ou organizadores.
 - O convite de funcionários do organizador ainda não foi implementado.
 - Edição, cancelamento e exclusão de eventos pelo painel ainda não foram implementados.
-- Reservas, pagamentos, ingressos e validação na portaria ainda não foram implementados.
+- Emissão e compartilhamento de ingressos, QR Code e validação na portaria ainda não foram implementados.
 - O adapter de console revela links somente no desenvolvimento local e é proibido quando `APP_ENV=production`.
 - Nenhum ambiente foi publicado.
 

@@ -29,5 +29,6 @@ import { ExternalCatalogController } from './presentation/external-catalog.contr
     { provide: EventStore, useClass: DrizzleEventStore },
     { provide: EventImageStorage, useClass: S3EventImageStorage },
   ],
+  exports: [EventImageStorage],
 })
 export class EventsModule {}

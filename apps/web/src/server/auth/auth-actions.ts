@@ -81,7 +81,14 @@ async function login(
     return actionError(error);
   }
 
-  redirect(expectedSurface === "customer" ? "/" : "/admin");
+  const returnTo = safeLocalReturnTo(field(formData, "returnTo"));
+  redirect(expectedSurface === "customer" ? (returnTo ?? "/") : "/admin");
+}
+
+function safeLocalReturnTo(value: string): string | null {
+  return /^\/(?:eventos\/[a-z0-9-]+|checkout\/[0-9a-f-]+)$/i.test(value)
+    ? value
+    : null;
 }
 
 export async function customerLoginAction(

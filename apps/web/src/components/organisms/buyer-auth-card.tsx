@@ -24,9 +24,10 @@ import { initialAuthActionState } from "@/server/auth/auth.types";
 
 interface BuyerAuthCardProps {
   mode: "login" | "register";
+  returnTo?: string;
 }
 
-export function BuyerAuthCard({ mode }: BuyerAuthCardProps) {
+export function BuyerAuthCard({ mode, returnTo }: BuyerAuthCardProps) {
   const isLogin = mode === "login";
   const [state, formAction] = useActionState(
     isLogin ? customerLoginAction : customerRegisterAction,
@@ -54,6 +55,7 @@ export function BuyerAuthCard({ mode }: BuyerAuthCardProps) {
       </CardHeader>
       <CardContent>
         <form action={formAction} aria-label={isLogin ? "Login do cliente" : "Cadastro do cliente"}>
+          {isLogin && returnTo ? <input type="hidden" name="returnTo" value={returnTo} /> : null}
           <FieldGroup>
             {!isLogin ? (
               <Field>

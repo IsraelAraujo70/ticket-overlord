@@ -4,6 +4,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AddressModule } from './address/address.module';
 import { AuthModule } from './auth/auth.module';
+import { CheckoutModule } from './checkout/checkout.module';
 import { validateEnvironment } from './config/environment';
 import { DatabaseModule } from './database/database.module';
 import { EventsModule } from './events/events.module';
@@ -20,6 +21,7 @@ import { EventsModule } from './events/events.module';
     AuthModule,
     AddressModule,
     EventsModule,
+    CheckoutModule,
   ],
   controllers: [AppController],
   providers: [AppService],

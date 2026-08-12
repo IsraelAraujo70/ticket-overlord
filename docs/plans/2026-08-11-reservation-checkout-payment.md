@@ -1,7 +1,9 @@
 # Reserva, checkout e pagamento simulado
 
-- **Status:** Proposto
+- **Status:** Implementado
 - **Criado em:** 2026-08-11 21:15:36 -03:00
+- **Aprovado em:** 2026-08-11 21:33:08 -03:00
+- **Implementado em:** 2026-08-11 21:50:27 -03:00
 
 ## Resultado observável
 
@@ -62,7 +64,7 @@ Não haverá worker de expiração nesta etapa. A liberação será lógica e im
 
 ## Pagamento e idempotência
 
-- O frontend gerará uma chave UUID para uma tentativa e a reutilizará enquanto repetir a mesma requisição.
+- O frontend usará o UUID da própria reserva como chave estável da única tentativa permitida e o reutilizará enquanto repetir a mesma requisição.
 - `POST /reservations/:reservationId/payment` exigirá `Idempotency-Key` e a intenção simulada `APPROVED` ou `REFUSED`.
 - Dentro da transação, o adapter bloqueará o evento e depois a reserva, validará novamente propriedade, estado e expiração e buscará um resultado já persistido para a chave.
 - A tentativa será inserida com `INSERT ... ON CONFLICT DO NOTHING`. Quando outra transação tiver usado a mesma chave, o adapter aguardará sua conclusão, lerá o resultado persistido e retornará o replay ou conflito por parâmetros diferentes.
@@ -136,3 +138,12 @@ Os contratos distinguirão campos inválidos (`400`), sessão ausente (`401`), p
 4. Pagamento simulado, idempotência e contratos HTTP.
 5. Detalhe público, retorno do login e checkout no Next.js.
 6. Seed, documentação, validação visual e gates finais.
+
+## Resultado da validação
+
+- A API passou em 18 suítes com 61 testes unitários e em 2 suítes com 12 testes E2E contra PostgreSQL real.
+- Os testes E2E comprovaram reserva concorrente sem excesso de capacidade, replay simultâneo de pagamento, propriedade, papéis, recusa e expiração.
+- A web passou em 29 arquivos com 85 testes, incluindo quantidade, total, login com retorno, chave idempotente e restauração de estados terminais.
+- `pnpm lint`, `pnpm test`, `pnpm build`, `docker compose config --quiet` e `git diff --check` passaram sob Node.js 24.
+- A migration e o seed foram executados no banco local.
+- O fluxo catálogo, detalhe, login com retorno, reserva, aprovação persistida e recusa foi validado no Chromium em desktop e em viewport mobile de 390 x 844 pixels.

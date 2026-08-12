@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import { CalendarDaysIcon, MapPinIcon } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
@@ -45,9 +46,8 @@ export function CatalogEventCard({ event }: { event: CatalogEvent }) {
             {event.priceLabel}
           </p>
         </div>
-        {/* #todo REMOVE: Replace the temporary disabled action when ticket sales are connected. */}
-        <Button variant="outline" disabled className="w-full">
-          Venda em breve
+        <Button variant="outline" className="w-full" nativeButton={false} render={<Link href={`/eventos/${event.slug}`} />}>
+          Ver ingressos
         </Button>
       </div>
     </article>

@@ -12,6 +12,7 @@ import { redirect } from "next/navigation";
 import { backendRequest } from "@/server/backend-client";
 import {
   confirmEmailAction,
+  customerLoginAction,
   customerRegisterAction,
   organizerRegisterAction,
 } from "@/server/auth/auth-actions";
@@ -85,6 +86,59 @@ describe("registration actions", () => {
       }),
     );
     expect(backendRequest).not.toHaveBeenCalled();
+  });
+});
+
+describe("customer login return", () => {
+  const cookieStore = { set: vi.fn() };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(cookies).mockResolvedValue(cookieStore as never);
+    vi.mocked(backendRequest).mockResolvedValue({
+      accessToken: "session-token",
+      expiresAt: "2026-08-18T12:00:00.000Z",
+      user: {
+        id: "customer-id",
+        fullName: "Maria Cliente",
+        email: "maria@example.com",
+        role: "CUSTOMER",
+        organizationId: null,
+      },
+    });
+  });
+
+  it("returns to a local event after login", async () => {
+    const formData = new FormData();
+    formData.set("email", "maria@example.com");
+    formData.set("password", "StrongPassword2026!");
+    formData.set("returnTo", "/eventos/cinema-session");
+
+    await customerLoginAction(initialAuthActionState, formData);
+
+    expect(redirect).toHaveBeenCalledWith("/eventos/cinema-session");
+  });
+
+  it("rejects an external-looking return path", async () => {
+    const formData = new FormData();
+    formData.set("email", "maria@example.com");
+    formData.set("password", "StrongPassword2026!");
+    formData.set("returnTo", "//malicious.example");
+
+    await customerLoginAction(initialAuthActionState, formData);
+
+    expect(redirect).toHaveBeenCalledWith("/");
+  });
+
+  it("rejects traversal outside the purchase surface", async () => {
+    const formData = new FormData();
+    formData.set("email", "maria@example.com");
+    formData.set("password", "StrongPassword2026!");
+    formData.set("returnTo", "/eventos/../admin");
+
+    await customerLoginAction(initialAuthActionState, formData);
+
+    expect(redirect).toHaveBeenCalledWith("/");
   });
 });
 

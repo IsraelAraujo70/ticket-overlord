@@ -15,6 +15,13 @@
       "when": 1786474927235,
       "tag": "0001_flawless_pandemic",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786495108409,
+      "tag": "0002_famous_tombstone",
+      "breakpoints": true
     }
   ]
 }

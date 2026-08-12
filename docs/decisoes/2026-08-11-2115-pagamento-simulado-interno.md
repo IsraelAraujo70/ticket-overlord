@@ -11,10 +11,10 @@ O fluxo obrigatório ainda precisa entregar reserva concorrente, emissão e comp
 
 ## Decisão
 
-- Implementar um `PaymentGateway` orientado à capacidade de processar uma tentativa de pagamento.
+- Implementar um `PaymentGateway` restrito à capacidade pura e determinística de resolver a simulação desta etapa.
 - Usar inicialmente um `SimulatedPaymentGateway` interno e determinístico.
 - Permitir que o checkout escolha explicitamente entre aprovação e recusa para que o avaliador exercite os dois resultados sem números de cartão especiais.
-- Persistir cada resultado e proteger a operação com uma chave de idempotência gerada pelo cliente.
+- Persistir cada resultado e proteger a operação com uma chave de idempotência estável fornecida pelo cliente.
 - Tratar aprovação e recusa como estados terminais da reserva; a recusa libera o inventário imediatamente.
 - Não coletar dados fictícios de cartão, pois não haverá processamento financeiro real.
 
@@ -37,5 +37,5 @@ Rejeitada porque não permitiria ao avaliador verificar claramente o caminho obr
 - Confirmação, recusa e idempotência poderão ser testadas de forma rápida e determinística sem serviços externos.
 - O setup não exigirá conta ou credenciais de pagamento.
 - O produto deixará explícito que a cobrança é simulada e não solicitará dados financeiros.
-- Uma futura integração Stripe deverá implementar a mesma capacidade e acrescentar tratamento assíncrono de webhook antes de substituir o adapter.
+- Uma futura integração Stripe exigirá redesenhar a coordenação com tentativa persistida e webhook idempotente; o adapter puro não será tratado como integração externa drop-in.
 - A entrega inicial não demonstrará uma integração financeira real, limitação aceitável e documentada pelo próprio challenge.
