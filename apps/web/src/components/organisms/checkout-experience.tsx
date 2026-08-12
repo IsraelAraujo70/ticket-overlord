@@ -56,7 +56,7 @@ export function CheckoutExperience({ reservation }: { reservation: Reservation }
               slug={reservation.event.slug}
             />
           ) : expired ? (
-            <Result message={holdLost ? "Este hold expirou ou foi cancelado durante uma manutenção. Os ingressos voltaram para a venda." : "O prazo terminou e os ingressos voltaram para a venda."} slug={reservation.event.slug} />
+            <Result message={holdLost ? "Outra pessoa conseguiu assegurar esse ingresso primeiro." : "O prazo terminou e os ingressos voltaram para a venda."} slug={reservation.event.slug} soldOut={holdLost} />
           ) : (
             <form action={formAction}>
               <input type="hidden" name="reservationId" value={reservation.id} />
@@ -84,10 +84,10 @@ function Summary({ label, value, emphasis = false }: { label: string; value: str
   return <div><p className="text-xs text-muted-foreground uppercase">{label}</p><p className={emphasis ? "mt-1 font-heading text-3xl font-bold" : "mt-1 font-semibold"}>{value}</p></div>;
 }
 
-function Result({ outcome, message, slug }: { outcome?: "APPROVED" | "REFUSED"; message: string | undefined; slug: string }) {
+function Result({ outcome, message, slug, soldOut = false }: { outcome?: "APPROVED" | "REFUSED"; message: string | undefined; slug: string; soldOut?: boolean }) {
   const approved = outcome === "APPROVED";
   const Icon = approved ? CheckCircle2Icon : XCircleIcon;
-  return <div className="text-center"><Icon className={approved ? "mx-auto size-12 text-emerald-400" : "mx-auto size-12 text-ticket-coral"} aria-hidden="true" /><h2 className="mt-4 font-heading text-3xl font-bold uppercase">{approved ? "Compra confirmada" : outcome === "REFUSED" ? "Pagamento recusado" : "Reserva expirada"}</h2><p className="mt-3 text-sm leading-6 text-ticket-paper/65">{message}</p><Link href={approved ? "/" : `/eventos/${slug}`} className="mt-6 flex h-9 w-full items-center justify-center rounded-lg border border-white/20 bg-ticket-paper px-3 text-sm font-semibold text-ticket-ink transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-white/40">{approved ? "Voltar ao início" : "Tentar novamente"}</Link></div>;
+  return <div className="text-center"><Icon className={approved ? "mx-auto size-12 text-emerald-400" : "mx-auto size-12 text-ticket-coral"} aria-hidden="true" /><h2 className="mt-4 font-heading text-3xl font-bold uppercase">{approved ? "Compra confirmada" : outcome === "REFUSED" ? "Pagamento recusado" : soldOut ? "Ingresso esgotado" : "Reserva expirada"}</h2><p className="mt-3 text-sm leading-6 text-ticket-paper/65">{message}</p><Link href={approved ? "/" : `/eventos/${slug}`} className="mt-6 flex h-9 w-full items-center justify-center rounded-lg border border-white/20 bg-ticket-paper px-3 text-sm font-semibold text-ticket-ink transition-colors hover:bg-white focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-white/40">{approved ? "Voltar ao início" : "Tentar novamente"}</Link></div>;
 }
 
 function secondsUntil(value: string) { return Math.max(0, Math.ceil((new Date(value).getTime() - Date.now()) / 1000)); }

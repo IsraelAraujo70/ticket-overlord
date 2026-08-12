@@ -122,7 +122,10 @@ describe("CheckoutExperience", () => {
       />,
     );
 
-    expect(screen.getByRole("heading", { name: "Reserva expirada" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Ingresso esgotado" })).toBeInTheDocument();
+    expect(
+      screen.getByText("Outra pessoa conseguiu assegurar esse ingresso primeiro."),
+    ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: "Tentar novamente" })).toHaveAttribute(
       "href",
       "/eventos/cinema-session",

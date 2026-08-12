@@ -11,10 +11,10 @@ export default function CheckoutNotFound() {
         </Link>
         <ClockAlertIcon className="mx-auto mt-8 size-12 text-ticket-coral" aria-hidden="true" />
         <h1 className="mt-4 font-heading text-4xl font-bold uppercase">
-          Reserva encerrada
+          Ingresso esgotado
         </h1>
         <p className="mt-3 text-sm leading-6 text-ticket-paper/65">
-          Este hold expirou ou foi cancelado durante uma manutenção. Os ingressos voltaram para a agenda.
+          Outra pessoa conseguiu assegurar esse ingresso primeiro.
         </p>
         <Link
           href="/"
