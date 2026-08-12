@@ -143,9 +143,7 @@ export function EventCreationForm() {
     initialEventActionState,
   );
 
-  const startsAt = session.startsAtLocal
-    ? new Date(session.startsAtLocal).toISOString()
-    : "";
+  const startsAt = toIsoDate(session.startsAtLocal);
   const visibleMovies =
     movies.length || !selected
       ? movies
@@ -891,7 +889,7 @@ function restorableStep(draft: EventCreationDraft): WizardStep {
 
 function hasCompleteSession(draft: SessionDraft): boolean {
   return Boolean(
-    draft.startsAtLocal &&
+    toIsoDate(draft.startsAtLocal) &&
       draft.venue &&
       draft.city &&
       Number(draft.capacity) > 0 &&
@@ -943,11 +941,19 @@ function webpFile(compressed: File, original: File): File {
 }
 
 function formatStartsAt(value: string): string {
-  if (!value) return "Não informada";
+  const startsAt = toIsoDate(value);
+  if (!startsAt) return "Não informada";
   return new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "medium",
     timeStyle: "short",
-  }).format(new Date(value));
+  }).format(new Date(startsAt));
+}
+
+function toIsoDate(value: string): string {
+  if (!value) return "";
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString();
 }
 
 function formatPrice(value: string): string {

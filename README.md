@@ -4,7 +4,7 @@ Plataforma de eventos e ingressos desenvolvida para o desafio técnico **Verzel 
 
 O produto permitirá que um organizador publique eventos a partir de um catálogo externo, clientes reservem e comprem ingressos com pagamento simulado e profissionais de portaria validem os ingressos por QR Code ou código manual.
 
-> **Status:** autenticação, publicação de eventos, reserva concorrente e pagamento simulado implementados localmente. Ingressos e portaria ainda não foram implementados. A aplicação não foi publicada.
+> **Status:** fluxo local completo implementado, incluindo autenticação, publicação de eventos, reserva concorrente, pagamento simulado, ingressos assinados, compartilhamento e portaria. A aplicação ainda não foi publicada.
 
 ## Fluxo principal
 

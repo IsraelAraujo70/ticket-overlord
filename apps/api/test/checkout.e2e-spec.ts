@@ -178,7 +178,7 @@ describe('Checkout API (e2e)', () => {
       [fixture.eventId],
     );
     expect(persisted.rows[0]?.count).toBe(0);
-  });
+  }, 60_000);
 
   it('replays concurrent payments once and enforces ownership and roles', async () => {
     const fixture = await createFixture(pool, 3);

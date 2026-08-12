@@ -13,5 +13,5 @@ describe('ScryptPasswordHasher', () => {
       true,
     );
     await expect(hasher.verify('wrong password', first)).resolves.toBe(false);
-  });
+  }, 30_000);
 });

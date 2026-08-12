@@ -21,7 +21,7 @@
     "db:seed": "DATABASE_URL=${DATABASE_URL:-postgresql://ticket_overlord:ticket_overlord@localhost:5432/ticket_overlord} pnpm --filter @ticket-overlord/api db:seed",
     "db:test:up": "docker compose up -d --wait postgres-test",
     "test:infra:up": "docker compose up -d --wait postgres-test redis-test minio && docker compose run --rm minio-init",
-    "test": "pnpm test:infra:up && pnpm --recursive --if-present test && pnpm --recursive --if-present test:e2e",
+    "test": "pnpm test:infra:up && pnpm --workspace-concurrency=1 --recursive --if-present test && pnpm --workspace-concurrency=1 --recursive --if-present test:e2e",
     "build": "pnpm --recursive --if-present build"
   }
 }

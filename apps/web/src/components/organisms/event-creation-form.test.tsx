@@ -71,6 +71,17 @@ describe("EventCreationForm", () => {
     expect(screen.getByText("Etapa 3 de 4")).toBeInTheDocument();
   });
 
+  it("returns an invalid cached date to the session step without crashing", async () => {
+    saveDraft({ step: 3, startsAtLocal: "invalid-date" });
+
+    render(<EventCreationForm />);
+
+    expect(
+      await screen.findByRole("heading", { name: "Defina a sessão" }),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText("Data e hora")).toHaveValue("");
+  });
+
   it("compresses the cover before sending it and clears the local draft on success", async () => {
     saveDraft({ step: 3 });
     const compressed = new File(
@@ -117,14 +128,20 @@ describe("EventCreationForm", () => {
   });
 });
 
-function saveDraft({ step }: { step: number }) {
+function saveDraft({
+  step,
+  startsAtLocal = "2099-09-05T19:00",
+}: {
+  step: number;
+  startsAtLocal?: string;
+}) {
   window.localStorage.setItem(
     draftStorageKey,
     JSON.stringify({
       step,
       query: "Mario",
       selected: movie,
-      startsAtLocal: "2099-09-05T19:00",
+      startsAtLocal,
       venue: "Cine Belas Artes",
       city: "São Paulo",
       capacity: "150",
