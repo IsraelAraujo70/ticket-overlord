@@ -48,6 +48,7 @@ Toda a documentação necessária para desenvolver e avaliar o projeto é versio
 | [`docs/plans/2026-08-11-backend-client-naming.md`](./docs/plans/2026-08-11-backend-client-naming.md) | Plano aprovado para tornar explícito o cliente interno do backend no Next.js. |
 | [`docs/plans/2026-08-11-organizer-registration-fields.md`](./docs/plans/2026-08-11-organizer-registration-fields.md) | Plano aprovado dos campos validados no cadastro de organizadores. |
 | [`docs/plans/2026-08-11-admin-event-creation.md`](./docs/plans/2026-08-11-admin-event-creation.md) | Plano aprovado da criação administrativa de eventos. |
+| [`docs/plans/2026-08-11-reservation-checkout-payment.md`](./docs/plans/2026-08-11-reservation-checkout-payment.md) | Plano proposto de reserva concorrente, checkout e pagamento simulado. |
 | [`AGENTS.md`](./AGENTS.md) | Contexto e regras locais para agentes que trabalham no projeto. |
 
 O repositório é a fonte oficial da documentação. Páginas externas podem ser usadas como material de apresentação no futuro, mas não substituirão os arquivos versionados.
@@ -158,7 +159,7 @@ O endpoint `GET http://localhost:3001/` retorna o estado da API. Os contratos im
 
 - O painel global do administrador ainda não lista clientes ou organizadores.
 - O convite de funcionários do organizador ainda não foi implementado.
-- Edição, publicação, cancelamento e exclusão de eventos pelo painel ainda não foram implementados.
+- Edição, cancelamento e exclusão de eventos pelo painel ainda não foram implementados.
 - Reservas, pagamentos, ingressos e validação na portaria ainda não foram implementados.
 - O adapter de console revela links somente no desenvolvimento local e é proibido quando `APP_ENV=production`.
 - Nenhum ambiente foi publicado.

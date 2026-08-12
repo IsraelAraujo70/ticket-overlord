@@ -33,3 +33,4 @@ Este diretório contém as decisões técnicas aprovadas para o Ticket Overlord.
 | 2026-08-11 15:53:35 -03:00 | Aceita | [Imagens de eventos em armazenamento S3](./2026-08-11-1553-imagens-de-eventos-em-storage-s3.md) |
 | 2026-08-11 19:40:35 -03:00 | Aceita | [Wizard e pré-processamento da capa do evento](./2026-08-11-1940-wizard-e-pre-processamento-da-capa.md) |
 | 2026-08-11 20:32:54 -03:00 | Aceita | [Publicação explícita de eventos](./2026-08-11-2032-publicacao-explicita-de-eventos.md) |
+| 2026-08-11 21:15:36 -03:00 | Aceita | [Pagamento simulado interno antes de provedor externo](./2026-08-11-2115-pagamento-simulado-interno.md) |
