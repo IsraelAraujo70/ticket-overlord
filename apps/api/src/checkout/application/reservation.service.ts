@@ -7,7 +7,8 @@ import type {
   ReservationDetail,
   ReservationRecord,
 } from '../domain/checkout.types';
-import { CheckoutStore } from './ports/checkout-store';
+import { ConfirmedCheckoutStore } from './ports/confirmed-checkout-store';
+import { InventoryHoldStore } from './ports/inventory-hold-store';
 
 export type PresentedReservationDetail = Omit<
   ReservationDetail,
@@ -21,19 +22,23 @@ export type PresentedReservationDetail = Omit<
 @Injectable()
 export class ReservationService {
   constructor(
-    private readonly store: CheckoutStore,
+    private readonly store: ConfirmedCheckoutStore,
+    private readonly holds: InventoryHoldStore,
     private readonly images: EventImageStorage,
   ) {}
 
   /** Creates a ten-minute inventory hold for an authenticated customer. */
-  create(
+  async create(
     user: AuthenticatedUser,
     eventId: string,
     quantity: number,
   ): Promise<ReservationRecord> {
     const customerId = requireCustomer(user);
     validateReservationQuantity(quantity);
-    return this.store.createReservation({ customerId, eventId, quantity });
+    return this.store.synchronizeInventory(eventId, async (snapshot) => {
+      await this.holds.initialize(snapshot);
+      return this.holds.create({ ...snapshot, customerId, quantity });
+    });
   }
 
   /** Returns and opportunistically expires a reservation owned by the customer. */
@@ -42,10 +47,9 @@ export class ReservationService {
     reservationId: string,
   ): Promise<PresentedReservationDetail> {
     const customerId = requireCustomer(user);
-    const reservation = await this.store.findReservation(
-      customerId,
-      reservationId,
-    );
+    const reservation =
+      (await this.holds.find(reservationId, customerId)) ??
+      (await this.store.findConfirmed(customerId, reservationId));
     if (!reservation) {
       throw new CheckoutError(
         'RESERVATION_NOT_FOUND',
@@ -53,7 +57,14 @@ export class ReservationService {
       );
     }
 
-    const { coverObjectKey, ...event } = reservation.event;
+    const event = await this.store.eventSummary(reservation.eventId);
+    if (!event) {
+      throw new CheckoutError(
+        'RESERVATION_NOT_FOUND',
+        'Reserva não encontrada.',
+      );
+    }
+    const { coverObjectKey, ...presentedEvent } = event;
     return {
       id: reservation.id,
       eventId: reservation.eventId,
@@ -66,7 +77,7 @@ export class ReservationService {
       createdAt: reservation.createdAt,
       updatedAt: reservation.updatedAt,
       event: {
-        ...event,
+        ...presentedEvent,
         coverUrl: await this.images.createReadUrl(coverObjectKey),
       },
     };

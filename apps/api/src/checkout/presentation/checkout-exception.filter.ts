@@ -19,6 +19,7 @@ const statusByCode: Record<CheckoutErrorCode, HttpStatus> = {
   RESERVATION_EXPIRED: HttpStatus.CONFLICT,
   RESERVATION_NOT_PAYABLE: HttpStatus.CONFLICT,
   IDEMPOTENCY_CONFLICT: HttpStatus.CONFLICT,
+  CHECKOUT_UNAVAILABLE: HttpStatus.SERVICE_UNAVAILABLE,
 };
 
 @Catch(CheckoutError)

@@ -6,7 +6,8 @@ export type CheckoutErrorCode =
   | 'RESERVATION_NOT_FOUND'
   | 'RESERVATION_EXPIRED'
   | 'RESERVATION_NOT_PAYABLE'
-  | 'IDEMPOTENCY_CONFLICT';
+  | 'IDEMPOTENCY_CONFLICT'
+  | 'CHECKOUT_UNAVAILABLE';
 
 export class CheckoutError extends Error {
   constructor(

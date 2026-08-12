@@ -23,6 +23,9 @@ export class EnvironmentVariables {
   @IsNotEmpty()
   DATABASE_URL!: string;
 
+  @IsUrl({ require_tld: false, protocols: ['redis', 'rediss'] })
+  REDIS_URL!: string;
+
   @IsIn(['console', 'resend'])
   EMAIL_PROVIDER: EmailProvider = 'console';
 
@@ -113,6 +116,9 @@ export function validateEnvironment(
       APP_ENV: values.APP_ENV ?? 'local',
       EMAIL_PROVIDER: values.EMAIL_PROVIDER ?? 'console',
       PORT: values.PORT ?? 3001,
+      REDIS_URL:
+        values.REDIS_URL ??
+        (isProduction ? undefined : 'redis://localhost:6379'),
       WEB_BASE_URL: values.WEB_BASE_URL ?? 'http://localhost:3000',
       S3_ENDPOINT_URL:
         values.S3_ENDPOINT_URL ??

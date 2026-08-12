@@ -2,7 +2,8 @@ import { Injectable } from '@nestjs/common';
 import { EventImageStorage } from '../../events/application/ports/event-image-storage';
 import { CheckoutError } from '../domain/checkout.errors';
 import type { PublishedEventDetail } from '../domain/checkout.types';
-import { CheckoutStore } from './ports/checkout-store';
+import { ConfirmedCheckoutStore } from './ports/confirmed-checkout-store';
+import { InventoryHoldStore } from './ports/inventory-hold-store';
 
 export type PresentedPublishedEvent = Omit<
   PublishedEventDetail,
@@ -12,7 +13,8 @@ export type PresentedPublishedEvent = Omit<
 @Injectable()
 export class GetPublishedEventService {
   constructor(
-    private readonly store: CheckoutStore,
+    private readonly store: ConfirmedCheckoutStore,
+    private readonly holds: InventoryHoldStore,
     private readonly images: EventImageStorage,
   ) {}
 
@@ -29,6 +31,10 @@ export class GetPublishedEventService {
     const { coverObjectKey, ...published } = event;
     return {
       ...published,
+      availableQuantity: await this.store.synchronizeInventory(
+        event.id,
+        (snapshot) => this.holds.available(snapshot),
+      ),
       coverUrl: await this.images.createReadUrl(coverObjectKey),
     };
   }

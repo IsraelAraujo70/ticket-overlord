@@ -11,6 +11,7 @@ describe('environment validation', () => {
       APP_ENV: 'local',
       EMAIL_PROVIDER: 'console',
       PORT: 3001,
+      REDIS_URL: 'redis://localhost:6379',
       WEB_BASE_URL: 'http://localhost:3000',
       S3_BUCKET: 'ticket-overlord-events',
       S3_ENDPOINT_URL: 'http://localhost:9000',
@@ -47,6 +48,7 @@ describe('environment validation', () => {
       RESEND_API_KEY: 're_test',
       RESEND_FROM_EMAIL: 'Ticket Overlord <test@example.com>',
       TMDB_READ_ACCESS_TOKEN: 'tmdb-token',
+      REDIS_URL: 'rediss://redis.example.com:6379',
     });
 
     expect(environment).toMatchObject({

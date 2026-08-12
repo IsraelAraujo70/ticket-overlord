@@ -1,20 +1,39 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Pool, PoolClient } from 'pg';
 import { POSTGRES_POOL } from '../../../database/database.constants';
-import { CheckoutStore } from '../../application/ports/checkout-store';
+import { ConfirmedCheckoutStore } from '../../application/ports/confirmed-checkout-store';
+import type {
+  EventInventorySnapshot,
+  ProcessingHold,
+} from '../../application/ports/inventory-hold-store';
 import { CheckoutError } from '../../domain/checkout.errors';
-import { paymentReservationStatus } from '../../domain/reservation';
 import {
   MAX_QUANTITY_PER_RESERVATION,
-  type PaymentOutcome,
   type PaymentRecord,
   type PaymentResult,
   type PublishedEventDetail,
   type ReservationDetail,
   type ReservationRecord,
-  type ReservationStatus,
 } from '../../domain/checkout.types';
 
+interface EventRow {
+  id: string;
+  slug: string;
+  title: string;
+  summary: string;
+  category: string;
+  source_release_date: string | null;
+  source_image_url: string | null;
+  starts_at: Date;
+  venue: string;
+  city: string;
+  capacity: number;
+  price_in_cents: number;
+  currency: string;
+  cover_object_key: string;
+  cover_content_type: string;
+  confirmed_quantity: number;
+}
 interface ReservationRow {
   id: string;
   event_id: string;
@@ -23,48 +42,25 @@ interface ReservationRow {
   unit_price_in_cents: number;
   total_in_cents: number;
   currency: string;
-  status: ReservationStatus;
+  status: 'PAID';
   expires_at: Date;
   created_at: Date;
   updated_at: Date;
 }
-
 interface PaymentRow {
   id: string;
   reservation_id: string;
   customer_id: string;
   amount_in_cents: number;
   currency: string;
-  status: PaymentOutcome;
+  status: 'APPROVED';
   idempotency_key: string;
   created_at: Date;
   processed_at: Date;
 }
 
-interface EventSummaryRow {
-  id: string;
-  slug: string;
-  title: string;
-  starts_at: Date;
-  venue: string;
-  city: string;
-  cover_object_key: string;
-}
-
-interface PublishedEventRow extends EventSummaryRow {
-  summary: string;
-  category: string;
-  source_release_date: string | null;
-  source_image_url: string | null;
-  capacity: number;
-  price_in_cents: number;
-  currency: string;
-  cover_content_type: string;
-  available_quantity: number;
-}
-
 @Injectable()
-export class PostgresCheckoutStore extends CheckoutStore {
+export class PostgresCheckoutStore extends ConfirmedCheckoutStore {
   constructor(@Inject(POSTGRES_POOL) private readonly pool: Pool) {
     super();
   }
@@ -72,248 +68,267 @@ export class PostgresCheckoutStore extends CheckoutStore {
   async findPublishedEventBySlug(
     slug: string,
   ): Promise<PublishedEventDetail | null> {
-    const result = await this.pool.query<PublishedEventRow>(
-      `SELECT e.id, e.slug, e.title, e.summary, e.category,
-              e.source_release_date, e.source_image_url, e.starts_at,
-              e.venue, e.city, e.capacity, e.price_in_cents, e.currency,
-              e.cover_object_key, e.cover_content_type,
-              GREATEST(e.capacity - COALESCE(SUM(r.quantity) FILTER (
-                WHERE r.status = 'PAID'
-                   OR (r.status = 'PENDING_PAYMENT' AND r.expires_at > now())
-              ), 0), 0)::integer AS available_quantity
-       FROM events e
-       LEFT JOIN reservations r ON r.event_id = e.id
-       WHERE e.slug = $1 AND e.status = 'PUBLISHED' AND e.starts_at > now()
-       GROUP BY e.id`,
+    const result = await this.pool.query<EventRow>(
+      `${eventSelect} WHERE e.slug = $1 AND e.status = 'PUBLISHED' AND e.starts_at > now() GROUP BY e.id`,
       [slug],
     );
     const row = result.rows[0];
-    return row ? publishedEvent(row) : null;
+    if (!row) return null;
+    return {
+      ...eventSummary(row),
+      summary: row.summary,
+      category: row.category,
+      sourceReleaseDate: row.source_release_date,
+      sourceImageUrl: row.source_image_url,
+      capacity: row.capacity,
+      priceInCents: row.price_in_cents,
+      currency: brl(row.currency),
+      coverContentType: row.cover_content_type,
+      availableQuantity: Math.max(row.capacity - row.confirmed_quantity, 0),
+      maxQuantityPerReservation: MAX_QUANTITY_PER_RESERVATION,
+    };
   }
 
-  async createReservation(input: {
-    customerId: string;
-    eventId: string;
-    quantity: number;
-  }): Promise<ReservationRecord> {
-    return this.transaction(async (client) => {
-      const eventResult = await client.query<{
-        id: string;
-        capacity: number;
-        price_in_cents: number;
-        currency: string;
-      }>(
-        `SELECT id, capacity, price_in_cents, currency
-         FROM events
-         WHERE id = $1 AND status = 'PUBLISHED' AND starts_at > now()
-         FOR UPDATE`,
-        [input.eventId],
+  async inventorySnapshot(eventId: string): Promise<EventInventorySnapshot> {
+    const result = await this.pool.query<EventRow>(
+      `${eventSelect} WHERE e.id = $1 AND e.status = 'PUBLISHED' AND e.starts_at > now() GROUP BY e.id`,
+      [eventId],
+    );
+    const row = result.rows[0];
+    if (!row)
+      throw new CheckoutError(
+        'EVENT_NOT_AVAILABLE',
+        'Evento não disponível para venda.',
       );
-      const event = eventResult.rows[0];
-      if (!event) {
+    return {
+      eventId: row.id,
+      capacity: row.capacity,
+      confirmedQuantity: row.confirmed_quantity,
+      priceInCents: row.price_in_cents,
+      currency: brl(row.currency),
+    };
+  }
+
+  async synchronizeInventory<T>(
+    eventId: string,
+    synchronize: (snapshot: EventInventorySnapshot) => Promise<T>,
+  ): Promise<T> {
+    return this.transaction(async (client) => {
+      await advisoryLock(client, `event:${eventId}`);
+      const result = await client.query<EventRow>(
+        `${eventSelect} WHERE e.id = $1 AND e.status = 'PUBLISHED' AND e.starts_at > now() GROUP BY e.id`,
+        [eventId],
+      );
+      const row = result.rows[0];
+      if (!row)
         throw new CheckoutError(
           'EVENT_NOT_AVAILABLE',
           'Evento não disponível para venda.',
         );
-      }
+      return synchronize({
+        eventId: row.id,
+        capacity: row.capacity,
+        confirmedQuantity: row.confirmed_quantity,
+        priceInCents: row.price_in_cents,
+        currency: brl(row.currency),
+      });
+    });
+  }
 
-      await client.query(
-        `UPDATE reservations
-         SET status = 'EXPIRED', updated_at = now()
-         WHERE event_id = $1
-           AND status = 'PENDING_PAYMENT'
-           AND expires_at <= now()`,
-        [event.id],
+  async eventSummary(eventId: string) {
+    const result = await this.pool.query<{
+      id: string;
+      slug: string;
+      title: string;
+      starts_at: Date;
+      venue: string;
+      city: string;
+      cover_object_key: string;
+    }>(
+      'SELECT id, slug, title, starts_at, venue, city, cover_object_key FROM events WHERE id = $1',
+      [eventId],
+    );
+    return result.rows[0] ? eventSummary(result.rows[0]) : null;
+  }
+
+  async findConfirmed(
+    customerId: string,
+    reservationId: string,
+  ): Promise<ReservationDetail | null> {
+    const result = await this.pool.query<
+      ReservationRow & {
+        slug: string;
+        title: string;
+        starts_at: Date;
+        venue: string;
+        city: string;
+        cover_object_key: string;
+      }
+    >(
+      `SELECT r.*, e.slug, e.title, e.starts_at, e.venue, e.city, e.cover_object_key FROM reservations r JOIN events e ON e.id = r.event_id WHERE r.id = $1 AND r.customer_id = $2 AND r.status = 'PAID'`,
+      [reservationId, customerId],
+    );
+    const row = result.rows[0];
+    return row
+      ? {
+          ...reservationRecord(row),
+          event: eventSummary({ ...row, id: row.event_id }),
+        }
+      : null;
+  }
+
+  async confirm(
+    hold: ProcessingHold,
+    validate: () => Promise<void>,
+  ): Promise<{ result: PaymentResult; confirmedQuantity: number }> {
+    return this.transaction(async (client) => {
+      await advisoryLock(client, `hold:${hold.id}`);
+      await advisoryLock(
+        client,
+        `payment:${hold.customerId}:${hold.idempotencyKey}`,
       );
-      const allocatedResult = await client.query<{ allocated: number }>(
-        `SELECT COALESCE(SUM(quantity), 0)::integer AS allocated
-         FROM reservations
-         WHERE event_id = $1
-           AND (status = 'PAID'
-             OR (status = 'PENDING_PAYMENT' AND expires_at > now()))`,
-        [event.id],
+      const idempotent = await client.query<{ reservation_id: string }>(
+        `SELECT reservation_id FROM payments
+         WHERE customer_id = $1 AND idempotency_key = $2`,
+        [hold.customerId, hold.idempotencyKey],
       );
-      const allocated = allocatedResult.rows[0]?.allocated ?? 0;
-      if (input.quantity > event.capacity - allocated) {
+      if (idempotent.rows[0] && idempotent.rows[0].reservation_id !== hold.id) {
+        throw new CheckoutError(
+          'IDEMPOTENCY_CONFLICT',
+          'A chave de idempotência já foi usada com outros parâmetros.',
+        );
+      }
+      const existing = await this.findPaymentResultWith(client, hold.id);
+      if (existing) {
+        ensureReplay(existing, hold);
+        return {
+          result: existing,
+          confirmedQuantity: await confirmedTotal(client, hold.eventId),
+        };
+      }
+      await advisoryLock(client, `event:${hold.eventId}`);
+      await validate();
+      const inventory = await client.query<{
+        capacity: number;
+        confirmed_quantity: number;
+      }>(
+        `SELECT e.capacity, COALESCE(SUM(r.quantity), 0)::integer confirmed_quantity
+         FROM events e
+         LEFT JOIN reservations r ON r.event_id = e.id AND r.status = 'PAID'
+         WHERE e.id = $1
+         GROUP BY e.id`,
+        [hold.eventId],
+      );
+      const current = required(inventory.rows[0]);
+      if (current.confirmed_quantity + hold.quantity > current.capacity) {
         throw new CheckoutError(
           'INSUFFICIENT_INVENTORY',
           'A quantidade solicitada não está disponível.',
         );
       }
-
-      const inserted = await client.query<ReservationRow>(
-        `INSERT INTO reservations (
-           event_id, customer_id, quantity, unit_price_in_cents,
-           total_in_cents, currency, expires_at
-         ) VALUES (
-           $1, $2, $3, $4, $4::integer * $3::integer, $5,
-           now() + interval '10 minutes'
-         )
-         RETURNING *`,
+      const reservation = await client.query<ReservationRow>(
+        `INSERT INTO reservations (id, event_id, customer_id, quantity, unit_price_in_cents, total_in_cents, currency, status, expires_at, created_at, updated_at) VALUES ($1,$2,$3,$4,$5,$6,$7,'PAID',$8,$9,now()) RETURNING *`,
         [
-          event.id,
-          input.customerId,
-          input.quantity,
-          event.price_in_cents,
-          event.currency,
+          hold.id,
+          hold.eventId,
+          hold.customerId,
+          hold.quantity,
+          hold.unitPriceInCents,
+          hold.totalInCents,
+          hold.currency,
+          hold.expiresAt,
+          hold.createdAt,
         ],
       );
-      return reservationRecord(requiredRow(inserted.rows[0], 'reservation'));
+      const payment = await client.query<PaymentRow>(
+        `INSERT INTO payments (reservation_id, customer_id, amount_in_cents, currency, status, idempotency_key, processed_at) VALUES ($1,$2,$3,$4,'APPROVED',$5,now()) RETURNING *`,
+        [
+          hold.id,
+          hold.customerId,
+          hold.totalInCents,
+          hold.currency,
+          hold.idempotencyKey,
+        ],
+      );
+      return {
+        result: {
+          reservation: reservationRecord(required(reservation.rows[0])),
+          payment: paymentRecord(required(payment.rows[0])),
+        },
+        confirmedQuantity: await confirmedTotal(client, hold.eventId),
+      };
     });
   }
 
-  async findReservation(
-    customerId: string,
+  async findPaymentResult(
     reservationId: string,
-  ): Promise<ReservationDetail | null> {
-    const link = await this.pool.query<{ event_id: string }>(
-      'SELECT event_id FROM reservations WHERE id = $1 AND customer_id = $2',
-      [reservationId, customerId],
+  ): Promise<PaymentResult | null> {
+    return this.findPaymentResultWith(this.pool, reservationId);
+  }
+
+  async findPaymentResultByIdempotencyKey(
+    customerId: string,
+    idempotencyKey: string,
+  ): Promise<PaymentResult | null> {
+    const result = await this.pool.query<{ reservation_id: string }>(
+      `SELECT reservation_id FROM payments
+       WHERE customer_id = $1 AND idempotency_key = $2`,
+      [customerId, idempotencyKey],
     );
-    const eventId = link.rows[0]?.event_id;
-    if (!eventId) return null;
+    const reservationId = result.rows[0]?.reservation_id;
+    return reservationId
+      ? this.findPaymentResultWith(this.pool, reservationId)
+      : null;
+  }
 
+  async reconcile(
+    reservationId: string,
+    eventId: string,
+  ): Promise<{ result: PaymentResult | null; confirmedQuantity: number }> {
     return this.transaction(async (client) => {
-      const eventResult = await client.query<EventSummaryRow>(
-        `SELECT id, slug, title, starts_at, venue, city, cover_object_key
-         FROM events WHERE id = $1 FOR UPDATE`,
-        [eventId],
-      );
-      const event = requiredRow(eventResult.rows[0], 'event');
-      const reservationResult = await client.query<ReservationRow>(
-        `SELECT * FROM reservations
-         WHERE id = $1 AND customer_id = $2
-         FOR UPDATE`,
-        [reservationId, customerId],
-      );
-      let reservation = reservationResult.rows[0];
-      if (!reservation) return null;
-
-      const expired = await client.query<ReservationRow>(
-        `UPDATE reservations
-         SET status = 'EXPIRED', updated_at = now()
-         WHERE id = $1 AND status = 'PENDING_PAYMENT' AND expires_at <= now()
-         RETURNING *`,
-        [reservation.id],
-      );
-      reservation = expired.rows[0] ?? reservation;
-
-      return { ...reservationRecord(reservation), event: eventSummary(event) };
+      await advisoryLock(client, `hold:${reservationId}`);
+      return {
+        result: await this.findPaymentResultWith(client, reservationId),
+        confirmedQuantity: await confirmedTotal(client, eventId),
+      };
     });
   }
 
-  async processPayment(input: {
-    customerId: string;
-    reservationId: string;
-    idempotencyKey: string;
-    outcome: PaymentOutcome;
-  }): Promise<PaymentResult> {
-    const link = await this.pool.query<{ event_id: string }>(
-      'SELECT event_id FROM reservations WHERE id = $1',
-      [input.reservationId],
+  private async findPaymentResultWith(
+    queryable: Pick<Pool, 'query'> | Pick<PoolClient, 'query'>,
+    reservationId: string,
+  ): Promise<PaymentResult | null> {
+    const result = await queryable.query<
+      ReservationRow & {
+        payment_id: string;
+        amount_in_cents: number;
+        payment_currency: string;
+        payment_status: 'APPROVED';
+        idempotency_key: string;
+        payment_created_at: Date;
+        processed_at: Date;
+      }
+    >(
+      `SELECT r.*, p.id payment_id, p.amount_in_cents, p.currency payment_currency, p.status payment_status, p.idempotency_key, p.created_at payment_created_at, p.processed_at FROM reservations r JOIN payments p ON p.reservation_id = r.id WHERE r.id = $1`,
+      [reservationId],
     );
-    const eventId = link.rows[0]?.event_id;
-    if (!eventId) {
-      throw new CheckoutError(
-        'RESERVATION_NOT_FOUND',
-        'Reserva não encontrada.',
-      );
-    }
-
-    const result = await this.transaction<PaymentResult | null>(
-      async (client) => {
-        await client.query('SELECT id FROM events WHERE id = $1 FOR UPDATE', [
-          eventId,
-        ]);
-        const reservationResult = await client.query<ReservationRow>(
-          'SELECT * FROM reservations WHERE id = $1 FOR UPDATE',
-          [input.reservationId],
-        );
-        let reservation = reservationResult.rows[0];
-        if (!reservation || reservation.customer_id !== input.customerId) {
-          throw new CheckoutError(
-            'RESERVATION_NOT_FOUND',
-            'Reserva não encontrada.',
-          );
+    const row = result.rows[0];
+    return row
+      ? {
+          reservation: reservationRecord(row),
+          payment: paymentRecord({
+            id: row.payment_id,
+            reservation_id: row.id,
+            customer_id: row.customer_id,
+            amount_in_cents: row.amount_in_cents,
+            currency: row.payment_currency,
+            status: row.payment_status,
+            idempotency_key: row.idempotency_key,
+            created_at: row.payment_created_at,
+            processed_at: row.processed_at,
+          }),
         }
-
-        const expired = await client.query<ReservationRow>(
-          `UPDATE reservations
-         SET status = 'EXPIRED', updated_at = now()
-         WHERE id = $1 AND status = 'PENDING_PAYMENT' AND expires_at <= now()
-         RETURNING *`,
-          [reservation.id],
-        );
-        reservation = expired.rows[0] ?? reservation;
-
-        const replayResult = await client.query<PaymentRow>(
-          `SELECT * FROM payments
-         WHERE customer_id = $1 AND idempotency_key = $2`,
-          [input.customerId, input.idempotencyKey],
-        );
-        const replay = replayResult.rows[0];
-        if (replay) return replayPayment(replay, reservation, input);
-
-        if (reservation.status === 'EXPIRED') {
-          return null;
-        }
-        const nextStatus = paymentReservationStatus(
-          reservation.status,
-          input.outcome,
-        );
-
-        const inserted = await client.query<PaymentRow>(
-          `INSERT INTO payments (
-           reservation_id, customer_id, amount_in_cents, currency,
-           status, idempotency_key, processed_at
-         ) VALUES ($1, $2, $3, $4, $5, $6, now())
-         ON CONFLICT (customer_id, idempotency_key) DO NOTHING
-         RETURNING *`,
-          [
-            reservation.id,
-            input.customerId,
-            reservation.total_in_cents,
-            reservation.currency,
-            input.outcome,
-            input.idempotencyKey,
-          ],
-        );
-        const payment = inserted.rows[0];
-        if (!payment) {
-          const concurrent = await client.query<PaymentRow>(
-            `SELECT * FROM payments
-           WHERE customer_id = $1 AND idempotency_key = $2`,
-            [input.customerId, input.idempotencyKey],
-          );
-          return replayPayment(
-            requiredRow(concurrent.rows[0], 'concurrent payment'),
-            reservation,
-            input,
-          );
-        }
-
-        const updated = await client.query<ReservationRow>(
-          `UPDATE reservations
-         SET status = $2, updated_at = now()
-         WHERE id = $1
-         RETURNING *`,
-          [reservation.id, nextStatus],
-        );
-        return {
-          payment: paymentRecord(payment),
-          reservation: reservationRecord(
-            requiredRow(updated.rows[0], 'updated reservation'),
-          ),
-        };
-      },
-    );
-    if (!result) {
-      throw new CheckoutError(
-        'RESERVATION_EXPIRED',
-        'A reserva expirou e não pode ser paga.',
-      );
-    }
-    return result;
+      : null;
   }
 
   private async transaction<T>(
@@ -334,29 +349,30 @@ export class PostgresCheckoutStore extends CheckoutStore {
   }
 }
 
-function replayPayment(
-  payment: PaymentRow,
-  reservation: ReservationRow,
-  input: {
-    reservationId: string;
-    outcome: PaymentOutcome;
-  },
-): PaymentResult {
+const eventSelect = `SELECT e.*, COALESCE(SUM(r.quantity) FILTER (WHERE r.status = 'PAID'), 0)::integer confirmed_quantity FROM events e LEFT JOIN reservations r ON r.event_id = e.id`;
+async function advisoryLock(client: PoolClient, key: string) {
+  await client.query(`SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`, [
+    key,
+  ]);
+}
+async function confirmedTotal(client: PoolClient, eventId: string) {
+  const result = await client.query<{ total: number }>(
+    `SELECT COALESCE(SUM(quantity), 0)::integer total FROM reservations WHERE event_id = $1 AND status = 'PAID'`,
+    [eventId],
+  );
+  return result.rows[0]?.total ?? 0;
+}
+function ensureReplay(result: PaymentResult, hold: ProcessingHold) {
   if (
-    payment.reservation_id !== input.reservationId ||
-    payment.status !== input.outcome
-  ) {
+    result.reservation.customerId !== hold.customerId ||
+    result.payment.idempotencyKey !== hold.idempotencyKey ||
+    hold.outcome !== 'APPROVED'
+  )
     throw new CheckoutError(
       'IDEMPOTENCY_CONFLICT',
       'A chave de idempotência já foi usada com outros parâmetros.',
     );
-  }
-  return {
-    payment: paymentRecord(payment),
-    reservation: reservationRecord(reservation),
-  };
 }
-
 function reservationRecord(row: ReservationRow): ReservationRecord {
   return {
     id: row.id,
@@ -366,13 +382,12 @@ function reservationRecord(row: ReservationRow): ReservationRecord {
     unitPriceInCents: row.unit_price_in_cents,
     totalInCents: row.total_in_cents,
     currency: brl(row.currency),
-    status: row.status,
+    status: 'PAID',
     expiresAt: row.expires_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
 }
-
 function paymentRecord(row: PaymentRow): PaymentRecord {
   return {
     id: row.id,
@@ -380,14 +395,21 @@ function paymentRecord(row: PaymentRow): PaymentRecord {
     customerId: row.customer_id,
     amountInCents: row.amount_in_cents,
     currency: brl(row.currency),
-    status: row.status,
+    status: 'APPROVED',
     idempotencyKey: row.idempotency_key,
     createdAt: row.created_at,
     processedAt: row.processed_at,
   };
 }
-
-function eventSummary(row: EventSummaryRow) {
+function eventSummary(row: {
+  id: string;
+  slug: string;
+  title: string;
+  starts_at: Date;
+  venue: string;
+  city: string;
+  cover_object_key: string;
+}) {
   return {
     id: row.id,
     slug: row.slug,
@@ -398,29 +420,11 @@ function eventSummary(row: EventSummaryRow) {
     coverObjectKey: row.cover_object_key,
   };
 }
-
-function publishedEvent(row: PublishedEventRow): PublishedEventDetail {
-  return {
-    ...eventSummary(row),
-    summary: row.summary,
-    category: row.category,
-    sourceReleaseDate: row.source_release_date,
-    sourceImageUrl: row.source_image_url,
-    capacity: row.capacity,
-    priceInCents: row.price_in_cents,
-    currency: brl(row.currency),
-    coverContentType: row.cover_content_type,
-    availableQuantity: row.available_quantity,
-    maxQuantityPerReservation: MAX_QUANTITY_PER_RESERVATION,
-  };
+function brl(value: string): 'BRL' {
+  if (value !== 'BRL') throw new Error(`Unsupported currency ${value}.`);
+  return value;
 }
-
-function brl(currency: string): 'BRL' {
-  if (currency !== 'BRL') throw new Error(`Unsupported currency ${currency}.`);
-  return 'BRL';
-}
-
-function requiredRow<T>(row: T | undefined, name: string): T {
-  if (!row) throw new Error(`Expected ${name} row.`);
-  return row;
+function required<T>(value: T | undefined): T {
+  if (!value) throw new Error('Expected database row.');
+  return value;
 }

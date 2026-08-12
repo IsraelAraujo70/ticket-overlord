@@ -1,13 +1,17 @@
 # Holds de inventário no Redis
 
-- **Status:** Proposto
+- **Status:** Implementado
 - **Criado em:** 2026-08-11 22:24:31 -03:00
+- **Aprovado em:** 2026-08-11 22:46:36 -03:00
+- **Implementado em:** 2026-08-11 23:10:41 -03:00
 
 ## Resultado observável
 
 Ao escolher de 1 a 10 ingressos, o cliente criará um hold de dez minutos no Redis sem inserir uma reserva pendente no PostgreSQL. Milhares de tentativas para o mesmo evento serão serializadas por uma operação Lua curta e atômica; a soma de holds ativos e compras confirmadas nunca ultrapassará a capacidade.
 
 Uma recusa liberará o hold imediatamente. Uma aprovação gravará no PostgreSQL uma reserva `PAID` e um pagamento `APPROVED` em uma transação idempotente e finalizará o hold sem devolver estoque. Se Redis estiver indisponível, criação, leitura e pagamento de holds responderão `503`, sem fallback silencioso.
+
+O replay de uma recusa permanece disponível durante a tombstone efêmera no Redis. Após restart ou perda total do Redis, holds e recusas não duráveis são cancelados e deixam de ser recuperáveis; somente aprovações persistidas têm replay durável.
 
 ## Escopo proposto
 

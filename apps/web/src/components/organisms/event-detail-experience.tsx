@@ -110,7 +110,7 @@ export function EventDetailExperience({
                 <span className="text-sm text-muted-foreground">Total</span>
                 <strong className="font-heading text-4xl uppercase">{formatMoney(event.priceInCents * quantity)}</strong>
               </div>
-              {state.message ? <p role="alert" className="mb-4 text-sm font-medium text-destructive">{state.message}</p> : null}
+              {state.message ? <p role="alert" className="mb-4 text-sm font-medium text-destructive">{state.code === "CHECKOUT_UNAVAILABLE" ? "As reservas estão temporariamente indisponíveis. Tente novamente em instantes." : state.message}</p> : null}
               {maximum === 0 ? (
                 <Button disabled className="w-full" size="lg">Ingressos esgotados</Button>
               ) : !user ? (

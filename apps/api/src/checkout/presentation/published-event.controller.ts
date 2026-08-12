@@ -3,6 +3,7 @@ import {
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
+  ApiServiceUnavailableResponse,
   ApiTags,
 } from '@nestjs/swagger';
 import { GetPublishedEventService } from '../application/get-published-event.service';
@@ -19,6 +20,9 @@ export class PublishedEventController {
   @ApiOperation({ summary: 'Obter detalhe e disponibilidade do evento' })
   @ApiOkResponse({ type: PublishedEventDetailDto })
   @ApiNotFoundResponse({ description: 'Evento não disponível para venda.' })
+  @ApiServiceUnavailableResponse({
+    description: 'Checkout temporariamente indisponível.',
+  })
   bySlug(@Param('slug') slug: string): Promise<PublishedEventDetailDto> {
     return this.getPublishedEvent.bySlug(slug);
   }

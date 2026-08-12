@@ -24,6 +24,7 @@ import {
   ApiOperation,
   ApiTags,
   ApiUnauthorizedResponse,
+  ApiServiceUnavailableResponse,
 } from '@nestjs/swagger';
 import { isUUID } from 'class-validator';
 import type { AuthenticatedSession } from '../../auth/domain/auth.types';
@@ -61,6 +62,9 @@ export class ReservationsController {
   @ApiForbiddenResponse({ description: 'Conta sem papel de cliente.' })
   @ApiNotFoundResponse({ description: 'Evento não disponível para venda.' })
   @ApiConflictResponse({ description: 'Inventário insuficiente.' })
+  @ApiServiceUnavailableResponse({
+    description: 'Checkout temporariamente indisponível.',
+  })
   async create(
     @CurrentAuth() auth: AuthenticatedSession,
     @Body() dto: CreateReservationDto,
@@ -76,6 +80,9 @@ export class ReservationsController {
   @ApiUnauthorizedResponse({ description: 'Sessão ausente ou inválida.' })
   @ApiForbiddenResponse({ description: 'Conta sem papel de cliente.' })
   @ApiNotFoundResponse({ description: 'Reserva não encontrada.' })
+  @ApiServiceUnavailableResponse({
+    description: 'Checkout temporariamente indisponível.',
+  })
   find(
     @CurrentAuth() auth: AuthenticatedSession,
     @Param('reservationId', ParseUUIDPipe) reservationId: string,
@@ -98,6 +105,9 @@ export class ReservationsController {
   @ApiNotFoundResponse({ description: 'Reserva não encontrada.' })
   @ApiConflictResponse({
     description: 'Reserva expirada, terminal ou chave reutilizada.',
+  })
+  @ApiServiceUnavailableResponse({
+    description: 'Checkout temporariamente indisponível.',
   })
   async payment(
     @CurrentAuth() auth: AuthenticatedSession,

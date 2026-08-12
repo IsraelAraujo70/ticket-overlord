@@ -3,9 +3,12 @@ import { ValidationPipe } from '@nestjs/common';
 import type { INestApplication } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Pool } from 'pg';
+import { createClient, type RedisClientType } from 'redis';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
+import { InventoryHoldStore } from '../src/checkout/application/ports/inventory-hold-store';
+import { CheckoutError } from '../src/checkout/domain/checkout.errors';
 import { POSTGRES_POOL } from '../src/database/database.constants';
 import { configureOpenApi } from '../src/openapi';
 
@@ -20,6 +23,7 @@ interface Fixture {
 describe('Checkout API (e2e)', () => {
   let app: INestApplication<App>;
   let pool: Pool;
+  let redis: RedisClientType;
 
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
@@ -36,12 +40,15 @@ describe('Checkout API (e2e)', () => {
     configureOpenApi(app);
     await app.init();
     pool = app.get<Pool>(POSTGRES_POOL);
+    redis = createClient({ url: process.env.REDIS_URL });
+    await redis.connect();
   });
 
   beforeEach(async () => {
     await pool.query(
       'TRUNCATE payments, reservations, events, auth_sessions, auth_tokens, organization_members, organizations, users RESTART IDENTITY CASCADE',
     );
+    await redis.flushDb();
   });
 
   it('documents checkout paths, security, header, bodies and responses', async () => {
@@ -52,7 +59,7 @@ describe('Checkout API (e2e)', () => {
         expect(body as unknown).toMatchObject({
           paths: {
             '/events/published/{slug}': {
-              get: { responses: { 200: {}, 404: {} } },
+              get: { responses: { 200: {}, 404: {}, 503: {} } },
             },
             '/reservations': {
               post: {
@@ -65,6 +72,7 @@ describe('Checkout API (e2e)', () => {
                   403: {},
                   404: {},
                   409: {},
+                  503: {},
                 },
               },
             },
@@ -93,6 +101,7 @@ describe('Checkout API (e2e)', () => {
                   403: {},
                   404: {},
                   409: {},
+                  503: {},
                 },
               },
             },
@@ -129,13 +138,11 @@ describe('Checkout API (e2e)', () => {
     );
     expect(responses.map(({ status }) => status).sort()).toEqual([201, 409]);
 
-    const allocated = await pool.query<{ quantity: number }>(
-      `SELECT COALESCE(SUM(quantity), 0)::integer AS quantity
-       FROM reservations
-       WHERE event_id = $1 AND status = 'PENDING_PAYMENT'`,
+    const allocated = await pool.query<{ count: number }>(
+      'SELECT count(*)::integer AS count FROM reservations WHERE event_id = $1',
       [fixture.eventId],
     );
-    expect(allocated.rows[0]?.quantity).toBe(4);
+    expect(allocated.rows[0]?.count).toBe(0);
     await request(app.getHttpServer())
       .get(`/events/published/${fixture.slug}`)
       .expect(200)
@@ -147,6 +154,30 @@ describe('Checkout API (e2e)', () => {
         });
         expect(body).not.toHaveProperty('organizationId');
       });
+  });
+
+  it('serializes one thousand attempts without PostgreSQL pending rows', async () => {
+    const fixture = await createFixture(pool, 20);
+    const responses = [];
+    for (let offset = 0; offset < 1_000; offset += 5) {
+      responses.push(
+        ...(await Promise.all(
+          Array.from({ length: 5 }, () =>
+            request(app.getHttpServer())
+              .post('/reservations')
+              .set('Authorization', `Bearer ${fixture.customerToken}`)
+              .send({ eventId: fixture.eventId, quantity: 1 }),
+          ),
+        )),
+      );
+    }
+    expect(responses.filter(({ status }) => status === 201)).toHaveLength(20);
+    expect(responses.filter(({ status }) => status === 409)).toHaveLength(980);
+    const persisted = await pool.query<{ count: number }>(
+      'SELECT count(*)::integer AS count FROM reservations WHERE event_id = $1',
+      [fixture.eventId],
+    );
+    expect(persisted.rows[0]?.count).toBe(0);
   });
 
   it('replays concurrent payments once and enforces ownership and roles', async () => {
@@ -180,6 +211,11 @@ describe('Checkout API (e2e)', () => {
       [reservationId],
     );
     expect(persisted.rows[0]?.count).toBe(1);
+    const paid = await pool.query<{ count: number }>(
+      "SELECT count(*)::integer AS count FROM reservations WHERE id = $1 AND status = 'PAID'",
+      [reservationId],
+    );
+    expect(paid.rows[0]?.count).toBe(1);
 
     await request(app.getHttpServer())
       .get(`/events/published/${fixture.slug}`)
@@ -219,10 +255,11 @@ describe('Checkout API (e2e)', () => {
       fixture.eventId,
       3,
     );
-    await request(app.getHttpServer())
+    const refusalKey = randomUUID();
+    const refused = await request(app.getHttpServer())
       .post(`/reservations/${refusedReservation}/payment`)
       .set('Authorization', `Bearer ${fixture.customerToken}`)
-      .set('Idempotency-Key', randomUUID())
+      .set('Idempotency-Key', refusalKey)
       .send({ outcome: 'REFUSED' })
       .expect(200)
       .expect(({ body }) => {
@@ -231,7 +268,21 @@ describe('Checkout API (e2e)', () => {
           reservation: { status: 'PAYMENT_REFUSED' },
         });
       });
+    await request(app.getHttpServer())
+      .post(`/reservations/${refusedReservation}/payment`)
+      .set('Authorization', `Bearer ${fixture.customerToken}`)
+      .set('Idempotency-Key', refusalKey)
+      .send({ outcome: 'REFUSED' })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toEqual(refused.body);
+      });
     await expectAvailability(app, fixture.slug, 3);
+    const refusedPersisted = await pool.query<{ count: number }>(
+      'SELECT count(*)::integer AS count FROM reservations WHERE id = $1',
+      [refusedReservation],
+    );
+    expect(refusedPersisted.rows[0]?.count).toBe(0);
 
     const expiredReservation = await createReservation(
       app,
@@ -239,31 +290,231 @@ describe('Checkout API (e2e)', () => {
       fixture.eventId,
       3,
     );
-    await pool.query(
-      "UPDATE reservations SET expires_at = now() - interval '1 second' WHERE id = $1",
-      [expiredReservation],
+    await redis.hSet(
+      `hold:{${fixture.eventId}}:${expiredReservation}`,
+      'expiresAt',
+      String(Date.now() - 1_000),
     );
+    await redis.zAdd(`hold-expirations:{${fixture.eventId}}`, {
+      score: Date.now() - 1_000,
+      value: `${expiredReservation}|3`,
+    });
     await expectAvailability(app, fixture.slug, 3);
     await request(app.getHttpServer())
       .get(`/reservations/${expiredReservation}`)
       .set('Authorization', `Bearer ${fixture.customerToken}`)
-      .expect(200)
+      .expect(404)
       .expect(({ body }) => {
-        expect(body).toMatchObject({ status: 'EXPIRED' });
-        expect(body).not.toHaveProperty('customerId');
+        expect(body).toMatchObject({ code: 'RESERVATION_NOT_FOUND' });
       });
     await request(app.getHttpServer())
       .post(`/reservations/${expiredReservation}/payment`)
       .set('Authorization', `Bearer ${fixture.customerToken}`)
       .set('Idempotency-Key', randomUUID())
       .send({ outcome: 'APPROVED' })
-      .expect(409)
+      .expect(404)
       .expect(({ body }) => {
-        expect(body).toMatchObject({ code: 'RESERVATION_EXPIRED' });
+        expect(body).toMatchObject({ code: 'RESERVATION_NOT_FOUND' });
       });
   });
 
+  it('rebuilds confirmed inventory after Redis is flushed', async () => {
+    const fixture = await createFixture(pool, 3);
+    const reservationId = await createReservation(
+      app,
+      fixture.customerToken,
+      fixture.eventId,
+      2,
+    );
+    await request(app.getHttpServer())
+      .post(`/reservations/${reservationId}/payment`)
+      .set('Authorization', `Bearer ${fixture.customerToken}`)
+      .set('Idempotency-Key', randomUUID())
+      .send({ outcome: 'APPROVED' })
+      .expect(200);
+
+    await redis.flushDb();
+    await expectAvailability(app, fixture.slug, 1);
+    await request(app.getHttpServer())
+      .get(`/reservations/${reservationId}`)
+      .set('Authorization', `Bearer ${fixture.customerToken}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({ id: reservationId, status: 'PAID' });
+      });
+  });
+
+  it('invalidates pending holds when Redis is flushed', async () => {
+    const fixture = await createFixture(pool, 2);
+    const lostHold = await createReservation(
+      app,
+      fixture.customerToken,
+      fixture.eventId,
+      2,
+    );
+
+    await redis.flushDb();
+    const replacement = await createReservation(
+      app,
+      fixture.otherCustomerToken,
+      fixture.eventId,
+      2,
+    );
+    await request(app.getHttpServer())
+      .post(`/reservations/${lostHold}/payment`)
+      .set('Authorization', `Bearer ${fixture.customerToken}`)
+      .set('Idempotency-Key', randomUUID())
+      .send({ outcome: 'APPROVED' })
+      .expect(404);
+    await request(app.getHttpServer())
+      .post(`/reservations/${replacement}/payment`)
+      .set('Authorization', `Bearer ${fixture.otherCustomerToken}`)
+      .set('Idempotency-Key', randomUUID())
+      .send({ outcome: 'APPROVED' })
+      .expect(200);
+
+    const total = await pool.query<{ quantity: number }>(
+      'SELECT COALESCE(SUM(quantity), 0)::integer quantity FROM reservations WHERE event_id = $1',
+      [fixture.eventId],
+    );
+    expect(total.rows[0]?.quantity).toBe(2);
+  });
+
+  it('fails closed when inventory is lost but active holds remain', async () => {
+    const fixture = await createFixture(pool, 2);
+    await createReservation(app, fixture.customerToken, fixture.eventId, 1);
+    await redis.del(`inventory:{${fixture.eventId}}`);
+
+    await request(app.getHttpServer())
+      .post('/reservations')
+      .set('Authorization', `Bearer ${fixture.otherCustomerToken}`)
+      .send({ eventId: fixture.eventId, quantity: 2 })
+      .expect(503)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({ code: 'CHECKOUT_UNAVAILABLE' });
+      });
+  });
+
+  it('converges after PostgreSQL commits and Redis confirmation fails', async () => {
+    const fixture = await createFixture(pool, 2);
+    const reservationId = await createReservation(
+      app,
+      fixture.customerToken,
+      fixture.eventId,
+      2,
+    );
+    const idempotencyKey = randomUUID();
+    const holds = app.get(InventoryHoldStore);
+    const confirm = jest
+      .spyOn(holds, 'confirm')
+      .mockRejectedValueOnce(
+        new CheckoutError(
+          'CHECKOUT_UNAVAILABLE',
+          'Checkout temporariamente indisponível.',
+        ),
+      );
+
+    await request(app.getHttpServer())
+      .post(`/reservations/${reservationId}/payment`)
+      .set('Authorization', `Bearer ${fixture.customerToken}`)
+      .set('Idempotency-Key', idempotencyKey)
+      .send({ outcome: 'APPROVED' })
+      .expect(503);
+    await request(app.getHttpServer())
+      .post(`/reservations/${reservationId}/payment`)
+      .set('Authorization', `Bearer ${fixture.customerToken}`)
+      .set('Idempotency-Key', idempotencyKey)
+      .send({ outcome: 'APPROVED' })
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          payment: { status: 'APPROVED', idempotencyKey },
+          reservation: { id: reservationId, status: 'PAID' },
+        });
+      });
+    confirm.mockRestore();
+
+    const persisted = await pool.query<{ count: number }>(
+      'SELECT count(*)::integer count FROM payments WHERE reservation_id = $1',
+      [reservationId],
+    );
+    expect(persisted.rows[0]?.count).toBe(1);
+  });
+
+  it('rejects an idempotency key reused for another reservation', async () => {
+    const fixture = await createFixture(pool, 2);
+    const first = await createReservation(
+      app,
+      fixture.customerToken,
+      fixture.eventId,
+      1,
+    );
+    const second = await createReservation(
+      app,
+      fixture.customerToken,
+      fixture.eventId,
+      1,
+    );
+    const idempotencyKey = randomUUID();
+
+    await request(app.getHttpServer())
+      .post(`/reservations/${first}/payment`)
+      .set('Authorization', `Bearer ${fixture.customerToken}`)
+      .set('Idempotency-Key', idempotencyKey)
+      .send({ outcome: 'APPROVED' })
+      .expect(200);
+    await request(app.getHttpServer())
+      .post(`/reservations/${second}/payment`)
+      .set('Authorization', `Bearer ${fixture.customerToken}`)
+      .set('Idempotency-Key', idempotencyKey)
+      .send({ outcome: 'APPROVED' })
+      .expect(409)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({ code: 'IDEMPOTENCY_CONFLICT' });
+      });
+  });
+
+  it('enforces capacity again when committing an approved purchase', async () => {
+    const fixture = await createFixture(pool, 3);
+    const first = await createReservation(
+      app,
+      fixture.customerToken,
+      fixture.eventId,
+      2,
+    );
+    await redis.hSet(`inventory:{${fixture.eventId}}`, 'held', '0');
+    const second = await createReservation(
+      app,
+      fixture.otherCustomerToken,
+      fixture.eventId,
+      2,
+    );
+
+    await request(app.getHttpServer())
+      .post(`/reservations/${first}/payment`)
+      .set('Authorization', `Bearer ${fixture.customerToken}`)
+      .set('Idempotency-Key', randomUUID())
+      .send({ outcome: 'APPROVED' })
+      .expect(200);
+    await request(app.getHttpServer())
+      .post(`/reservations/${second}/payment`)
+      .set('Authorization', `Bearer ${fixture.otherCustomerToken}`)
+      .set('Idempotency-Key', randomUUID())
+      .send({ outcome: 'APPROVED' })
+      .expect(409)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({ code: 'INSUFFICIENT_INVENTORY' });
+      });
+
+    const total = await pool.query<{ quantity: number }>(
+      'SELECT COALESCE(SUM(quantity), 0)::integer quantity FROM reservations WHERE event_id = $1',
+      [fixture.eventId],
+    );
+    expect(total.rows[0]?.quantity).toBe(2);
+  });
+
   afterAll(async () => {
+    await redis.close();
     await app.close();
   });
 });

@@ -13,14 +13,9 @@ import {
 import { events } from './events';
 import { users } from './users';
 
-export const reservationStatus = pgEnum('reservation_status', [
-  'PENDING_PAYMENT',
-  'PAID',
-  'PAYMENT_REFUSED',
-  'EXPIRED',
-]);
+export const reservationStatus = pgEnum('reservation_status', ['PAID']);
 
-export const paymentStatus = pgEnum('payment_status', ['APPROVED', 'REFUSED']);
+export const paymentStatus = pgEnum('payment_status', ['APPROVED']);
 
 export const reservations = pgTable(
   'reservations',
@@ -36,7 +31,7 @@ export const reservations = pgTable(
     unitPriceInCents: integer('unit_price_in_cents').notNull(),
     totalInCents: integer('total_in_cents').notNull(),
     currency: varchar('currency', { length: 3 }).notNull(),
-    status: reservationStatus('status').default('PENDING_PAYMENT').notNull(),
+    status: reservationStatus('status').default('PAID').notNull(),
     expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
     createdAt: timestamp('created_at', { withTimezone: true })
       .defaultNow()
@@ -88,6 +83,6 @@ export const payments = pgTable(
       table.customerId,
       table.idempotencyKey,
     ),
-    index('payments_reservation_idx').on(table.reservationId),
+    uniqueIndex('payments_reservation_unique').on(table.reservationId),
   ],
 );

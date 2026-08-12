@@ -24,7 +24,8 @@ export function CheckoutExperience({ reservation }: { reservation: Reservation }
       ? "REFUSED"
       : undefined;
   const terminalOutcome = state.status === "success" ? state.outcome : persistedOutcome;
-  const expired = reservation.status === "EXPIRED" || (remainingSeconds === 0 && reservation.status === "PENDING_PAYMENT");
+  const holdLost = state.status === "error" && (state.code === "HOLD_EXPIRED" || state.code === "RESERVATION_EXPIRED" || state.code === "RESERVATION_NOT_FOUND");
+  const expired = holdLost || reservation.status === "EXPIRED" || (remainingSeconds === 0 && reservation.status === "PENDING_PAYMENT");
   const canPay = reservation.status === "PENDING_PAYMENT" && !expired && !terminalOutcome;
 
   return (
@@ -55,7 +56,7 @@ export function CheckoutExperience({ reservation }: { reservation: Reservation }
               slug={reservation.event.slug}
             />
           ) : expired ? (
-            <Result message="O prazo terminou e os ingressos voltaram para a venda." slug={reservation.event.slug} />
+            <Result message={holdLost ? "Este hold expirou ou foi cancelado durante uma manutenção. Os ingressos voltaram para a venda." : "O prazo terminou e os ingressos voltaram para a venda."} slug={reservation.event.slug} />
           ) : (
             <form action={formAction}>
               <input type="hidden" name="reservationId" value={reservation.id} />
@@ -69,7 +70,7 @@ export function CheckoutExperience({ reservation }: { reservation: Reservation }
                 <Button type="submit" name="outcome" value="APPROVED" size="lg" className="w-full" disabled={!canPay || pending}>Simular aprovação</Button>
                 <Button type="submit" name="outcome" value="REFUSED" variant="outline" size="lg" className="w-full border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white" disabled={!canPay || pending}>Simular recusa</Button>
               </div>
-              {state.status === "error" ? <p role="alert" className="mt-4 text-sm font-medium text-ticket-coral">{state.message}</p> : null}
+              {state.status === "error" ? <p role="alert" className="mt-4 text-sm font-medium text-ticket-coral">{state.code === "CHECKOUT_UNAVAILABLE" ? "O checkout está temporariamente indisponível. Tente novamente." : state.message}</p> : null}
               <p className="mt-5 flex gap-2 text-xs leading-5 text-ticket-paper/50"><ShieldCheckIcon className="mt-0.5 size-4 shrink-0" aria-hidden="true" />Ambiente demonstrativo. Nenhum dado financeiro é solicitado.</p>
             </form>
           )}
