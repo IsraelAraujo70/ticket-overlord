@@ -14,7 +14,6 @@ describe("AdminSectionPage", () => {
     ["eventos", "Eventos"],
     ["ingressos", "Ingressos"],
     ["pedidos", "Pedidos"],
-    ["portaria", "Portaria"],
   ])("renders the %s section with the shared construction state", async (section, title) => {
     render(await AdminSectionPage({ params: Promise.resolve({ section }) }));
 

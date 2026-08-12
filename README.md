@@ -50,6 +50,7 @@ Toda a documentação necessária para desenvolver e avaliar o projeto é versio
 | [`docs/plans/2026-08-11-admin-event-creation.md`](./docs/plans/2026-08-11-admin-event-creation.md) | Plano aprovado da criação administrativa de eventos. |
 | [`docs/plans/2026-08-11-reservation-checkout-payment.md`](./docs/plans/2026-08-11-reservation-checkout-payment.md) | Plano implementado de reserva concorrente, checkout e pagamento simulado. |
 | [`docs/plans/2026-08-11-redis-inventory-holds.md`](./docs/plans/2026-08-11-redis-inventory-holds.md) | Plano implementado de holds temporários de inventário no Redis. |
+| [`docs/plans/2026-08-12-tickets-qr-gate.md`](./docs/plans/2026-08-12-tickets-qr-gate.md) | Plano aprovado de ingressos, QR Code, compartilhamento e portaria. |
 | [`AGENTS.md`](./AGENTS.md) | Contexto e regras locais para agentes que trabalham no projeto. |
 
 O repositório é a fonte oficial da documentação. Páginas externas podem ser usadas como material de apresentação no futuro, mas não substituirão os arquivos versionados.
@@ -124,6 +125,13 @@ O catálogo público e o seed funcionam sem chamar serviços externos. Para busc
 - `/checkout/[reservationId]` permite simular aprovação e recusa sem coletar dados financeiros.
 - Pagamentos são idempotentes; aprovação mantém o inventário alocado, enquanto recusa ou expiração devolvem a quantidade à venda.
 
+### Ingressos e portaria implementados
+
+- Cada unidade de uma compra aprovada gera um ingresso individual com QR Code assinado por Ed25519 e código manual.
+- `/meus-ingressos` lista a carteira do cliente; cada ingresso pode ser aberto e compartilhado por um link secreto somente para visualização.
+- `/admin/portaria` permite que organizador ou staff leia o QR pela câmera ou informe o código manual para eventos da própria organização.
+- A validação é atômica, aceita um ingresso somente uma vez e apenas no dia do evento em `America/Sao_Paulo`.
+
 Para iniciar somente API e PostgreSQL:
 
 ```bash
@@ -168,7 +176,9 @@ O endpoint `GET http://localhost:3001/` retorna o estado da API. Os contratos im
 - O painel global do administrador ainda não lista clientes ou organizadores.
 - O convite de funcionários do organizador ainda não foi implementado.
 - Edição, cancelamento e exclusão de eventos pelo painel ainda não foram implementados.
-- Emissão e compartilhamento de ingressos, QR Code e validação na portaria ainda não foram implementados.
+- A portaria depende de conexão com a API; operação offline não foi implementada.
+- A câmera requer HTTPS fora de `localhost` e permissão do navegador; o código manual permanece disponível como fallback.
+- A chave privada Ed25519 fica versionada no PostgreSQL nesta demonstração e deve migrar para KMS ou secret manager antes de uso real.
 - O adapter de console revela links somente no desenvolvimento local e é proibido quando `APP_ENV=production`.
 - Nenhum ambiente foi publicado.
 
@@ -184,7 +194,7 @@ Após `pnpm db:seed`, as contas abaixo estão verificadas e usam a senha local `
 | Cliente 2 | `customer.two@ticketoverlord.local` |
 | Portaria, representando convite aceito | `gate@ticketoverlord.local` |
 
-O seed também cria um evento de cinema publicado para navegação imediata no catálogo.
+O seed também cria para o dia da execução um evento de cinema publicado e dois ingressos pagos para o Cliente 1. Use essa conta em `/meus-ingressos` e a conta de Portaria em `/admin/portaria` para avaliar o fluxo completo.
 
 ## Uso de IA
 

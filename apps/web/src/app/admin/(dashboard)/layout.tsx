@@ -7,7 +7,7 @@ export default async function AdminDashboardLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   const user = await getCurrentUser();
 
-  if (!user || (user.role !== "ORGANIZER" && user.role !== "ADMIN")) {
+  if (!user || !["ORGANIZER", "ORGANIZER_STAFF", "ADMIN"].includes(user.role)) {
     redirect("/admin/login");
   }
 

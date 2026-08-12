@@ -1,6 +1,7 @@
 "use client";
 
-import { ChevronDownIcon, LogOutIcon } from "lucide-react";
+import Link from "next/link";
+import { ChevronDownIcon, LogOutIcon, ScanLineIcon, TicketIcon } from "lucide-react";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -90,6 +91,19 @@ export function AccountMenu({
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuGroup>
+          {user.role === "CUSTOMER" ? (
+            <DropdownMenuItem nativeButton={false} render={<Link href="/meus-ingressos" />}>
+              <TicketIcon />
+              Meus ingressos
+            </DropdownMenuItem>
+          ) : null}
+          {user.role === "ORGANIZER" || user.role === "ORGANIZER_STAFF" ? (
+            <DropdownMenuItem nativeButton={false} render={<Link href="/admin/portaria" />}>
+              <ScanLineIcon />
+              Portaria
+            </DropdownMenuItem>
+          ) : null}
+          <DropdownMenuSeparator />
           <form action={logoutAction}>
             <DropdownMenuItem
               nativeButton

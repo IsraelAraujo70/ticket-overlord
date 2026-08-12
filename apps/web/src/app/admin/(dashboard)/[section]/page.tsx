@@ -6,7 +6,6 @@ const sections = {
   eventos: "Eventos",
   ingressos: "Ingressos",
   pedidos: "Pedidos",
-  portaria: "Portaria",
 } as const;
 
 interface AdminSectionPageProps {

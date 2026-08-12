@@ -15,6 +15,7 @@ import {
   customerLoginAction,
   customerRegisterAction,
   organizerRegisterAction,
+  organizerLoginAction,
 } from "@/server/auth/auth-actions";
 import { initialAuthActionState } from "@/server/auth/auth.types";
 
@@ -139,6 +140,34 @@ describe("customer login return", () => {
     await customerLoginAction(initialAuthActionState, formData);
 
     expect(redirect).toHaveBeenCalledWith("/");
+  });
+});
+
+describe("admin login roles", () => {
+  const cookieStore = { set: vi.fn() };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.mocked(cookies).mockResolvedValue(cookieStore as never);
+  });
+
+  it("allows gate staff and redirects directly to the gate", async () => {
+    vi.mocked(backendRequest).mockResolvedValue({
+      accessToken: "staff-session",
+      expiresAt: "2026-08-18T12:00:00.000Z",
+      user: {
+        id: "staff-id",
+        fullName: "Gabriel Portaria",
+        email: "gate@example.com",
+        role: "ORGANIZER_STAFF",
+        organizationId: "organization-id",
+      },
+    });
+
+    await organizerLoginAction(initialAuthActionState, new FormData());
+
+    expect(cookieStore.set).toHaveBeenCalled();
+    expect(redirect).toHaveBeenCalledWith("/admin/portaria");
   });
 });
 

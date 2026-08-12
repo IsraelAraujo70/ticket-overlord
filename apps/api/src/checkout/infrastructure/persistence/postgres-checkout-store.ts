@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Pool, PoolClient } from 'pg';
 import { POSTGRES_POOL } from '../../../database/database.constants';
+import { TicketStore } from '../../../tickets/application/ports/ticket-store';
 import { ConfirmedCheckoutStore } from '../../application/ports/confirmed-checkout-store';
 import type {
   EventInventorySnapshot,
@@ -61,7 +62,10 @@ interface PaymentRow {
 
 @Injectable()
 export class PostgresCheckoutStore extends ConfirmedCheckoutStore {
-  constructor(@Inject(POSTGRES_POOL) private readonly pool: Pool) {
+  constructor(
+    @Inject(POSTGRES_POOL) private readonly pool: Pool,
+    private readonly tickets: TicketStore,
+  ) {
     super();
   }
 
@@ -250,6 +254,12 @@ export class PostgresCheckoutStore extends ConfirmedCheckoutStore {
           hold.idempotencyKey,
         ],
       );
+      await this.tickets.issueForPaidReservation(client, {
+        reservationId: hold.id,
+        eventId: hold.eventId,
+        customerId: hold.customerId,
+        quantity: hold.quantity,
+      });
       return {
         result: {
           reservation: reservationRecord(required(reservation.rows[0])),

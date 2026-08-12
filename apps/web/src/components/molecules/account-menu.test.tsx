@@ -56,4 +56,30 @@ describe("AccountMenu", () => {
       "group-aria-expanded/button:text-muted-foreground",
     );
   });
+
+  it("links customers to their tickets", async () => {
+    render(<AccountMenu user={user("CUSTOMER")} />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Abrir menu de Maria da Silva" }),
+    );
+
+    expect(await screen.findByRole("menuitem", { name: "Meus ingressos" })).toHaveAttribute(
+      "href",
+      "/meus-ingressos",
+    );
+  });
+
+  it("links gate staff to the gate operation", async () => {
+    render(<AccountMenu user={user("ORGANIZER_STAFF")} />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Abrir menu de Maria da Silva" }),
+    );
+
+    expect(await screen.findByRole("menuitem", { name: "Portaria" })).toHaveAttribute(
+      "href",
+      "/admin/portaria",
+    );
+  });
 });

@@ -6,6 +6,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import type { UserRole } from '../auth/domain/user-role';
 import { ScryptPasswordHasher } from '../auth/infrastructure/security/scrypt-password-hasher';
+import { PostgresTicketStore } from '../tickets/infrastructure/persistence/postgres-ticket-store';
 import { events, organizationMembers, organizations, users } from './schema';
 
 const connectionString = process.env.DATABASE_URL;
@@ -42,6 +43,9 @@ const s3Client = new S3Client({
   ...(s3Credentials ? { credentials: s3Credentials } : {}),
 });
 
+const demoEventStartsAt = new Date();
+demoEventStartsAt.setHours(19, 0, 0, 0);
+
 const demoEvents = [
   {
     id: '10000000-0000-4000-8000-000000000001',
@@ -51,7 +55,7 @@ const demoEvents = [
     summary:
       'Uma sessão especial do marco do cinema brasileiro, seguida de conversa sobre direção e montagem.',
     sourceReleaseDate: '2002-08-30',
-    startsAt: new Date('2026-08-22T19:00:00-03:00'),
+    startsAt: demoEventStartsAt,
     venue: 'Cine Belas Artes',
     city: 'São Paulo',
     capacity: 180,
@@ -59,6 +63,10 @@ const demoEvents = [
     image: 'concert-hero.webp',
   },
 ] as const;
+
+const demoReservationId = '20000000-0000-4000-8000-000000000001';
+const demoPaymentId = '30000000-0000-4000-8000-000000000001';
+const demoPaymentKey = '40000000-0000-4000-8000-000000000001';
 
 const obsoleteDemoEventIds = [
   '10000000-0000-4000-8000-000000000002',
@@ -256,8 +264,61 @@ async function run(): Promise<void> {
       });
   }
 
+  const demoEvent = demoEvents[0];
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query(
+      `INSERT INTO reservations (
+         id, event_id, customer_id, quantity, unit_price_in_cents,
+         total_in_cents, currency, status, expires_at
+       ) VALUES ($1,$2,$3,2,$4,$5,'BRL','PAID',$6)
+       ON CONFLICT (id) DO UPDATE SET
+         event_id = EXCLUDED.event_id,
+         customer_id = EXCLUDED.customer_id,
+         quantity = EXCLUDED.quantity,
+         unit_price_in_cents = EXCLUDED.unit_price_in_cents,
+         total_in_cents = EXCLUDED.total_in_cents,
+         updated_at = now()`,
+      [
+        demoReservationId,
+        demoEvent.id,
+        customerOneId,
+        demoEvent.priceInCents,
+        demoEvent.priceInCents * 2,
+        demoEvent.startsAt,
+      ],
+    );
+    await client.query(
+      `INSERT INTO payments (
+         id, reservation_id, customer_id, amount_in_cents, currency,
+         status, idempotency_key
+       ) VALUES ($1,$2,$3,$4,'BRL','APPROVED',$5)
+       ON CONFLICT (reservation_id) DO NOTHING`,
+      [
+        demoPaymentId,
+        demoReservationId,
+        customerOneId,
+        demoEvent.priceInCents * 2,
+        demoPaymentKey,
+      ],
+    );
+    await new PostgresTicketStore(pool).issueForPaidReservation(client, {
+      reservationId: demoReservationId,
+      eventId: demoEvent.id,
+      customerId: customerOneId,
+      quantity: 2,
+    });
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+
   console.log(
-    `Seeded users ${[adminId, organizerId, customerOneId, customerTwoId, staffId].join(', ')}, organization ${organizationId}, and ${demoEvents.length} published events.`,
+    `Seeded users ${[adminId, organizerId, customerOneId, customerTwoId, staffId].join(', ')}, organization ${organizationId}, ${demoEvents.length} published events, and 2 demo tickets.`,
   );
 }
 

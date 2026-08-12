@@ -29,7 +29,7 @@ describe("AppSidebar", () => {
   ])("links %s to %s", (title, href) => {
     render(
       <SidebarProvider>
-        <AppSidebar />
+        <AppSidebar role="ORGANIZER" />
       </SidebarProvider>,
     );
 
@@ -39,12 +39,33 @@ describe("AppSidebar", () => {
   it("marks the current section as active", () => {
     render(
       <SidebarProvider>
-        <AppSidebar />
+        <AppSidebar role="ORGANIZER" />
       </SidebarProvider>,
     );
 
     expect(screen.getByRole("link", { name: "Ingressos" })).toHaveAttribute(
       "data-active",
     );
+  });
+
+  it("shows only the gate operation to staff", () => {
+    render(
+      <SidebarProvider>
+        <AppSidebar role="ORGANIZER_STAFF" />
+      </SidebarProvider>,
+    );
+
+    expect(screen.getByRole("link", { name: "Portaria" })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Eventos" })).not.toBeInTheDocument();
+  });
+
+  it("does not offer the organization gate to global admins", () => {
+    render(
+      <SidebarProvider>
+        <AppSidebar role="ADMIN" />
+      </SidebarProvider>,
+    );
+
+    expect(screen.queryByRole("link", { name: "Portaria" })).not.toBeInTheDocument();
   });
 });

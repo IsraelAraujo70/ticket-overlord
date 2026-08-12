@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { DatabaseModule } from '../database/database.module';
 import { EventsModule } from '../events/events.module';
+import { TicketsModule } from '../tickets/tickets.module';
 import { GetPublishedEventService } from './application/get-published-event.service';
 import { PaymentService } from './application/payment.service';
 import { ConfirmedCheckoutStore } from './application/ports/confirmed-checkout-store';
@@ -17,7 +18,7 @@ import { PublishedEventController } from './presentation/published-event.control
 import { ReservationsController } from './presentation/reservations.controller';
 
 @Module({
-  imports: [AuthModule, DatabaseModule, EventsModule],
+  imports: [AuthModule, DatabaseModule, EventsModule, TicketsModule],
   controllers: [PublishedEventController, ReservationsController],
   providers: [
     GetPublishedEventService,

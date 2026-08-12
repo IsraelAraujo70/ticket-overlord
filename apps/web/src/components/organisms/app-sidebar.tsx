@@ -25,6 +25,7 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
+import type { UserRole } from "@/server/auth/auth.types";
 
 const navItems = [
   { title: "Visão geral", icon: ChartNoAxesCombinedIcon, href: "/admin" },
@@ -34,8 +35,13 @@ const navItems = [
   { title: "Portaria", icon: ClipboardCheckIcon, href: "/admin/portaria" },
 ];
 
-export function AppSidebar() {
+export function AppSidebar({ role }: { role: UserRole }) {
   const pathname = usePathname();
+  const visibleItems = role === "ORGANIZER_STAFF"
+    ? navItems.filter((item) => item.href === "/admin/portaria")
+    : role === "ADMIN"
+      ? navItems.filter((item) => item.href !== "/admin/portaria")
+      : navItems;
 
   return (
     <Sidebar collapsible="icon" variant="inset">
@@ -60,7 +66,7 @@ export function AppSidebar() {
           <SidebarGroupLabel>Operação</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
+              {visibleItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     render={<Link href={item.href} />}

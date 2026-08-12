@@ -29,6 +29,13 @@
       "when": 1786500200000,
       "tag": "0003_redis_inventory_holds",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1786539716669,
+      "tag": "0004_low_risque",
+      "breakpoints": true
     }
   ]
 }

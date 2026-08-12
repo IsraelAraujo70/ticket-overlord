@@ -48,6 +48,7 @@ async function login(
   formData: FormData,
   expectedSurface: "customer" | "admin",
 ): Promise<AuthActionState> {
+  let authenticatedPath = expectedSurface === "customer" ? "/" : "/admin";
   try {
     const result = await backendRequest<LoginResponse>("/auth/login", {
       method: "POST",
@@ -59,7 +60,7 @@ async function login(
     const allowed =
       expectedSurface === "customer"
         ? result.user.role === "CUSTOMER"
-        : result.user.role === "ORGANIZER" || result.user.role === "ADMIN";
+        : ["ORGANIZER", "ORGANIZER_STAFF", "ADMIN"].includes(result.user.role);
 
     if (!allowed) {
       await backendRequest<void>("/auth/logout", {
@@ -77,12 +78,19 @@ async function login(
     }
 
     await persistSession(result);
+    if (result.user.role === "ORGANIZER_STAFF") {
+      authenticatedPath = "/admin/portaria";
+    }
   } catch (error) {
     return actionError(error);
   }
 
   const returnTo = safeLocalReturnTo(field(formData, "returnTo"));
-  redirect(expectedSurface === "customer" ? (returnTo ?? "/") : "/admin");
+  redirect(
+    expectedSurface === "customer"
+      ? (returnTo ?? "/")
+      : authenticatedPath,
+  );
 }
 
 function safeLocalReturnTo(value: string): string | null {

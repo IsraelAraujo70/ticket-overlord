@@ -21,7 +21,7 @@ export function AdminTemplate({
         } as React.CSSProperties
       }
     >
-      <AppSidebar />
+      <AppSidebar role={user.role} />
       <SidebarInset>
         <AdminHeader user={user} />
         <div className="flex min-w-0 flex-1 flex-col overflow-auto p-4 md:p-6 lg:p-8">
