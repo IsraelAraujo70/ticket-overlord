@@ -19,6 +19,17 @@ describe('environment validation', () => {
     });
   });
 
+  it('parses numeric values supplied by process environment variables', () => {
+    const environment = validateEnvironment({
+      DATABASE_URL: 'postgresql://user:password@localhost:5432/database',
+      PORT: '3011',
+      S3_PRESIGNED_URL_TTL_SECONDS: '600',
+    });
+
+    expect(environment.PORT).toBe(3011);
+    expect(environment.S3_PRESIGNED_URL_TTL_SECONDS).toBe(600);
+  });
+
   it('requires Resend credentials when that provider is selected', () => {
     expect(() =>
       validateEnvironment({

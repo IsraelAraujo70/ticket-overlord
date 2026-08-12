@@ -1,4 +1,4 @@
-import { plainToInstance } from 'class-transformer';
+import { plainToInstance, Type } from 'class-transformer';
 import {
   IsIn,
   IsInt,
@@ -32,6 +32,7 @@ export class EnvironmentVariables {
   @IsInt()
   @Min(1)
   @Max(65_535)
+  @Type(() => Number)
   PORT = 3001;
 
   @ValidateIf(
@@ -102,6 +103,7 @@ export class EnvironmentVariables {
   @IsInt()
   @Min(60)
   @Max(3600)
+  @Type(() => Number)
   S3_PRESIGNED_URL_TTL_SECONDS = 900;
 }
 
