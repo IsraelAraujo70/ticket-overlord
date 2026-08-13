@@ -18,6 +18,7 @@ RUN pnpm install --frozen-lockfile
 FROM dependencies AS builder
 
 COPY apps/api apps/api
+COPY apps/web/public/images/events apps/web/public/images/events
 
 RUN pnpm --filter @ticket-overlord/api build
 
@@ -39,6 +40,8 @@ WORKDIR /app
 COPY --from=production-dependencies --chown=node:node /app/node_modules ./node_modules
 COPY --from=production-dependencies --chown=node:node /app/apps/api/node_modules ./apps/api/node_modules
 COPY --from=builder --chown=node:node /app/apps/api/dist ./apps/api/dist
+COPY --from=builder --chown=node:node /app/apps/api/drizzle ./apps/api/drizzle
+COPY --from=builder --chown=node:node /app/apps/web/public/images/events ./apps/web/public/images/events
 
 WORKDIR /app/apps/api
 

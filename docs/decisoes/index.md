@@ -37,3 +37,4 @@ Este diretório contém as decisões técnicas aprovadas para o Ticket Overlord.
 | 2026-08-11 22:24:31 -03:00 | Aceita | [Holds temporários de inventário no Redis](./2026-08-11-2224-holds-temporarios-no-redis.md) |
 | 2026-08-12 09:55:48 -03:00 | Aceita | [Ingressos assinados e validação atômica na portaria](./2026-08-12-0955-ingressos-assinados-e-validacao-atomica.md) |
 | 2026-08-12 10:22:26 -03:00 | Aceita | [Código manual recuperável](./2026-08-12-1022-codigo-manual-recuperavel.md) |
+| 2026-08-13 10:43:31 -03:00 | Aceita | [Deploy e storage no Railway](./2026-08-13-1043-deploy-e-storage-no-railway.md) |

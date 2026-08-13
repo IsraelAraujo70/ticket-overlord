@@ -21,7 +21,7 @@ O produto permitirá que um organizador publique eventos a partir de um catálog
 - NestJS 11 e TypeScript sobre Node.js 24 LTS no backend.
 - PostgreSQL 18 como fonte de verdade, com Drizzle ORM e migrations SQL versionadas.
 - TMDb como catálogo externo de filmes e eventos locais persistidos no PostgreSQL.
-- MinIO local e AWS S3 em produção para capas privadas com URLs temporárias.
+- MinIO local e Railway Bucket S3-compatible em produção para capas privadas com URLs temporárias.
 - PostgreSQL Full Text Search na primeira versão.
 - pnpm 11 workspaces, sem orquestrador adicional.
 - Docker Compose para validar as imagens de produção localmente.
@@ -39,6 +39,7 @@ Toda a documentação necessária para desenvolver e avaliar o projeto é versio
 | --- | --- |
 | [`challenge.md`](./challenge.md) | Enunciado normalizado e critérios de sucesso do desafio. |
 | [`docs/SETUP.md`](./docs/SETUP.md) | Setup local, dados de avaliação, e-mail em console ou Resend e solução de problemas. |
+| [`docs/DEPLOY.md`](./docs/DEPLOY.md) | Recursos, variáveis e checklist do deploy no Railway. |
 | [`docs/decisoes/index.md`](./docs/decisoes/index.md) | Índice cronológico das decisões técnicas aprovadas. |
 | [`docs/plans/2026-08-10-monorepo-scaffold.md`](./docs/plans/2026-08-10-monorepo-scaffold.md) | Plano aprovado do scaffold inicial. |
 | [`docs/plans/2026-08-10-auth-cadastro-e-recuperacao.md`](./docs/plans/2026-08-10-auth-cadastro-e-recuperacao.md) | Plano aprovado de autenticação, cadastro e recuperação. |
