@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { eq, inArray } from 'drizzle-orm';
+import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import type { UserRole } from '../auth/domain/user-role';
@@ -43,8 +43,16 @@ const s3Client = new S3Client({
   ...(s3Credentials ? { credentials: s3Credentials } : {}),
 });
 
-const demoEventStartsAt = new Date();
-demoEventStartsAt.setHours(19, 0, 0, 0);
+const saoPauloDate = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'America/Sao_Paulo',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+}).format(new Date());
+
+function todayAt(time: string): Date {
+  return new Date(`${saoPauloDate}T${time}:00-03:00`);
+}
 
 const demoEvents = [
   {
@@ -55,23 +63,81 @@ const demoEvents = [
     summary:
       'Uma sessão especial do marco do cinema brasileiro, seguida de conversa sobre direção e montagem.',
     sourceReleaseDate: '2002-08-30',
-    startsAt: demoEventStartsAt,
+    startsAt: todayAt('19:00'),
     venue: 'Cine Belas Artes',
     city: 'São Paulo',
     capacity: 180,
     priceInCents: 4500,
     image: 'concert-hero.webp',
   },
+  {
+    id: '10000000-0000-4000-8000-000000000002',
+    externalId: '40096',
+    slug: 'o-auto-da-compadecida-sessao-aberta',
+    title: 'O Auto da Compadecida',
+    summary:
+      'Cinema brasileiro ao ar livre com uma das histórias mais queridas do país.',
+    sourceReleaseDate: '2000-09-15',
+    startsAt: todayAt('18:30'),
+    venue: 'Cinemateca Brasileira',
+    city: 'São Paulo',
+    capacity: 320,
+    priceInCents: 3500,
+    image: 'comedy.webp',
+  },
+  {
+    id: '10000000-0000-4000-8000-000000000003',
+    externalId: '446159',
+    slug: 'bacurau-debate-e-cinema',
+    title: 'Bacurau',
+    summary:
+      'Exibição seguida de debate sobre território, memória e o cinema brasileiro contemporâneo.',
+    sourceReleaseDate: '2019-08-29',
+    startsAt: todayAt('20:00'),
+    venue: 'Cine Passeio',
+    city: 'Curitiba',
+    capacity: 140,
+    priceInCents: 4200,
+    image: 'theatre.webp',
+  },
+  {
+    id: '10000000-0000-4000-8000-000000000004',
+    externalId: '666',
+    slug: 'central-do-brasil-restaurado',
+    title: 'Central do Brasil',
+    summary:
+      'Sessão restaurada de um clássico sobre encontros, distância e pertencimento.',
+    sourceReleaseDate: '1998-04-03',
+    startsAt: todayAt('20:30'),
+    venue: 'Estação NET Rio',
+    city: 'Rio de Janeiro',
+    capacity: 210,
+    priceInCents: 4800,
+    image: 'gastronomy.webp',
+  },
 ] as const;
 
-const demoReservationId = '20000000-0000-4000-8000-000000000001';
-const demoPaymentId = '30000000-0000-4000-8000-000000000001';
-const demoPaymentKey = '40000000-0000-4000-8000-000000000001';
-
-const obsoleteDemoEventIds = [
-  '10000000-0000-4000-8000-000000000002',
-  '10000000-0000-4000-8000-000000000003',
-  '10000000-0000-4000-8000-000000000004',
+const demoPurchases = [
+  {
+    reservationId: '20000000-0000-4000-8000-000000000001',
+    paymentId: '30000000-0000-4000-8000-000000000001',
+    paymentKey: '40000000-0000-4000-8000-000000000001',
+  },
+  {
+    reservationId: '20000000-0000-4000-8000-000000000002',
+    paymentId: '30000000-0000-4000-8000-000000000002',
+    paymentKey: '40000000-0000-4000-8000-000000000002',
+  },
+  {
+    reservationId: '20000000-0000-4000-8000-000000000003',
+    paymentId: '30000000-0000-4000-8000-000000000003',
+    paymentKey: '40000000-0000-4000-8000-000000000003',
+  },
+  {
+    reservationId: '20000000-0000-4000-8000-000000000004',
+    paymentId: '30000000-0000-4000-8000-000000000004',
+    paymentKey: '40000000-0000-4000-8000-000000000004',
+  },
 ] as const;
 
 async function upsertUser(input: {
@@ -200,10 +266,6 @@ async function run(): Promise<void> {
     ])
     .onConflictDoNothing();
 
-  await database
-    .delete(events)
-    .where(inArray(events.id, [...obsoleteDemoEventIds]));
-
   for (const event of demoEvents) {
     const coverObjectKey = `organizations/${organizationId}/events/${event.id}/cover.webp`;
     const cover = await readFile(
@@ -264,51 +326,67 @@ async function run(): Promise<void> {
       });
   }
 
-  const demoEvent = demoEvents[0];
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    await client.query(
-      `INSERT INTO reservations (
-         id, event_id, customer_id, quantity, unit_price_in_cents,
-         total_in_cents, currency, status, expires_at
-       ) VALUES ($1,$2,$3,2,$4,$5,'BRL','PAID',$6)
-       ON CONFLICT (id) DO UPDATE SET
-         event_id = EXCLUDED.event_id,
-         customer_id = EXCLUDED.customer_id,
-         quantity = EXCLUDED.quantity,
-         unit_price_in_cents = EXCLUDED.unit_price_in_cents,
-         total_in_cents = EXCLUDED.total_in_cents,
-         updated_at = now()`,
-      [
-        demoReservationId,
-        demoEvent.id,
-        customerOneId,
-        demoEvent.priceInCents,
-        demoEvent.priceInCents * 2,
-        demoEvent.startsAt,
-      ],
-    );
-    await client.query(
-      `INSERT INTO payments (
-         id, reservation_id, customer_id, amount_in_cents, currency,
-         status, idempotency_key
-       ) VALUES ($1,$2,$3,$4,'BRL','APPROVED',$5)
-       ON CONFLICT (reservation_id) DO NOTHING`,
-      [
-        demoPaymentId,
-        demoReservationId,
-        customerOneId,
-        demoEvent.priceInCents * 2,
-        demoPaymentKey,
-      ],
-    );
-    await new PostgresTicketStore(pool).issueForPaidReservation(client, {
-      reservationId: demoReservationId,
-      eventId: demoEvent.id,
-      customerId: customerOneId,
-      quantity: 2,
-    });
+    const ticketStore = new PostgresTicketStore(pool);
+    for (const [index, event] of demoEvents.entries()) {
+      const purchase = demoPurchases[index];
+      if (!purchase) throw new Error(`Missing demo purchase for ${event.id}.`);
+
+      await client.query(
+        `INSERT INTO reservations (
+           id, event_id, customer_id, quantity, unit_price_in_cents,
+           total_in_cents, currency, status, expires_at
+         ) VALUES ($1,$2,$3,2,$4,$5,'BRL','PAID',$6)
+         ON CONFLICT (id) DO UPDATE SET
+           event_id = EXCLUDED.event_id,
+           customer_id = EXCLUDED.customer_id,
+           quantity = EXCLUDED.quantity,
+           unit_price_in_cents = EXCLUDED.unit_price_in_cents,
+           total_in_cents = EXCLUDED.total_in_cents,
+           status = EXCLUDED.status,
+           expires_at = EXCLUDED.expires_at,
+           updated_at = now()`,
+        [
+          purchase.reservationId,
+          event.id,
+          customerOneId,
+          event.priceInCents,
+          event.priceInCents * 2,
+          event.startsAt,
+        ],
+      );
+      await client.query(
+        `INSERT INTO payments (
+           id, reservation_id, customer_id, amount_in_cents, currency,
+           status, idempotency_key
+         ) VALUES ($1,$2,$3,$4,'BRL','APPROVED',$5)
+         ON CONFLICT (reservation_id) DO UPDATE SET
+           customer_id = EXCLUDED.customer_id,
+           amount_in_cents = EXCLUDED.amount_in_cents,
+           status = EXCLUDED.status`,
+        [
+          purchase.paymentId,
+          purchase.reservationId,
+          customerOneId,
+          event.priceInCents * 2,
+          purchase.paymentKey,
+        ],
+      );
+      await ticketStore.issueForPaidReservation(client, {
+        reservationId: purchase.reservationId,
+        eventId: event.id,
+        customerId: customerOneId,
+        quantity: 2,
+      });
+      await client.query(
+        `UPDATE tickets
+         SET status = 'VALID', used_at = NULL, used_by_user_id = NULL, updated_at = now()
+         WHERE reservation_id = $1`,
+        [purchase.reservationId],
+      );
+    }
     await client.query('COMMIT');
   } catch (error) {
     await client.query('ROLLBACK');
@@ -318,7 +396,7 @@ async function run(): Promise<void> {
   }
 
   console.log(
-    `Seeded users ${[adminId, organizerId, customerOneId, customerTwoId, staffId].join(', ')}, organization ${organizationId}, ${demoEvents.length} published events, and 2 demo tickets.`,
+    `Seeded users ${[adminId, organizerId, customerOneId, customerTwoId, staffId].join(', ')}, organization ${organizationId}, ${demoEvents.length} published events, and ${demoEvents.length * 2} demo tickets.`,
   );
 }
 

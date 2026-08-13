@@ -59,7 +59,7 @@ Todos os usuários de demonstração usam a senha `TicketOverlord2026!`:
 | Cliente 2 | `customer.two@ticketoverlord.local` |
 | Portaria | `gate@ticketoverlord.local` |
 
-Os seeds são idempotentes e podem ser executados novamente.
+Os seeds são idempotentes e podem ser executados novamente. Cada execução restaura quatro eventos para o dia atual e oito ingressos válidos do Cliente 1, permitindo repetir os testes da portaria.
 
 ## 4. Desenvolvimento local
 
@@ -79,6 +79,15 @@ O comando aguarda o healthcheck do PostgreSQL, aplica migrations pendentes e val
 - MinIO Console: `http://localhost:9001`
 
 Para iniciar somente API e infraestrutura, use `pnpm dev:api`. Para iniciar somente a web, use `pnpm dev:web`.
+
+### Teste da portaria pelo celular
+
+1. No computador, entre como `customer.one@ticketoverlord.local`, abra `/meus-ingressos` e exiba o QR Code de um ingresso.
+2. No celular, entre como `gate@ticketoverlord.local`, abra `/admin/portaria` e selecione o evento correspondente.
+3. Leia o QR exibido no computador e repita a leitura para confirmar a rejeição por uso duplicado.
+4. Selecione outro evento e leia um QR ainda válido para confirmar o resultado de evento incorreto.
+
+A câmera do navegador exige uma origem HTTPS quando a aplicação não está em `localhost`. Para testar pelo celular, exponha a web por um túnel HTTPS temporário ou use uma configuração HTTPS local confiável; acessar apenas `http://<ip-do-computador>:3000` mantém o fallback manual, mas não habilita a câmera.
 
 ## 5. E-mails reais com Resend
 

@@ -194,7 +194,7 @@ Após `pnpm db:seed`, as contas abaixo estão verificadas e usam a senha local `
 | Cliente 2 | `customer.two@ticketoverlord.local` |
 | Portaria, representando convite aceito | `gate@ticketoverlord.local` |
 
-O seed também cria para o dia da execução um evento de cinema publicado e dois ingressos pagos para o Cliente 1. Use essa conta em `/meus-ingressos` e a conta de Portaria em `/admin/portaria` para avaliar o fluxo completo.
+O seed também cria para o dia da execução quatro eventos de cinema publicados e dois ingressos pagos por evento para o Cliente 1, totalizando oito ingressos. Use essa conta em `/meus-ingressos` e a conta de Portaria em `/admin/portaria` para avaliar leitura do QR, evento incorreto, uso único e os demais resultados da validação.
 
 ## Uso de IA
 
