@@ -80,6 +80,10 @@ class FakeEventStore extends EventStore {
     return Promise.resolve([]);
   }
 
+  listAll(): Promise<EventRecord[]> {
+    return Promise.resolve(this.event ? [this.event] : []);
+  }
+
   listPublished(): Promise<EventRecord[]> {
     return Promise.resolve([]);
   }
@@ -93,6 +97,10 @@ class FakeEventStore extends EventStore {
         ? this.event
         : null,
     );
+  }
+
+  findById(eventId: string): Promise<EventRecord | null> {
+    return Promise.resolve(this.event?.id === eventId ? this.event : null);
   }
 
   findPublished(): Promise<EventRecord | null> {

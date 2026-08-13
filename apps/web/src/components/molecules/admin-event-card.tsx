@@ -11,7 +11,13 @@ import {
 import type { AdminEvent } from "@/features/events/event.types";
 import { PublishEventButton } from "@/components/molecules/publish-event-button";
 
-export function AdminEventCard({ event }: { event: AdminEvent }) {
+export function AdminEventCard({
+  event,
+  readOnly = false,
+}: {
+  event: AdminEvent;
+  readOnly?: boolean;
+}) {
   const startsAt = new Intl.DateTimeFormat("pt-BR", {
     dateStyle: "medium",
     timeStyle: "short",
@@ -72,7 +78,7 @@ export function AdminEventCard({ event }: { event: AdminEvent }) {
           />
           {event.capacity} lugares · {price}
         </p>
-        {event.status === "DRAFT" ? (
+        {event.status === "DRAFT" && !readOnly ? (
           <PublishEventButton eventId={event.id} />
         ) : null}
       </CardContent>

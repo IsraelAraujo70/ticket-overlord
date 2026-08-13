@@ -68,10 +68,14 @@ export class EventsController {
   @Get()
   @ApiBearerAuth('bearer')
   @UseGuards(AuthGuard)
-  @ApiOperation({ summary: 'Listar eventos da organização autenticada' })
+  @ApiOperation({
+    summary: 'Listar eventos visíveis na administração',
+    description:
+      'Organizadores recebem apenas os eventos da própria organização. Administradores globais recebem todos os eventos em modo somente leitura.',
+  })
   @ApiOkResponse({ type: EventDto, isArray: true })
   @ApiUnauthorizedResponse({ description: 'Sessão ausente ou inválida.' })
-  @ApiForbiddenResponse({ description: 'Conta sem permissão de organizador.' })
+  @ApiForbiddenResponse({ description: 'Conta sem acesso administrativo.' })
   forOrganizer(@CurrentAuth() auth: AuthenticatedSession): Promise<EventDto[]> {
     return this.listEvents.forOrganizer(auth.user);
   }
@@ -79,10 +83,12 @@ export class EventsController {
   @Get(':eventId/cover')
   @ApiBearerAuth('bearer')
   @UseGuards(AuthGuard)
-  @ApiOperation({ summary: 'Gerar URL temporária da capa da organização' })
+  @ApiOperation({
+    summary: 'Gerar URL temporária de uma capa visível na administração',
+  })
   @ApiOkResponse({ type: EventCoverUrlDto })
   @ApiUnauthorizedResponse({ description: 'Sessão ausente ou inválida.' })
-  @ApiNotFoundResponse({ description: 'Evento da organização não encontrado.' })
+  @ApiNotFoundResponse({ description: 'Evento visível não encontrado.' })
   async organizerCover(
     @CurrentAuth() auth: AuthenticatedSession,
     @Param('eventId', ParseUUIDPipe) eventId: string,

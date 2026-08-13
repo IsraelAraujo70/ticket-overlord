@@ -78,11 +78,19 @@ class FakeEventStore extends EventStore {
     return Promise.resolve([]);
   }
 
+  listAll(): Promise<EventRecord[]> {
+    return Promise.resolve([]);
+  }
+
   listPublished(): Promise<EventRecord[]> {
     return Promise.resolve([]);
   }
 
   findForOrganization(): Promise<EventRecord | null> {
+    return Promise.resolve(null);
+  }
+
+  findById(): Promise<EventRecord | null> {
     return Promise.resolve(null);
   }
 

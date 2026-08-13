@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/molecules/page-header";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { listOrganizerEvents } from "@/server/events/events";
 import type { AdminEvent } from "@/features/events/event.types";
+import { getCurrentUser } from "@/server/auth/session";
 
 export default async function AdminEventsPage({
   searchParams,
@@ -11,6 +12,7 @@ export default async function AdminEventsPage({
   searchParams: Promise<{ created?: string }>;
 }) {
   const { created } = await searchParams;
+  const user = await getCurrentUser();
   let events: AdminEvent[] = [];
   let failed = false;
 
@@ -39,5 +41,11 @@ export default async function AdminEventsPage({
     );
   }
 
-  return <AdminEventsList events={events} created={created === "1"} />;
+  return (
+    <AdminEventsList
+      events={events}
+      created={created === "1"}
+      readOnly={user?.role === "ADMIN"}
+    />
+  );
 }

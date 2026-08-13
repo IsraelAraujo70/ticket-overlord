@@ -13,6 +13,7 @@ import {
   type TransactionalEmail,
 } from '../src/auth/application/ports/email-sender';
 import { STRONG_PASSWORD_PATTERN } from '../src/auth/domain/validation/password';
+import { ScryptPasswordHasher } from '../src/auth/infrastructure/security/scrypt-password-hasher';
 import { POSTGRES_POOL } from '../src/database/database.constants';
 import { ExternalMovieCatalog } from '../src/events/application/ports/external-movie-catalog';
 import type { ExternalMovie } from '../src/events/domain/event.types';
@@ -256,6 +257,12 @@ describe('Ticket Overlord API (e2e)', () => {
             },
           },
         });
+        const document = response.body as unknown as {
+          paths: { '/events': { get: { description?: string } } };
+        };
+        expect(document.paths['/events'].get.description).toContain(
+          'Administradores globais recebem todos os eventos',
+        );
       });
   });
 
@@ -671,6 +678,42 @@ describe('Ticket Overlord API (e2e)', () => {
       .set('Authorization', `Bearer ${otherToken}`)
       .expect(200)
       .expect([]);
+
+    const adminPassword = 'AdminStrong2026!';
+    const adminPasswordHash = await new ScryptPasswordHasher().hash(
+      adminPassword,
+    );
+    await pool.query(
+      `INSERT INTO users (
+         full_name, email, password_hash, role, email_verified_at
+       ) VALUES ($1, $2, $3, 'ADMIN', now())`,
+      ['Administrador Global', 'global-admin@example.com', adminPasswordHash],
+    );
+    const adminLogin = await request(app.getHttpServer())
+      .post('/auth/login')
+      .send({ email: 'global-admin@example.com', password: adminPassword })
+      .expect(200);
+    const adminToken = (adminLogin.body as { accessToken: string }).accessToken;
+    await request(app.getHttpServer())
+      .get('/events')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200)
+      .expect((response) => {
+        expect(response.body).toHaveLength(2);
+      });
+    await request(app.getHttpServer())
+      .get(`/events/${eventId}/cover`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(200);
+    await request(app.getHttpServer())
+      .post(`/events/${eventId}/publish`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .expect(403)
+      .expect({
+        code: 'ORGANIZER_REQUIRED',
+        message: 'Somente organizadores podem gerenciar eventos.',
+      });
+
     await request(app.getHttpServer())
       .get(`/events/${eventId}/cover`)
       .set('Authorization', `Bearer ${otherToken}`)

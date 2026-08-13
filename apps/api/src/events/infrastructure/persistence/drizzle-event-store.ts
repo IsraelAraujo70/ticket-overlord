@@ -56,6 +56,14 @@ export class DrizzleEventStore extends EventStore {
     return rows.map(eventRecord);
   }
 
+  async listAll(): Promise<EventRecord[]> {
+    const rows = await this.database
+      .select()
+      .from(events)
+      .orderBy(desc(events.createdAt));
+    return rows.map(eventRecord);
+  }
+
   async listPublished(): Promise<EventRecord[]> {
     const rows = await this.database
       .select()
@@ -75,6 +83,15 @@ export class DrizzleEventStore extends EventStore {
       .where(
         and(eq(events.id, eventId), eq(events.organizationId, organizationId)),
       )
+      .limit(1);
+    return row ? eventRecord(row) : null;
+  }
+
+  async findById(eventId: string): Promise<EventRecord | null> {
+    const [row] = await this.database
+      .select()
+      .from(events)
+      .where(eq(events.id, eventId))
       .limit(1);
     return row ? eventRecord(row) : null;
   }

@@ -14,8 +14,10 @@ export class ListEventsService {
   ) {}
 
   async forOrganizer(user: AuthenticatedUser): Promise<PresentedEvent[]> {
-    const organizationId = organizerOrganization(user);
-    const events = await this.store.listForOrganization(organizationId);
+    const events =
+      user.role === 'ADMIN'
+        ? await this.store.listAll()
+        : await this.store.listForOrganization(organizerOrganization(user));
     return Promise.all(events.map((event) => presentEvent(event, this.images)));
   }
 
@@ -28,8 +30,13 @@ export class ListEventsService {
     user: AuthenticatedUser,
     eventId: string,
   ): Promise<string> {
-    const organizationId = organizerOrganization(user);
-    const event = await this.store.findForOrganization(eventId, organizationId);
+    const event =
+      user.role === 'ADMIN'
+        ? await this.store.findById(eventId)
+        : await this.store.findForOrganization(
+            eventId,
+            organizerOrganization(user),
+          );
     return this.coverUrl(event);
   }
 

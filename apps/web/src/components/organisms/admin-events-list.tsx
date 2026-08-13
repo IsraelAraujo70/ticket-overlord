@@ -17,9 +17,11 @@ import type { AdminEvent } from "@/features/events/event.types";
 export function AdminEventsList({
   created,
   events,
+  readOnly = false,
 }: {
   created: boolean;
   events: AdminEvent[];
+  readOnly?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-8">
@@ -27,18 +29,24 @@ export function AdminEventsList({
         <PageHeader
           eyebrow="Programação"
           title="Eventos"
-          description="Crie sessões de Cinema pelo TMDb ou cadastre outras categorias manualmente."
+          description={
+            readOnly
+              ? "Visualize os eventos de todas as organizações."
+              : "Crie sessões de Cinema pelo TMDb ou cadastre outras categorias manualmente."
+          }
         />
-        <Link
-          href="/admin/eventos/novo"
-          className={buttonVariants({ size: "lg" })}
-        >
-          <CalendarPlusIcon data-icon="inline-start" />
-          Criar evento
-        </Link>
+        {readOnly ? null : (
+          <Link
+            href="/admin/eventos/novo"
+            className={buttonVariants({ size: "lg" })}
+          >
+            <CalendarPlusIcon data-icon="inline-start" />
+            Criar evento
+          </Link>
+        )}
       </div>
 
-      {created ? (
+      {created && !readOnly ? (
         <Alert>
           <CheckCircle2Icon />
           <AlertTitle>Rascunho criado</AlertTitle>
@@ -51,7 +59,7 @@ export function AdminEventsList({
       {events.length ? (
         <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
           {events.map((event) => (
-            <AdminEventCard key={event.id} event={event} />
+            <AdminEventCard key={event.id} event={event} readOnly={readOnly} />
           ))}
         </div>
       ) : (
@@ -62,15 +70,18 @@ export function AdminEventsList({
             </EmptyMedia>
             <EmptyTitle>Nenhum evento criado</EmptyTitle>
             <EmptyDescription>
-              Busque um filme no catálogo externo e monte a primeira sessão da
-              sua organização.
+              {readOnly
+                ? "Nenhuma organização cadastrou eventos até agora."
+                : "Busque um filme no catálogo externo e monte a primeira sessão da sua organização."}
             </EmptyDescription>
           </EmptyHeader>
-          <EmptyContent>
-            <Link href="/admin/eventos/novo" className={buttonVariants()}>
-              Criar primeiro evento
-            </Link>
-          </EmptyContent>
+          {readOnly ? null : (
+            <EmptyContent>
+              <Link href="/admin/eventos/novo" className={buttonVariants()}>
+                Criar primeiro evento
+              </Link>
+            </EmptyContent>
+          )}
         </Empty>
       )}
     </div>

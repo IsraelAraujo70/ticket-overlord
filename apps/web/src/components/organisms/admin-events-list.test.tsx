@@ -25,6 +25,17 @@ describe("AdminEventsList", () => {
       screen.getByRole("button", { name: "Publicar evento" }),
     ).toBeInTheDocument();
   });
+
+  it("shows every event without mutation controls for a global admin", () => {
+    render(<AdminEventsList created events={[draftEvent]} readOnly />);
+
+    expect(screen.getByText("Interestelar")).toBeInTheDocument();
+    expect(screen.queryByText("Rascunho criado")).not.toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Criar/ })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Publicar evento" }),
+    ).not.toBeInTheDocument();
+  });
 });
 
 const draftEvent: AdminEvent = {

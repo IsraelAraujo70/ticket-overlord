@@ -39,3 +39,4 @@ Este diretório contém as decisões técnicas aprovadas para o Ticket Overlord.
 | 2026-08-12 10:22:26 -03:00 | Aceita      | [Código manual recuperável](./2026-08-12-1022-codigo-manual-recuperavel.md)                                              |
 | 2026-08-13 10:43:31 -03:00 | Aceita      | [Deploy e storage no Railway](./2026-08-13-1043-deploy-e-storage-no-railway.md)                                          |
 | 2026-08-13 11:05:58 -03:00 | Aceita      | [Eventos manuais e catálogo por categoria](./2026-08-13-1105-eventos-manuais-e-catalogo-por-categoria.md)                |
+| 2026-08-13 12:42:27 -03:00 | Aceita      | [Eventos globais somente leitura para administradores](./2026-08-13-1242-admin-global-eventos-somente-leitura.md)        |
