@@ -96,7 +96,6 @@ function eventRecord(row: typeof events.$inferSelect): EventRecord {
 
   return {
     ...row,
-    externalSource: 'TMDB',
     currency: 'BRL',
   };
 }

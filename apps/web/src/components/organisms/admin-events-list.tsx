@@ -27,9 +27,12 @@ export function AdminEventsList({
         <PageHeader
           eyebrow="Programação"
           title="Eventos"
-          description="Crie sessões a partir do catálogo do TMDb e acompanhe o que pertence à sua organização."
+          description="Crie sessões de Cinema pelo TMDb ou cadastre outras categorias manualmente."
         />
-        <Link href="/admin/eventos/novo" className={buttonVariants({ size: "lg" })}>
+        <Link
+          href="/admin/eventos/novo"
+          className={buttonVariants({ size: "lg" })}
+        >
           <CalendarPlusIcon data-icon="inline-start" />
           Criar evento
         </Link>
@@ -59,7 +62,8 @@ export function AdminEventsList({
             </EmptyMedia>
             <EmptyTitle>Nenhum evento criado</EmptyTitle>
             <EmptyDescription>
-              Busque um filme no catálogo externo e monte a primeira sessão da sua organização.
+              Busque um filme no catálogo externo e monte a primeira sessão da
+              sua organização.
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent>

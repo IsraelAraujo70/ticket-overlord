@@ -68,18 +68,28 @@ import {
   searchExternalMoviesAction,
 } from "@/server/events/event-actions";
 
-const draftStorageKey = "ticket-overlord:event-creation-draft:v1";
+const draftStorageKey = "ticket-overlord:event-creation-draft:v2";
 const maxOriginalImageBytes = 5 * 1024 * 1024;
 const maxCompressedImageBytes = 900 * 1024;
 
 const steps = [
-  { value: 1, label: "Filme" },
+  { value: 1, label: "Evento" },
   { value: 2, label: "Sessão" },
   { value: 3, label: "Capa" },
   { value: 4, label: "Revisão" },
 ] as const;
 
 type WizardStep = (typeof steps)[number]["value"];
+type EventCategory = (typeof eventCategories)[number];
+
+const eventCategories = [
+  "Cinema",
+  "Shows e festivais",
+  "Teatro",
+  "Gastronomia",
+  "Tecnologia",
+  "Outros",
+] as const;
 
 interface SessionDraft {
   startsAtLocal: string;
@@ -91,6 +101,10 @@ interface SessionDraft {
 
 interface EventCreationDraft extends SessionDraft {
   step: WizardStep;
+  category: EventCategory | "";
+  customCategory: string;
+  manualTitle: string;
+  manualSummary: string;
   query: string;
   selected: ExternalMovie | null;
 }
@@ -113,6 +127,10 @@ export function EventCreationForm() {
   const coverFileRef = useRef<File | null>(null);
   const compressionAttemptRef = useRef(0);
   const [step, setStep] = useState<WizardStep>(1);
+  const [category, setCategory] = useState<EventCategory | "">("");
+  const [customCategory, setCustomCategory] = useState("");
+  const [manualTitle, setManualTitle] = useState("");
+  const [manualSummary, setManualSummary] = useState("");
   const [query, setQuery] = useState("");
   const [movies, setMovies] = useState<ExternalMovie[]>([]);
   const [selected, setSelected] = useState<ExternalMovie | null>(null);
@@ -126,11 +144,17 @@ export function EventCreationForm() {
   const [isSearching, startSearch] = useTransition();
 
   const submitWithCover = useCallback(
-    async (previousState: typeof initialEventActionState, formData: FormData) => {
+    async (
+      previousState: typeof initialEventActionState,
+      formData: FormData,
+    ) => {
       const compressedCover = coverFileRef.current;
 
       if (!compressedCover) {
-        return { status: "error" as const, message: "Envie uma imagem de capa." };
+        return {
+          status: "error" as const,
+          message: "Envie uma imagem de capa.",
+        };
       }
 
       formData.set("cover", compressedCover);
@@ -144,16 +168,27 @@ export function EventCreationForm() {
   );
 
   const startsAt = toIsoDate(session.startsAtLocal);
-  const visibleMovies =
-    movies.length || !selected
-      ? movies
-      : [selected];
+  const isCinema = category === "Cinema";
+  const resolvedCategory =
+    category === "Outros" ? customCategory.trim() : category;
+  const eventTitle = isCinema ? (selected?.title ?? "") : manualTitle.trim();
+  const eventSummary = isCinema
+    ? (selected?.summary ?? "")
+    : manualSummary.trim();
+  const hasEventDetails = Boolean(
+    resolvedCategory && eventTitle && eventSummary && (!isCinema || selected),
+  );
+  const visibleMovies = movies.length || !selected ? movies : [selected];
 
   useEffect(() => {
     const draft = readDraft(window.localStorage);
     const restoration = window.setTimeout(() => {
       if (draft) {
         setStep(restorableStep(draft));
+        setCategory(draft.category);
+        setCustomCategory(draft.customCategory);
+        setManualTitle(draft.manualTitle);
+        setManualSummary(draft.manualSummary);
         setQuery(draft.query);
         setSelected(draft.selected);
         setSession({
@@ -176,11 +211,25 @@ export function EventCreationForm() {
 
     writeDraft(window.localStorage, {
       step,
+      category,
+      customCategory,
+      manualTitle,
+      manualSummary,
       query,
       selected,
       ...session,
     });
-  }, [draftReady, query, selected, session, step]);
+  }, [
+    category,
+    customCategory,
+    draftReady,
+    manualSummary,
+    manualTitle,
+    query,
+    selected,
+    session,
+    step,
+  ]);
 
   useEffect(() => {
     if (actionState.status !== "success") return;
@@ -311,41 +360,133 @@ export function EventCreationForm() {
           <>
             <CardContent className="flex flex-col gap-6">
               <StepHeading
-                eyebrow="Catálogo externo"
-                title="Escolha o filme"
-                description="Busque no TMDb e selecione a obra que dará origem ao evento local."
+                eyebrow="Origem do evento"
+                title="Escolha a categoria"
+                description="Cinema parte do catálogo do TMDb. As outras categorias são preenchidas por você."
               />
 
-              <form onSubmit={search}>
+              <div
+                className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3"
+                role="group"
+                aria-label="Categoria do evento"
+              >
+                {eventCategories.map((option) => (
+                  <Button
+                    key={option}
+                    type="button"
+                    variant={category === option ? "default" : "outline"}
+                    className="h-auto justify-between px-4 py-3"
+                    aria-pressed={category === option}
+                    aria-label={`${option}, ${option === "Cinema" ? "catálogo TMDb" : "cadastro manual"}`}
+                    onClick={() => {
+                      setCategory(option);
+                      if (option !== "Cinema") setSelected(null);
+                    }}
+                  >
+                    <span>{option}</span>
+                    <span className="font-mono text-[10px] opacity-70">
+                      {option === "Cinema" ? "TMDb" : "Manual"}
+                    </span>
+                  </Button>
+                ))}
+              </div>
+
+              {category === "Outros" ? (
                 <FieldGroup>
-                  <Field data-invalid={Boolean(searchError) || undefined}>
-                    <FieldLabel htmlFor="movie-query">Título do filme</FieldLabel>
-                    <div className="flex flex-col gap-2 sm:flex-row">
-                      <Input
-                        id="movie-query"
-                        value={query}
-                        onChange={(event) => setQuery(event.currentTarget.value)}
-                        minLength={2}
-                        maxLength={100}
-                        placeholder="Ex.: Interestelar"
-                        aria-invalid={Boolean(searchError) || undefined}
-                        required
-                      />
-                      <Button type="submit" disabled={isSearching}>
-                        {isSearching ? (
-                          <Spinner data-icon="inline-start" />
-                        ) : (
-                          <SearchIcon data-icon="inline-start" />
-                        )}
-                        {isSearching ? "Buscando" : "Buscar no TMDb"}
-                      </Button>
-                    </div>
-                    <FieldError>{searchError}</FieldError>
+                  <Field>
+                    <FieldLabel htmlFor="custom-category">
+                      Nome da categoria
+                    </FieldLabel>
+                    <Input
+                      id="custom-category"
+                      value={customCategory}
+                      onChange={(event) =>
+                        setCustomCategory(event.currentTarget.value)
+                      }
+                      minLength={2}
+                      maxLength={80}
+                      placeholder="Ex.: Conferências"
+                      required
+                    />
                   </Field>
                 </FieldGroup>
-              </form>
+              ) : null}
 
-              {searched && !isSearching && !movies.length && !searchError ? (
+              {isCinema ? (
+                <form onSubmit={search}>
+                  <FieldGroup>
+                    <Field data-invalid={Boolean(searchError) || undefined}>
+                      <FieldLabel htmlFor="movie-query">
+                        Título do filme
+                      </FieldLabel>
+                      <div className="flex flex-col gap-2 sm:flex-row">
+                        <Input
+                          id="movie-query"
+                          value={query}
+                          onChange={(event) =>
+                            setQuery(event.currentTarget.value)
+                          }
+                          minLength={2}
+                          maxLength={100}
+                          placeholder="Ex.: Interestelar"
+                          aria-invalid={Boolean(searchError) || undefined}
+                          required
+                        />
+                        <Button type="submit" disabled={isSearching}>
+                          {isSearching ? (
+                            <Spinner data-icon="inline-start" />
+                          ) : (
+                            <SearchIcon data-icon="inline-start" />
+                          )}
+                          {isSearching ? "Buscando" : "Buscar no TMDb"}
+                        </Button>
+                      </div>
+                      <FieldError>{searchError}</FieldError>
+                    </Field>
+                  </FieldGroup>
+                </form>
+              ) : category ? (
+                <FieldGroup>
+                  <Field>
+                    <FieldLabel htmlFor="manual-title">
+                      Título do evento
+                    </FieldLabel>
+                    <Input
+                      id="manual-title"
+                      value={manualTitle}
+                      onChange={(event) =>
+                        setManualTitle(event.currentTarget.value)
+                      }
+                      minLength={2}
+                      maxLength={200}
+                      placeholder="Ex.: Festival de Jazz"
+                      required
+                    />
+                  </Field>
+                  <Field>
+                    <FieldLabel htmlFor="manual-summary">Descrição</FieldLabel>
+                    <textarea
+                      id="manual-summary"
+                      value={manualSummary}
+                      onChange={(event) =>
+                        setManualSummary(event.currentTarget.value)
+                      }
+                      minLength={10}
+                      maxLength={2000}
+                      rows={5}
+                      placeholder="Conte ao público o que torna este evento especial."
+                      className="border-input bg-transparent placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-ring/50 aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive flex w-full rounded-md border px-3 py-2 text-sm shadow-xs outline-none transition-[color,box-shadow] focus-visible:ring-[3px] disabled:cursor-not-allowed disabled:opacity-50"
+                      required
+                    />
+                  </Field>
+                </FieldGroup>
+              ) : null}
+
+              {isCinema &&
+              searched &&
+              !isSearching &&
+              !movies.length &&
+              !searchError ? (
                 <Empty className="border">
                   <EmptyHeader>
                     <EmptyMedia variant="icon">
@@ -359,7 +500,7 @@ export function EventCreationForm() {
                 </Empty>
               ) : null}
 
-              {visibleMovies.length ? (
+              {isCinema && visibleMovies.length ? (
                 <section
                   aria-labelledby="movie-results-title"
                   className="flex flex-col gap-3"
@@ -398,7 +539,7 @@ export function EventCreationForm() {
               <Button
                 type="button"
                 onClick={() => setStep(2)}
-                disabled={!selected}
+                disabled={!hasEventDetails}
               >
                 Continuar
                 <ArrowRightIcon data-icon="inline-end" />
@@ -407,7 +548,7 @@ export function EventCreationForm() {
           </>
         ) : null}
 
-        {step === 2 && selected ? (
+        {step === 2 && hasEventDetails ? (
           <>
             <CardContent className="flex flex-col gap-6">
               <StepHeading
@@ -416,7 +557,12 @@ export function EventCreationForm() {
                 description="Data, local, capacidade e preço pertencem a este evento no Ticket Overlord."
               />
 
-              <SelectedMovieSummary movie={selected} />
+              <EventDetailsSummary
+                category={resolvedCategory}
+                title={eventTitle}
+                summary={eventSummary}
+                externalId={selected?.externalId ?? null}
+              />
 
               <form
                 id="event-session-form"
@@ -427,13 +573,18 @@ export function EventCreationForm() {
               >
                 <FieldGroup className="grid gap-5 md:grid-cols-2">
                   <Field>
-                    <FieldLabel htmlFor="event-starts-at">Data e hora</FieldLabel>
+                    <FieldLabel htmlFor="event-starts-at">
+                      Data e hora
+                    </FieldLabel>
                     <Input
                       id="event-starts-at"
                       type="datetime-local"
                       value={session.startsAtLocal}
                       onChange={(event) =>
-                        updateSession("startsAtLocal", event.currentTarget.value)
+                        updateSession(
+                          "startsAtLocal",
+                          event.currentTarget.value,
+                        )
                       }
                       required
                     />
@@ -513,7 +664,7 @@ export function EventCreationForm() {
           </>
         ) : null}
 
-        {step === 3 && selected ? (
+        {step === 3 && hasEventDetails ? (
           <>
             <CardContent className="flex flex-col gap-6">
               <StepHeading
@@ -602,9 +753,22 @@ export function EventCreationForm() {
           </>
         ) : null}
 
-        {step === 4 && selected && cover ? (
+        {step === 4 && hasEventDetails && cover ? (
           <form action={formAction} className="contents">
-            <input type="hidden" name="externalId" value={selected.externalId} />
+            <input type="hidden" name="category" value={resolvedCategory} />
+            {selected ? (
+              <input
+                type="hidden"
+                name="externalId"
+                value={selected.externalId}
+              />
+            ) : null}
+            {!isCinema ? (
+              <input type="hidden" name="title" value={eventTitle} />
+            ) : null}
+            {!isCinema ? (
+              <input type="hidden" name="summary" value={eventSummary} />
+            ) : null}
             <input type="hidden" name="startsAt" value={startsAt} />
             <input type="hidden" name="venue" value={session.venue} />
             <input type="hidden" name="city" value={session.city} />
@@ -622,7 +786,7 @@ export function EventCreationForm() {
                 <div className="overflow-hidden rounded-xl border">
                   <Image
                     src={cover.previewUrl}
-                    alt={`Capa de ${selected.title}`}
+                    alt={`Capa de ${eventTitle}`}
                     width={1280}
                     height={720}
                     unoptimized
@@ -633,11 +797,15 @@ export function EventCreationForm() {
                   <CardHeader>
                     <div className="flex flex-wrap gap-2">
                       <Badge>Rascunho</Badge>
-                      <Badge variant="outline">TMDb #{selected.externalId}</Badge>
+                      <Badge variant="outline">
+                        {selected
+                          ? `TMDb #${selected.externalId}`
+                          : resolvedCategory}
+                      </Badge>
                     </div>
-                    <CardTitle>{selected.title}</CardTitle>
+                    <CardTitle>{eventTitle}</CardTitle>
                     <CardDescription className="line-clamp-2">
-                      {selected.summary}
+                      {eventSummary}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
@@ -755,7 +923,10 @@ function MovieChoice({
   onSelect: () => void;
 }) {
   return (
-    <Card size="sm" className="grid min-h-40 grid-cols-[6rem_minmax(0,1fr)] gap-0 py-0">
+    <Card
+      size="sm"
+      className="grid min-h-40 grid-cols-[6rem_minmax(0,1fr)] gap-0 py-0"
+    >
       <div className="relative overflow-hidden rounded-l-xl bg-muted">
         {movie.imageUrl ? (
           <Image
@@ -802,18 +973,28 @@ function MovieChoice({
   );
 }
 
-function SelectedMovieSummary({ movie }: { movie: ExternalMovie }) {
+function EventDetailsSummary({
+  category,
+  title,
+  summary,
+  externalId,
+}: {
+  category: string;
+  title: string;
+  summary: string;
+  externalId: string | null;
+}) {
   return (
     <Card size="sm">
       <CardHeader>
         <div className="flex flex-wrap items-center gap-2">
-          <Badge>Filme selecionado</Badge>
-          <Badge variant="outline">TMDb #{movie.externalId}</Badge>
+          <Badge>{category}</Badge>
+          <Badge variant="outline">
+            {externalId ? `TMDb #${externalId}` : "Cadastro manual"}
+          </Badge>
         </div>
-        <CardTitle>{movie.title}</CardTitle>
-        <CardDescription className="line-clamp-2">
-          {movie.summary}
-        </CardDescription>
+        <CardTitle>{title}</CardTitle>
+        <CardDescription className="line-clamp-2">{summary}</CardDescription>
       </CardHeader>
     </Card>
   );
@@ -830,7 +1011,10 @@ function ReviewItem({
 }) {
   return (
     <div className="grid grid-cols-[auto_1fr] gap-x-2">
-      <Icon className="mt-0.5 size-4 text-muted-foreground" aria-hidden="true" />
+      <Icon
+        className="mt-0.5 size-4 text-muted-foreground"
+        aria-hidden="true"
+      />
       <dt className="text-xs font-medium text-muted-foreground uppercase">
         {label}
       </dt>
@@ -859,6 +1043,10 @@ function readDraft(storage: Storage): EventCreationDraft | null {
 
     return {
       step: parseStep(parsed.step),
+      category: parseCategory(parsed.category),
+      customCategory: stringValue(parsed.customCategory),
+      manualTitle: stringValue(parsed.manualTitle),
+      manualSummary: stringValue(parsed.manualSummary),
       query: stringValue(parsed.query),
       selected: parseMovie(parsed.selected),
       startsAtLocal: stringValue(parsed.startsAtLocal),
@@ -881,19 +1069,29 @@ function writeDraft(storage: Storage, draft: EventCreationDraft) {
 }
 
 function restorableStep(draft: EventCreationDraft): WizardStep {
-  if (!draft.selected) return 1;
+  const category =
+    draft.category === "Outros" ? draft.customCategory : draft.category;
+  const hasDetails =
+    draft.category === "Cinema"
+      ? Boolean(draft.selected)
+      : Boolean(category && draft.manualTitle && draft.manualSummary);
+  if (!hasDetails) return 1;
   if (draft.step >= 3 && !hasCompleteSession(draft)) return 2;
   if (draft.step >= 4) return 3;
   return draft.step;
 }
 
+function parseCategory(value: unknown): EventCategory | "" {
+  return eventCategories.find((category) => category === value) ?? "";
+}
+
 function hasCompleteSession(draft: SessionDraft): boolean {
   return Boolean(
     toIsoDate(draft.startsAtLocal) &&
-      draft.venue &&
-      draft.city &&
-      Number(draft.capacity) > 0 &&
-      Number(draft.price.replace(",", ".")) > 0,
+    draft.venue &&
+    draft.city &&
+    Number(draft.capacity) > 0 &&
+    Number(draft.price.replace(",", ".")) > 0,
   );
 }
 
@@ -911,7 +1109,8 @@ function parseMovie(value: unknown): ExternalMovie | null {
     externalId: value.externalId,
     title: value.title,
     summary: value.summary,
-    releaseDate: typeof value.releaseDate === "string" ? value.releaseDate : null,
+    releaseDate:
+      typeof value.releaseDate === "string" ? value.releaseDate : null,
     imageUrl: typeof value.imageUrl === "string" ? value.imageUrl : null,
   };
 }

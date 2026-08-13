@@ -39,7 +39,11 @@ export function AdminEventCard({ event }: { event: AdminEvent }) {
           >
             {event.status === "PUBLISHED" ? "Publicado" : "Rascunho"}
           </Badge>
-          <Badge variant="outline">TMDb #{event.externalId}</Badge>
+          <Badge variant="outline">
+            {event.externalSource === "TMDB"
+              ? `TMDb #${event.externalId}`
+              : event.category}
+          </Badge>
         </div>
         <CardTitle>{event.title}</CardTitle>
         <CardDescription className="line-clamp-2">

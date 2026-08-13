@@ -14,7 +14,10 @@ import { EventStore } from './ports/event-store';
 import { ExternalMovieCatalog } from './ports/external-movie-catalog';
 
 export interface CreateEventCommand {
-  externalId: string;
+  category: string;
+  externalId?: string;
+  title?: string;
+  summary?: string;
   startsAt: string;
   venue: string;
   city: string;
@@ -46,19 +49,12 @@ export class CreateEventService {
     }
 
     const image = validateImage(command.cover);
-    const movie = await this.catalog.findById(command.externalId);
-
-    if (!movie) {
-      throw new EventError(
-        'EXTERNAL_MOVIE_NOT_FOUND',
-        'O filme selecionado não foi encontrado no TMDb.',
-      );
-    }
+    const details = await this.resolveEventDetails(command);
 
     const id = randomUUID();
     const extension = image.mime === 'image/jpeg' ? 'jpg' : image.ext;
     const coverObjectKey = `organizations/${organizationId}/events/${id}/cover.${extension}`;
-    const slug = `${slugify(movie.title)}-${id.slice(0, 8)}`;
+    const slug = `${slugify(details.title)}-${id.slice(0, 8)}`;
 
     await this.images.store({
       key: coverObjectKey,
@@ -70,14 +66,14 @@ export class CreateEventService {
       const event = await this.store.create({
         id,
         organizationId,
-        externalSource: 'TMDB',
-        externalId: movie.externalId,
+        externalSource: details.externalSource,
+        externalId: details.externalId,
         slug,
-        title: movie.title,
-        summary: movie.summary,
-        category: 'Cinema',
-        sourceReleaseDate: movie.releaseDate,
-        sourceImageUrl: movie.imageUrl,
+        title: details.title,
+        summary: details.summary,
+        category: details.category,
+        sourceReleaseDate: details.sourceReleaseDate,
+        sourceImageUrl: details.sourceImageUrl,
         startsAt,
         venue: command.venue,
         city: command.city,
@@ -98,6 +94,58 @@ export class CreateEventService {
       }
       throw error;
     }
+  }
+
+  private async resolveEventDetails(command: CreateEventCommand) {
+    const category = command.category.trim();
+
+    if (category.toLocaleLowerCase('pt-BR') === 'cinema') {
+      if (!command.externalId) {
+        throw new EventError(
+          'EXTERNAL_MOVIE_REQUIRED',
+          'Selecione um filme do TMDb para eventos de cinema.',
+        );
+      }
+
+      const movie = await this.catalog.findById(command.externalId);
+
+      if (!movie) {
+        throw new EventError(
+          'EXTERNAL_MOVIE_NOT_FOUND',
+          'O filme selecionado não foi encontrado no TMDb.',
+        );
+      }
+
+      return {
+        externalSource: 'TMDB' as const,
+        externalId: movie.externalId,
+        title: movie.title,
+        summary: movie.summary,
+        category: 'Cinema',
+        sourceReleaseDate: movie.releaseDate,
+        sourceImageUrl: movie.imageUrl,
+      };
+    }
+
+    const title = command.title?.trim();
+    const summary = command.summary?.trim();
+
+    if (category.length < 2 || !title || !summary) {
+      throw new EventError(
+        'MANUAL_EVENT_DETAILS_REQUIRED',
+        'Informe categoria, título e descrição para criar o evento.',
+      );
+    }
+
+    return {
+      externalSource: null,
+      externalId: null,
+      title,
+      summary,
+      category,
+      sourceReleaseDate: null,
+      sourceImageUrl: null,
+    };
   }
 }
 

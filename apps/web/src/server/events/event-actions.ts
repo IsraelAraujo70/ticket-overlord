@@ -50,13 +50,27 @@ export async function createEventAction(
   formData: FormData,
 ): Promise<EventActionState> {
   const cover = formData.get("cover");
+  const category = field(formData, "category").trim();
   const externalId = field(formData, "externalId");
+  const title = field(formData, "title").trim();
+  const summary = field(formData, "summary").trim();
   const startsAt = field(formData, "startsAt");
   const capacity = positiveInteger(field(formData, "capacity"));
   const priceInCents = priceToCents(field(formData, "price"));
 
-  if (!externalId) {
+  if (!category) {
+    return { status: "error", message: "Selecione uma categoria." };
+  }
+
+  if (category === "Cinema" && !externalId) {
     return { status: "error", message: "Selecione um filme do catálogo." };
+  }
+
+  if (category !== "Cinema" && (!title || !summary)) {
+    return {
+      status: "error",
+      message: "Informe o título e a descrição do evento.",
+    };
   }
 
   if (!startsAt || !Number.isFinite(new Date(startsAt).getTime())) {
@@ -88,7 +102,10 @@ export async function createEventAction(
   }
 
   const body = new FormData();
-  body.set("externalId", externalId);
+  body.set("category", category);
+  if (externalId) body.set("externalId", externalId);
+  if (title) body.set("title", title);
+  if (summary) body.set("summary", summary);
   body.set("startsAt", startsAt);
   body.set("venue", field(formData, "venue"));
   body.set("city", field(formData, "city"));

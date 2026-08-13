@@ -9,8 +9,8 @@ export interface ExternalMovie {
 export interface AdminEvent {
   id: string;
   organizationId: string;
-  externalSource: "TMDB";
-  externalId: string;
+  externalSource: "TMDB" | null;
+  externalId: string | null;
   slug: string;
   title: string;
   summary: string;

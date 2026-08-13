@@ -20,7 +20,7 @@ vi.mock("@/server/events/event-actions", () => ({
   searchExternalMoviesAction: mocks.searchMovies,
 }));
 
-const draftStorageKey = "ticket-overlord:event-creation-draft:v1";
+const draftStorageKey = "ticket-overlord:event-creation-draft:v2";
 
 describe("EventCreationForm", () => {
   beforeEach(() => {
@@ -41,6 +41,9 @@ describe("EventCreationForm", () => {
     mocks.searchMovies.mockResolvedValue({ movies: [movie] });
     render(<EventCreationForm />);
 
+    fireEvent.click(
+      screen.getByRole("button", { name: "Cinema, catálogo TMDb" }),
+    );
     fireEvent.change(screen.getByLabelText("Título do filme"), {
       target: { value: "Mario" },
     });
@@ -60,6 +63,28 @@ describe("EventCreationForm", () => {
     ).toBeInTheDocument();
   });
 
+  it("collects title and description manually outside cinema", async () => {
+    render(<EventCreationForm />);
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Teatro, cadastro manual" }),
+    );
+    fireEvent.change(screen.getByLabelText("Título do evento"), {
+      target: { value: "Hamlet" },
+    });
+    fireEvent.change(screen.getByLabelText("Descrição"), {
+      target: {
+        value: "Uma montagem contemporânea do clássico de Shakespeare.",
+      },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Continuar" }));
+
+    expect(
+      screen.getByRole("heading", { name: "Defina a sessão" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Cadastro manual")).toBeInTheDocument();
+  });
+
   it("restores the text draft but returns a review reload to the cover step", async () => {
     saveDraft({ step: 4 });
     render(<EventCreationForm />);
@@ -67,7 +92,9 @@ describe("EventCreationForm", () => {
     expect(
       await screen.findByRole("heading", { name: "Escolha a capa" }),
     ).toBeInTheDocument();
-    expect(screen.queryByDisplayValue("Cine Belas Artes")).not.toBeInTheDocument();
+    expect(
+      screen.queryByDisplayValue("Cine Belas Artes"),
+    ).not.toBeInTheDocument();
     expect(screen.getByText("Etapa 3 de 4")).toBeInTheDocument();
   });
 
@@ -139,6 +166,10 @@ function saveDraft({
     draftStorageKey,
     JSON.stringify({
       step,
+      category: "Cinema",
+      customCategory: "",
+      manualTitle: "",
+      manualSummary: "",
       query: "Mario",
       selected: movie,
       startsAtLocal,

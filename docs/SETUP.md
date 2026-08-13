@@ -1,6 +1,6 @@
 # SETUP
 
-Este guia prepara o Ticket Overlord para avaliação local. PostgreSQL e MinIO rodam pelo Docker, e os links de e-mail são escritos no terminal da API. O catálogo público funciona com os dados do seed; somente a busca administrativa de novos filmes exige um token do TMDb.
+Este guia prepara o Ticket Overlord para avaliação local. PostgreSQL e MinIO rodam pelo Docker, e os links de e-mail são escritos no terminal da API. O catálogo público funciona com os dados do seed; somente a criação de eventos da categoria Cinema exige um token do TMDb. As demais categorias usam cadastro manual.
 
 ## 1. Pré-requisitos
 
@@ -51,15 +51,15 @@ pnpm db:seed
 
 Todos os usuários de demonstração usam a senha `TicketOverlord2026!`:
 
-| Papel | E-mail |
-| --- | --- |
-| Administrador | `admin@ticketoverlord.local` |
-| Organizador | `organizer@ticketoverlord.local` |
-| Cliente 1 | `customer.one@ticketoverlord.local` |
-| Cliente 2 | `customer.two@ticketoverlord.local` |
-| Portaria | `gate@ticketoverlord.local` |
+| Papel         | E-mail                              |
+| ------------- | ----------------------------------- |
+| Administrador | `admin@ticketoverlord.local`        |
+| Organizador   | `organizer@ticketoverlord.local`    |
+| Cliente 1     | `customer.one@ticketoverlord.local` |
+| Cliente 2     | `customer.two@ticketoverlord.local` |
+| Portaria      | `gate@ticketoverlord.local`         |
 
-Os seeds são idempotentes e podem ser executados novamente. Cada execução restaura quatro eventos para o dia atual e oito ingressos válidos do Cliente 1, permitindo repetir os testes da portaria.
+Os seeds são idempotentes e podem ser executados novamente. Cada execução restaura quatro eventos de categorias diferentes para o dia atual e oito ingressos válidos do Cliente 1, permitindo repetir os testes da portaria.
 
 ## 4. Desenvolvimento local
 

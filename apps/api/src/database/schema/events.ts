@@ -24,8 +24,8 @@ export const events = pgTable(
     organizationId: uuid('organization_id')
       .notNull()
       .references(() => organizations.id, { onDelete: 'cascade' }),
-    externalSource: externalCatalogSource('external_source').notNull(),
-    externalId: varchar('external_id', { length: 64 }).notNull(),
+    externalSource: externalCatalogSource('external_source'),
+    externalId: varchar('external_id', { length: 64 }),
     slug: varchar('slug', { length: 240 }).notNull(),
     title: varchar('title', { length: 200 }).notNull(),
     summary: text('summary').notNull(),

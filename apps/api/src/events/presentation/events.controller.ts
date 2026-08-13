@@ -104,7 +104,7 @@ export class EventsController {
     schema: {
       type: 'object',
       required: [
-        'externalId',
+        'category',
         'startsAt',
         'venue',
         'city',
@@ -113,7 +113,13 @@ export class EventsController {
         'cover',
       ],
       properties: {
+        category: { type: 'string', example: 'Cinema' },
         externalId: { type: 'string', example: '157336' },
+        title: { type: 'string', example: 'Festival de Jazz' },
+        summary: {
+          type: 'string',
+          example: 'Uma noite dedicada ao jazz brasileiro.',
+        },
         startsAt: { type: 'string', format: 'date-time' },
         venue: { type: 'string' },
         city: { type: 'string' },

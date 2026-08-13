@@ -81,10 +81,32 @@ describe("event actions", () => {
     });
     expect(request?.body).toBeInstanceOf(FormData);
     const body = request?.body as FormData;
+    expect(body.get("category")).toBe("Cinema");
     expect(body.get("externalId")).toBe("157336");
     expect(body.get("capacity")).toBe("150");
     expect(body.get("priceInCents")).toBe("4550");
     expect(revalidatePath).toHaveBeenCalledWith("/admin/eventos");
+  });
+
+  it("creates a manual event without an external id", async () => {
+    vi.mocked(backendRequest).mockResolvedValue({});
+    const formData = eventForm();
+    formData.set("category", "Teatro");
+    formData.set("title", "Hamlet");
+    formData.set(
+      "summary",
+      "Uma montagem contemporânea do clássico de Shakespeare.",
+    );
+    formData.delete("externalId");
+
+    await expect(
+      createEventAction(initialEventActionState, formData),
+    ).resolves.toEqual({ status: "success" });
+
+    const body = vi.mocked(backendRequest).mock.calls[0]?.[1]?.body as FormData;
+    expect(body.get("category")).toBe("Teatro");
+    expect(body.get("title")).toBe("Hamlet");
+    expect(body.get("externalId")).toBeNull();
   });
 
   it("publishes an organizer event and refreshes public catalogs", async () => {
@@ -111,6 +133,7 @@ describe("event actions", () => {
 
 function eventForm(): FormData {
   const formData = new FormData();
+  formData.set("category", "Cinema");
   formData.set("externalId", "157336");
   formData.set("startsAt", "2099-09-05T22:00:00.000Z");
   formData.set("venue", "Cine Belas Artes");

@@ -26,9 +26,7 @@ function matchesQuery(event: CatalogEvent, query: string) {
 export async function getCatalog(query = ""): Promise<CatalogResponse> {
   const normalizedQuery = query.trim().slice(0, 100);
   const publishedEvents = await listPublishedEvents();
-  const catalogEvents = publishedEvents
-    .filter((event) => event.category === "Cinema")
-    .map(toCatalogEvent);
+  const catalogEvents = publishedEvents.map(toCatalogEvent);
   const events = normalizedQuery
     ? catalogEvents.filter((event) => matchesQuery(event, normalizedQuery))
     : catalogEvents;
@@ -36,12 +34,30 @@ export async function getCatalog(query = ""): Promise<CatalogResponse> {
 
   return {
     highlights: featuredEvents.length ? featuredEvents : events.slice(0, 1),
-    sections: events.length ? [{ id: "cinema", title: "Cinema", events }] : [],
+    sections: groupByCategory(events),
     meta: {
       query: normalizedQuery,
       total: events.length,
     },
   };
+}
+
+function groupByCategory(events: CatalogEvent[]) {
+  const categories = new Map<string, CatalogEvent[]>();
+
+  for (const event of events) {
+    const categoryEvents = categories.get(event.category) ?? [];
+    categoryEvents.push(event);
+    categories.set(event.category, categoryEvents);
+  }
+
+  return Array.from(categories, ([title, categoryEvents]) => ({
+    id: normalize(title)
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/(^-|-$)/g, ""),
+    title,
+    events: categoryEvents,
+  }));
 }
 
 function toCatalogEvent(

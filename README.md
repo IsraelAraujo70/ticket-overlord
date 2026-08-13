@@ -20,7 +20,7 @@ O produto permitirá que um organizador publique eventos a partir de um catálog
 - Next.js 16, React 19 e TypeScript no frontend.
 - NestJS 11 e TypeScript sobre Node.js 24 LTS no backend.
 - PostgreSQL 18 como fonte de verdade, com Drizzle ORM e migrations SQL versionadas.
-- TMDb como catálogo externo de filmes e eventos locais persistidos no PostgreSQL.
+- TMDb para sessões de cinema, cadastro manual para outras categorias e eventos locais persistidos no PostgreSQL.
 - MinIO local e Railway Bucket S3-compatible em produção para capas privadas com URLs temporárias.
 - PostgreSQL Full Text Search na primeira versão.
 - pnpm 11 workspaces, sem orquestrador adicional.
@@ -35,24 +35,24 @@ O backend é organizado por feature. Dentro de cada módulo, `presentation` conc
 
 Toda a documentação necessária para desenvolver e avaliar o projeto é versionada neste repositório.
 
-| Documento | Conteúdo |
-| --- | --- |
-| [`challenge.md`](./challenge.md) | Enunciado normalizado e critérios de sucesso do desafio. |
-| [`docs/SETUP.md`](./docs/SETUP.md) | Setup local, dados de avaliação, e-mail em console ou Resend e solução de problemas. |
-| [`docs/DEPLOY.md`](./docs/DEPLOY.md) | Recursos, variáveis e checklist do deploy no Railway. |
-| [`docs/decisoes/index.md`](./docs/decisoes/index.md) | Índice cronológico das decisões técnicas aprovadas. |
-| [`docs/plans/2026-08-10-monorepo-scaffold.md`](./docs/plans/2026-08-10-monorepo-scaffold.md) | Plano aprovado do scaffold inicial. |
-| [`docs/plans/2026-08-10-auth-cadastro-e-recuperacao.md`](./docs/plans/2026-08-10-auth-cadastro-e-recuperacao.md) | Plano aprovado de autenticação, cadastro e recuperação. |
-| [`docs/plans/2026-08-11-backend-modular-refactor.md`](./docs/plans/2026-08-11-backend-modular-refactor.md) | Plano aprovado da refatoração modular do backend. |
-| [`docs/plans/2026-08-11-confirmacao-autologin-cabecalho-autenticado.md`](./docs/plans/2026-08-11-confirmacao-autologin-cabecalho-autenticado.md) | Plano aprovado do login automático após confirmação e do cabeçalho autenticado. |
-| [`docs/plans/2026-08-11-admin-under-construction.md`](./docs/plans/2026-08-11-admin-under-construction.md) | Plano aprovado do estado temporário das áreas administrativas. |
-| [`docs/plans/2026-08-11-backend-client-naming.md`](./docs/plans/2026-08-11-backend-client-naming.md) | Plano aprovado para tornar explícito o cliente interno do backend no Next.js. |
-| [`docs/plans/2026-08-11-organizer-registration-fields.md`](./docs/plans/2026-08-11-organizer-registration-fields.md) | Plano aprovado dos campos validados no cadastro de organizadores. |
-| [`docs/plans/2026-08-11-admin-event-creation.md`](./docs/plans/2026-08-11-admin-event-creation.md) | Plano aprovado da criação administrativa de eventos. |
-| [`docs/plans/2026-08-11-reservation-checkout-payment.md`](./docs/plans/2026-08-11-reservation-checkout-payment.md) | Plano implementado de reserva concorrente, checkout e pagamento simulado. |
-| [`docs/plans/2026-08-11-redis-inventory-holds.md`](./docs/plans/2026-08-11-redis-inventory-holds.md) | Plano implementado de holds temporários de inventário no Redis. |
-| [`docs/plans/2026-08-12-tickets-qr-gate.md`](./docs/plans/2026-08-12-tickets-qr-gate.md) | Plano aprovado de ingressos, QR Code, compartilhamento e portaria. |
-| [`AGENTS.md`](./AGENTS.md) | Contexto e regras locais para agentes que trabalham no projeto. |
+| Documento                                                                                                                                        | Conteúdo                                                                             |
+| ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ |
+| [`challenge.md`](./challenge.md)                                                                                                                 | Enunciado normalizado e critérios de sucesso do desafio.                             |
+| [`docs/SETUP.md`](./docs/SETUP.md)                                                                                                               | Setup local, dados de avaliação, e-mail em console ou Resend e solução de problemas. |
+| [`docs/DEPLOY.md`](./docs/DEPLOY.md)                                                                                                             | Recursos, variáveis e checklist do deploy no Railway.                                |
+| [`docs/decisoes/index.md`](./docs/decisoes/index.md)                                                                                             | Índice cronológico das decisões técnicas aprovadas.                                  |
+| [`docs/plans/2026-08-10-monorepo-scaffold.md`](./docs/plans/2026-08-10-monorepo-scaffold.md)                                                     | Plano aprovado do scaffold inicial.                                                  |
+| [`docs/plans/2026-08-10-auth-cadastro-e-recuperacao.md`](./docs/plans/2026-08-10-auth-cadastro-e-recuperacao.md)                                 | Plano aprovado de autenticação, cadastro e recuperação.                              |
+| [`docs/plans/2026-08-11-backend-modular-refactor.md`](./docs/plans/2026-08-11-backend-modular-refactor.md)                                       | Plano aprovado da refatoração modular do backend.                                    |
+| [`docs/plans/2026-08-11-confirmacao-autologin-cabecalho-autenticado.md`](./docs/plans/2026-08-11-confirmacao-autologin-cabecalho-autenticado.md) | Plano aprovado do login automático após confirmação e do cabeçalho autenticado.      |
+| [`docs/plans/2026-08-11-admin-under-construction.md`](./docs/plans/2026-08-11-admin-under-construction.md)                                       | Plano aprovado do estado temporário das áreas administrativas.                       |
+| [`docs/plans/2026-08-11-backend-client-naming.md`](./docs/plans/2026-08-11-backend-client-naming.md)                                             | Plano aprovado para tornar explícito o cliente interno do backend no Next.js.        |
+| [`docs/plans/2026-08-11-organizer-registration-fields.md`](./docs/plans/2026-08-11-organizer-registration-fields.md)                             | Plano aprovado dos campos validados no cadastro de organizadores.                    |
+| [`docs/plans/2026-08-11-admin-event-creation.md`](./docs/plans/2026-08-11-admin-event-creation.md)                                               | Plano aprovado da criação administrativa de eventos.                                 |
+| [`docs/plans/2026-08-11-reservation-checkout-payment.md`](./docs/plans/2026-08-11-reservation-checkout-payment.md)                               | Plano implementado de reserva concorrente, checkout e pagamento simulado.            |
+| [`docs/plans/2026-08-11-redis-inventory-holds.md`](./docs/plans/2026-08-11-redis-inventory-holds.md)                                             | Plano implementado de holds temporários de inventário no Redis.                      |
+| [`docs/plans/2026-08-12-tickets-qr-gate.md`](./docs/plans/2026-08-12-tickets-qr-gate.md)                                                         | Plano aprovado de ingressos, QR Code, compartilhamento e portaria.                   |
+| [`AGENTS.md`](./AGENTS.md)                                                                                                                       | Contexto e regras locais para agentes que trabalham no projeto.                      |
 
 O repositório é a fonte oficial da documentação. Páginas externas podem ser usadas como material de apresentação no futuro, mas não substituirão os arquivos versionados.
 
@@ -114,10 +114,10 @@ O catálogo público e o seed funcionam sem chamar serviços externos. Para busc
 ### Eventos implementados
 
 - `/admin/eventos` lista somente os eventos da organização autenticada e permite publicar seus rascunhos futuros.
-- `/admin/eventos/novo` busca filmes no TMDb e cria um evento local em rascunho com data, local, capacidade, preço e capa.
+- `/admin/eventos/novo` usa o TMDb em Cinema e permite título e descrição manuais nas demais categorias, sempre criando um rascunho com data, local, capacidade, preço e capa.
 - Capas obrigatórias em JPEG, PNG ou WebP, com limite de 5 MiB, são armazenadas no MinIO local através da API compatível com S3.
 - O catálogo público lê somente eventos locais `PUBLISHED`; rascunhos não ficam visíveis.
-- O seed cria uma sessão de cinema publicada com capa local, sem depender do TMDb durante a carga.
+- O seed cria eventos publicados de Cinema, Shows, Teatro e Gastronomia com capas locais, sem depender do TMDb durante a carga.
 
 ### Reserva e pagamento implementados
 
@@ -187,15 +187,15 @@ O endpoint `GET http://localhost:3001/` retorna o estado da API. Os contratos im
 
 Após `pnpm db:seed`, as contas abaixo estão verificadas e usam a senha local `TicketOverlord2026!`:
 
-| Papel | E-mail |
-| --- | --- |
-| Administrador | `admin@ticketoverlord.local` |
-| Organizador | `organizer@ticketoverlord.local` |
-| Cliente 1 | `customer.one@ticketoverlord.local` |
-| Cliente 2 | `customer.two@ticketoverlord.local` |
-| Portaria, representando convite aceito | `gate@ticketoverlord.local` |
+| Papel                                  | E-mail                              |
+| -------------------------------------- | ----------------------------------- |
+| Administrador                          | `admin@ticketoverlord.local`        |
+| Organizador                            | `organizer@ticketoverlord.local`    |
+| Cliente 1                              | `customer.one@ticketoverlord.local` |
+| Cliente 2                              | `customer.two@ticketoverlord.local` |
+| Portaria, representando convite aceito | `gate@ticketoverlord.local`         |
 
-O seed também cria para o dia da execução quatro eventos de cinema publicados e dois ingressos pagos por evento para o Cliente 1, totalizando oito ingressos. Use essa conta em `/meus-ingressos` e a conta de Portaria em `/admin/portaria` para avaliar leitura do QR, evento incorreto, uso único e os demais resultados da validação.
+O seed também cria para o dia da execução quatro eventos publicados, distribuídos entre Cinema, Shows, Teatro e Gastronomia, e dois ingressos pagos por evento para o Cliente 1, totalizando oito ingressos. Use essa conta em `/meus-ingressos` e a conta de Portaria em `/admin/portaria` para avaliar leitura do QR, evento incorreto, uso único e os demais resultados da validação.
 
 ## Uso de IA
 

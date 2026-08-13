@@ -7,6 +7,7 @@ export const EVENT_IMAGE_TYPES = [
 
 export type EventImageType = (typeof EVENT_IMAGE_TYPES)[number];
 export type EventStatus = 'DRAFT' | 'PUBLISHED';
+export type ExternalCatalogSource = 'TMDB' | null;
 
 export interface ExternalMovie {
   externalId: string;
@@ -19,8 +20,8 @@ export interface ExternalMovie {
 export interface EventRecord {
   id: string;
   organizationId: string;
-  externalSource: 'TMDB';
-  externalId: string;
+  externalSource: ExternalCatalogSource;
+  externalId: string | null;
   slug: string;
   title: string;
   summary: string;

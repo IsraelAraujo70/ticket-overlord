@@ -193,7 +193,27 @@ describe('Ticket Overlord API (e2e)', () => {
                 operationId: 'create',
                 security: [{ bearer: [] }],
                 requestBody: {
-                  content: { 'multipart/form-data': {} },
+                  content: {
+                    'multipart/form-data': {
+                      schema: {
+                        required: [
+                          'category',
+                          'startsAt',
+                          'venue',
+                          'city',
+                          'capacity',
+                          'priceInCents',
+                          'cover',
+                        ],
+                        properties: {
+                          category: { type: 'string' },
+                          externalId: { type: 'string' },
+                          title: { type: 'string' },
+                          summary: { type: 'string' },
+                        },
+                      },
+                    },
+                  },
                 },
               },
             },
@@ -555,6 +575,7 @@ describe('Ticket Overlord API (e2e)', () => {
     const created = await request(app.getHttpServer())
       .post('/events')
       .set('Authorization', `Bearer ${token}`)
+      .field('category', 'Cinema')
       .field('externalId', '157336')
       .field('startsAt', '2099-09-05T22:00:00.000Z')
       .field('venue', 'Cine Belas Artes')
@@ -576,11 +597,37 @@ describe('Ticket Overlord API (e2e)', () => {
       });
 
     await request(app.getHttpServer())
+      .post('/events')
+      .set('Authorization', `Bearer ${token}`)
+      .field('category', 'Teatro')
+      .field('title', 'Hamlet')
+      .field(
+        'summary',
+        'Uma montagem contemporânea do clássico de Shakespeare.',
+      )
+      .field('startsAt', '2099-10-05T22:00:00.000Z')
+      .field('venue', 'Teatro Municipal')
+      .field('city', 'São Paulo')
+      .field('capacity', '300')
+      .field('priceInCents', '6500')
+      .attach('cover', png, { filename: 'cover.png', contentType: 'image/png' })
+      .expect(201)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          externalSource: null,
+          externalId: null,
+          category: 'Teatro',
+          title: 'Hamlet',
+          status: 'DRAFT',
+        });
+      });
+
+    await request(app.getHttpServer())
       .get('/events')
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
       .expect((response) => {
-        expect(response.body).toHaveLength(1);
+        expect(response.body).toHaveLength(2);
       });
     await request(app.getHttpServer())
       .get('/events/published')

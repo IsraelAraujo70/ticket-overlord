@@ -36,6 +36,13 @@
       "when": 1786539716669,
       "tag": "0004_low_risque",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1786629917693,
+      "tag": "0005_hot_mac_gargan",
+      "breakpoints": true
     }
   ]
 }

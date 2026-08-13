@@ -57,7 +57,14 @@ describe("GET /api/catalog", () => {
   beforeEach(() => {
     vi.mocked(listPublishedEvents).mockResolvedValue([
       ...publishedEvents,
-      { ...publishedEvents[0], id: "event-5", category: "Shows" },
+      {
+        ...publishedEvents[0],
+        id: "event-5",
+        slug: "festival-de-jazz",
+        title: "Festival de Jazz",
+        summary: "Música brasileira ao vivo.",
+        category: "Shows",
+      },
     ]);
   });
 
@@ -71,9 +78,13 @@ describe("GET /api/catalog", () => {
       "auto-da-compadecida-recife",
       "bacurau-fortaleza",
     ]);
-    expect(body.meta).toEqual({ query: "", total: 4 });
-    expect(body.sections.map((section) => section.title)).toEqual(["Cinema"]);
+    expect(body.meta).toEqual({ query: "", total: 5 });
+    expect(body.sections.map((section) => section.title)).toEqual([
+      "Cinema",
+      "Shows",
+    ]);
     expect(body.sections[0]?.events).toHaveLength(4);
+    expect(body.sections[1]?.events).toHaveLength(1);
   });
 
   it("filters by query without requiring accents", async () => {

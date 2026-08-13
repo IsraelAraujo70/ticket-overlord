@@ -3,6 +3,7 @@ import { ApiProperty, ApiPropertyOptional, ApiSchema } from '@nestjs/swagger';
 import {
   IsInt,
   IsISO8601,
+  IsOptional,
   IsString,
   Length,
   Matches,
@@ -11,10 +12,28 @@ import {
 } from 'class-validator';
 
 export class CreateEventDto {
-  @ApiProperty({ example: '157336' })
+  @ApiProperty({ example: 'Cinema' })
+  @IsString()
+  @Length(2, 80)
+  category!: string;
+
+  @ApiPropertyOptional({ example: '157336' })
+  @IsOptional()
   @IsString()
   @Matches(/^\d+$/)
-  externalId!: string;
+  externalId?: string;
+
+  @ApiPropertyOptional({ example: 'Festival de Jazz' })
+  @IsOptional()
+  @IsString()
+  @Length(2, 200)
+  title?: string;
+
+  @ApiPropertyOptional({ example: 'Uma noite dedicada ao jazz brasileiro.' })
+  @IsOptional()
+  @IsString()
+  @Length(10, 2000)
+  summary?: string;
 
   @ApiProperty({ example: '2026-09-05T22:00:00.000Z' })
   @IsISO8601({ strict: true })
@@ -53,11 +72,11 @@ export class EventDto {
   @ApiProperty({ format: 'uuid' })
   organizationId!: string;
 
-  @ApiProperty({ enum: ['TMDB'] })
-  externalSource!: 'TMDB';
+  @ApiPropertyOptional({ enum: ['TMDB'], nullable: true })
+  externalSource!: 'TMDB' | null;
 
-  @ApiProperty({ example: '157336' })
-  externalId!: string;
+  @ApiPropertyOptional({ example: '157336', nullable: true })
+  externalId!: string | null;
 
   @ApiProperty()
   slug!: string;

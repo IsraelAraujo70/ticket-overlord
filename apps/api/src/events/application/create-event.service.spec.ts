@@ -104,6 +104,7 @@ describe('CreateEventService', () => {
 
   it('copies the external movie and creates an organization draft', async () => {
     const event = await service.create(organizer, {
+      category: 'Cinema',
       externalId: movie.externalId,
       startsAt: '2099-09-05T22:00:00.000Z',
       venue: 'Cine Belas Artes',
@@ -128,11 +129,50 @@ describe('CreateEventService', () => {
     expect(event.coverUrl).toContain('/organizations/organization-1/events/');
   });
 
+  it('creates a manual event without consulting TMDb', async () => {
+    const event = await service.create(organizer, {
+      category: 'Shows e festivais',
+      title: 'Festival de Jazz',
+      summary: 'Uma noite dedicada ao jazz brasileiro.',
+      startsAt: '2099-09-05T22:00:00.000Z',
+      venue: 'Auditório Ibirapuera',
+      city: 'São Paulo',
+      capacity: 500,
+      priceInCents: 8000,
+      cover: png,
+    });
+
+    expect(store.created[0]).toMatchObject({
+      externalSource: null,
+      externalId: null,
+      category: 'Shows e festivais',
+      title: 'Festival de Jazz',
+      summary: 'Uma noite dedicada ao jazz brasileiro.',
+      status: 'DRAFT',
+    });
+    expect(event.externalSource).toBeNull();
+  });
+
+  it('requires a TMDb movie for cinema events', async () => {
+    await expect(
+      service.create(organizer, {
+        category: 'Cinema',
+        startsAt: '2099-09-05T22:00:00.000Z',
+        venue: 'Cine Belas Artes',
+        city: 'São Paulo',
+        capacity: 150,
+        priceInCents: 4500,
+        cover: png,
+      }),
+    ).rejects.toMatchObject({ code: 'EXTERNAL_MOVIE_REQUIRED' });
+  });
+
   it('rejects non-organizers before writing storage', async () => {
     await expect(
       service.create(
         { ...organizer, role: 'CUSTOMER', organizationId: null },
         {
+          category: 'Cinema',
           externalId: movie.externalId,
           startsAt: '2099-09-05T22:00:00.000Z',
           venue: 'Cine Belas Artes',
@@ -149,6 +189,7 @@ describe('CreateEventService', () => {
   it('rejects a file whose content is not an allowed image', async () => {
     await expect(
       service.create(organizer, {
+        category: 'Cinema',
         externalId: movie.externalId,
         startsAt: '2099-09-05T22:00:00.000Z',
         venue: 'Cine Belas Artes',
@@ -165,6 +206,7 @@ describe('CreateEventService', () => {
 
     await expect(
       service.create(organizer, {
+        category: 'Cinema',
         externalId: movie.externalId,
         startsAt: '2099-09-05T22:00:00.000Z',
         venue: 'Cine Belas Artes',
