@@ -11,6 +11,18 @@ const user = {
 };
 
 describe("MyTicketsExperience", () => {
+  it("keeps the footer at the viewport edge without horizontal overflow", () => {
+    const { container } = render(<MyTicketsExperience tickets={[]} user={user} />);
+
+    expect(container.firstElementChild).toHaveClass(
+      "flex",
+      "min-h-svh",
+      "flex-col",
+      "overflow-x-hidden",
+    );
+    expect(screen.getByRole("main")).toHaveClass("w-full", "flex-1");
+  });
+
   it("guides a customer whose wallet is empty", () => {
     render(<MyTicketsExperience tickets={[]} user={user} />);
 

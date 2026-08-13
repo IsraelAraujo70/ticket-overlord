@@ -10,9 +10,9 @@ import type { AuthUser } from "@/server/auth/auth.types";
 
 export function MyTicketsExperience({ tickets, user }: { tickets: Ticket[]; user: AuthUser }) {
   return (
-    <div className="min-h-screen bg-ticket-mist">
+    <div className="flex min-h-svh flex-col overflow-x-hidden bg-ticket-mist">
       <PublicHeader isLoading={false} query="" user={user} />
-      <main className="mx-auto max-w-7xl px-5 py-12 lg:px-8 lg:py-16">
+      <main className="mx-auto w-full max-w-7xl flex-1 px-5 py-12 lg:px-8 lg:py-16">
         <p className="font-mono text-xs tracking-[0.18em] text-primary uppercase">Carteira de acesso</p>
         <h1 className="mt-2 font-heading text-6xl font-bold uppercase">Meus ingressos</h1>
         <p className="mt-3 max-w-xl text-muted-foreground">Cada ingresso tem seu próprio QR e pode entrar separadamente.</p>
