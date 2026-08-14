@@ -18,6 +18,7 @@ import { POSTGRES_POOL } from '../src/database/database.constants';
 import { ExternalMovieCatalog } from '../src/events/application/ports/external-movie-catalog';
 import type { ExternalMovie } from '../src/events/domain/event.types';
 import { configureOpenApi } from '../src/openapi';
+import { EmbeddingProvider } from '../src/search/application/ports/embedding-provider';
 
 class InMemoryEmailSender implements EmailSender {
   confirmations: TransactionalEmail[] = [];
@@ -86,6 +87,23 @@ class FakeMovieCatalog extends ExternalMovieCatalog {
   }
 }
 
+class FakeEmbeddingProvider extends EmbeddingProvider {
+  readonly model = 'test-embedding-model';
+  readonly dimensions = 1536;
+
+  isConfigured(): boolean {
+    return true;
+  }
+
+  embedQuery(): Promise<readonly number[]> {
+    return Promise.resolve(testEmbedding());
+  }
+
+  embedDocuments(documents: readonly string[]): Promise<readonly number[][]> {
+    return Promise.resolve(documents.map(() => testEmbedding()));
+  }
+}
+
 const customerRegistration = {
   accountType: 'customer',
   fullName: 'Maria Cliente',
@@ -108,6 +126,8 @@ describe('Ticket Overlord API (e2e)', () => {
       .useClass(FakeAddressProvider)
       .overrideProvider(ExternalMovieCatalog)
       .useClass(FakeMovieCatalog)
+      .overrideProvider(EmbeddingProvider)
+      .useClass(FakeEmbeddingProvider)
       .compile();
 
     app = moduleFixture.createNestApplication();
@@ -241,6 +261,41 @@ describe('Ticket Overlord API (e2e)', () => {
                 },
               },
             },
+            '/search': {
+              get: {
+                operationId: 'search',
+                responses: {
+                  200: {
+                    content: {
+                      'application/json': {
+                        schema: {
+                          $ref: '#/components/schemas/SearchEventPage',
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+            '/search/suggestions': {
+              get: {
+                operationId: 'suggestions',
+                responses: {
+                  200: {
+                    content: {
+                      'application/json': {
+                        schema: {
+                          type: 'array',
+                          items: {
+                            $ref: '#/components/schemas/SearchSuggestion',
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
             '/events/{eventId}/publish': {
               post: {
                 operationId: 'publish',
@@ -327,6 +382,89 @@ describe('Ticket Overlord API (e2e)', () => {
           schema: { type: 'string', minLength: 2, maxLength: 100 },
         });
       });
+  });
+
+  it('searches the indexed catalog and returns ranked autocomplete suggestions', async () => {
+    const organizationId = '11111111-1111-4111-8111-111111111111';
+    await pool.query(
+      `INSERT INTO organizations (
+         id, name, cnpj, phone, postal_code, street, number, neighborhood, city, state
+       ) VALUES ($1, 'Busca Eventos', '11222333000181', '+5511999999999',
+         '01001000', 'Praça da Sé', '100', 'Sé', 'São Paulo', 'SP')`,
+      [organizationId],
+    );
+    await pool.query(
+      `INSERT INTO events (
+         organization_id, slug, title, summary, category, starts_at, venue, city,
+         capacity, price_in_cents, cover_object_key, cover_content_type, status
+       ) VALUES
+       ($1, 'festival-jazz', 'Festival de Jazz', 'Música brasileira ao vivo',
+         'Shows e festivais', now() + interval '10 days', 'Auditório Ibirapuera',
+         'São Paulo', 100, 5000, 'events/jazz.webp', 'image/webp', 'PUBLISHED'),
+       ($1, 'cinema-sp', 'Noite de Cinema', 'Uma sessão de clássicos nacionais',
+         'Cinema', now() + interval '11 days', 'Cine Belas Artes', 'São Paulo',
+         80, 3500, 'events/cinema.webp', 'image/webp', 'PUBLISHED'),
+       ($1, 'draft-festival', 'Festival secreto', 'Evento ainda não publicado',
+         'Shows e festivais', now() + interval '12 days', 'Casa Fechada', 'Recife',
+         40, 2500, 'events/draft.webp', 'image/webp', 'DRAFT')`,
+      [organizationId],
+    );
+
+    await request(app.getHttpServer())
+      .get('/search?q=musica&page=1&pageSize=10')
+      .expect(200)
+      .expect((response) => {
+        const body = response.body as {
+          total: number;
+          page: number;
+          pageSize: number;
+          items: Array<{ slug: string; title: string; status: string }>;
+        };
+        expect(body).toMatchObject({ total: 1, page: 1, pageSize: 10 });
+        expect(body.items).toHaveLength(1);
+        expect(body.items[0]).toMatchObject({
+          slug: 'festival-jazz',
+          title: 'Festival de Jazz',
+          status: 'PUBLISHED',
+        });
+      });
+
+    await request(app.getHttpServer())
+      .get('/search/suggestions?q=sao')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toEqual(
+          expect.arrayContaining([
+            {
+              kind: 'CITY',
+              label: 'São Paulo',
+              value: 'São Paulo',
+              slug: null,
+            },
+          ]),
+        );
+      });
+
+    const festival = await pool.query<{ id: string }>(
+      `SELECT id FROM events WHERE slug = 'festival-jazz'`,
+    );
+    await pool.query(
+      `INSERT INTO event_search_embeddings (event_id, embedding, content_hash, model)
+       VALUES ($1, $2::vector, 'test-hash', 'test-embedding-model')`,
+      [festival.rows[0]?.id, `[${testEmbedding().join(',')}]`],
+    );
+    await request(app.getHttpServer())
+      .get('/search?q=experiencia&page=1&pageSize=10')
+      .expect(200)
+      .expect((response) => {
+        const body = response.body as { items: Array<{ slug: string }> };
+        expect(body.items[0]).toMatchObject({ slug: 'festival-jazz' });
+      });
+
+    await request(app.getHttpServer()).get('/search?q=a').expect(400);
+    await request(app.getHttpServer())
+      .get('/search/suggestions?q=a')
+      .expect(400);
   });
 
   it('confirms email idempotently and creates only one session', async () => {
@@ -855,3 +993,7 @@ describe('Ticket Overlord API (e2e)', () => {
     await app.close();
   });
 });
+
+function testEmbedding(): number[] {
+  return [1, ...Array<number>(1535).fill(0)];
+}

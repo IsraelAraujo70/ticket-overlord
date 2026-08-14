@@ -105,6 +105,15 @@ export class EnvironmentVariables {
   @Max(3600)
   @Type(() => Number)
   S3_PRESIGNED_URL_TTL_SECONDS = 900;
+
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  OPENROUTER_API_KEY?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  OPENROUTER_EMBEDDING_MODEL = 'openai/text-embedding-3-small';
 }
 
 export function validateEnvironment(
@@ -143,6 +152,12 @@ export function validateEnvironment(
       S3_FORCE_PATH_STYLE:
         values.S3_FORCE_PATH_STYLE ?? (isProduction ? 'false' : 'true'),
       S3_PRESIGNED_URL_TTL_SECONDS: values.S3_PRESIGNED_URL_TTL_SECONDS ?? 900,
+      OPENROUTER_EMBEDDING_MODEL:
+        values.OPENROUTER_EMBEDDING_MODEL ?? 'openai/text-embedding-3-small',
+      OPENROUTER_API_KEY:
+        values.OPENROUTER_API_KEY === ''
+          ? undefined
+          : values.OPENROUTER_API_KEY,
     },
     { enableImplicitConversion: true },
   );

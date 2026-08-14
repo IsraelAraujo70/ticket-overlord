@@ -16,7 +16,17 @@ describe('environment validation', () => {
       S3_BUCKET: 'ticket-overlord-events',
       S3_ENDPOINT_URL: 'http://localhost:9000',
       S3_FORCE_PATH_STYLE: 'true',
+      OPENROUTER_EMBEDDING_MODEL: 'openai/text-embedding-3-small',
     });
+  });
+
+  it('keeps semantic search optional when the example key is empty', () => {
+    const environment = validateEnvironment({
+      DATABASE_URL: 'postgresql://user:password@localhost:5432/database',
+      OPENROUTER_API_KEY: '',
+    });
+
+    expect(environment.OPENROUTER_API_KEY).toBeUndefined();
   });
 
   it('parses numeric values supplied by process environment variables', () => {

@@ -31,9 +31,17 @@ O `.env.example` usa `EMAIL_PROVIDER=console`. Esse modo permite testar cadastro
 
 Para testar a criação de eventos, crie um token de leitura da API no TMDb e preencha `TMDB_READ_ACCESS_TOKEN`. Sem ele, o catálogo público continua funcionando, mas a busca em `/admin/eventos/novo` retorna uma mensagem de configuração.
 
+O autocomplete e o Full Text Search não exigem credenciais. Para incluir recuperação semântica, configure `OPENROUTER_API_KEY`. Depois do seed, execute o backfill monitorado:
+
+```bash
+pnpm --filter @ticket-overlord/api search:backfill
+```
+
+O comando compara o hash e o modelo já armazenados, portanto pode ser retomado sem recalcular eventos inalterados. Sem a chave ou sem backfill, a busca continua operando pelo índice textual.
+
 A API carrega automaticamente o arquivo `.env` da raiz. No startup, ela valida as variáveis obrigatórias e encerra com uma mensagem de configuração quando faltarem `DATABASE_URL` ou, no modo Resend, `RESEND_API_KEY` e `RESEND_FROM_EMAIL` válidos.
 
-Nunca versione o `.env`, `RESEND_API_KEY` ou `TMDB_READ_ACCESS_TOKEN`.
+Nunca versione o `.env`, `RESEND_API_KEY`, `TMDB_READ_ACCESS_TOKEN` ou `OPENROUTER_API_KEY`.
 
 ## 3. Banco, migrations e dados de avaliação
 
@@ -153,6 +161,17 @@ Altere `WEB_PORT`, `API_PORT`, `POSTGRES_PORT`, `POSTGRES_TEST_PORT`, `MINIO_POR
 ### A busca do TMDb não está configurada
 
 Crie um token de leitura da API do TMDb, configure `TMDB_READ_ACCESS_TOKEN` no `.env` e reinicie a API. Os eventos publicados pelo seed não dependem desse token.
+
+### `extension "vector" is not available`
+
+Recrie somente os serviços PostgreSQL a partir do `compose.yaml` atual e aplique as migrations novamente:
+
+```bash
+docker compose up -d --wait --force-recreate postgres postgres-test
+pnpm db:migrate
+```
+
+O volume principal é preservado. A imagem local oficial `pgvector/pgvector` contém as extensões `vector` e `pg_trgm` exigidas pela migration.
 
 ## 9. Armazenamento em produção
 

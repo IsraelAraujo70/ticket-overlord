@@ -25,7 +25,10 @@ async function authenticatedHeaders(): Promise<HeadersInit> {
   return { Authorization: `Bearer ${token}` };
 }
 
-export async function listOrganizerEvents(page = 1, search = ""): Promise<EventPage> {
+export async function listOrganizerEvents(
+  page = 1,
+  search = "",
+): Promise<EventPage> {
   const params = new URLSearchParams({ page: String(page), pageSize: "50" });
   if (search.trim()) params.set("search", search.trim().slice(0, 100));
   return backendRequest<EventPage>(`/events?${params.toString()}`, {
@@ -34,21 +37,27 @@ export async function listOrganizerEvents(page = 1, search = ""): Promise<EventP
 }
 
 /** Lists public events with a short shared cache only for unfiltered catalog pages. */
-export async function listPublishedEvents(page = 1, search = ""): Promise<EventPage> {
+export async function listPublishedEvents(
+  page = 1,
+  search = "",
+): Promise<EventPage> {
   const params = new URLSearchParams({ page: String(page), pageSize: "48" });
   const normalizedSearch = search.trim().slice(0, 100);
-  if (normalizedSearch) params.set("search", normalizedSearch);
+  if (normalizedSearch) params.set("q", normalizedSearch);
 
-  return backendRequest<EventPage>(`/events/published?${params.toString()}`, {
-    ...(normalizedSearch
-      ? {}
-      : {
-          next: {
-            revalidate: PUBLISHED_EVENTS_REVALIDATE_SECONDS,
-            tags: [PUBLISHED_EVENTS_CACHE_TAG],
-          },
-        }),
-  });
+  return backendRequest<EventPage>(
+    `${normalizedSearch ? "/search" : "/events/published"}?${params.toString()}`,
+    {
+      ...(normalizedSearch
+        ? {}
+        : {
+            next: {
+              revalidate: PUBLISHED_EVENTS_REVALIDATE_SECONDS,
+              tags: [PUBLISHED_EVENTS_CACHE_TAG],
+            },
+          }),
+    },
+  );
 }
 
 export async function organizerCoverUrl(eventId: string): Promise<string> {

@@ -22,7 +22,7 @@ O produto permitirá que um organizador publique eventos a partir de um catálog
 - PostgreSQL 18 como fonte de verdade, com Drizzle ORM e migrations SQL versionadas.
 - TMDb para sessões de cinema, cadastro manual para outras categorias e eventos locais persistidos no PostgreSQL.
 - MinIO local e Railway Bucket S3-compatible em produção para capas privadas com URLs temporárias.
-- Busca textual paginada no PostgreSQL, sem distinção de acentos.
+- Autocomplete e busca híbrida com FTS, `pg_trgm` e pgvector no PostgreSQL; OpenRouter opcional e fallback lexical.
 - pnpm 11 workspaces, sem orquestrador adicional.
 - Docker Compose para validar as imagens de produção localmente.
 - Railway para deploy.
@@ -101,6 +101,8 @@ O adapter de e-mail local escreve os links de confirmação e recuperação no t
 
 O catálogo público e o seed funcionam sem chamar serviços externos. Para buscar e selecionar um filme em `/admin/eventos/novo`, crie um token de leitura da API do TMDb e configure `TMDB_READ_ACCESS_TOKEN` no `.env`.
 
+Autocomplete e FTS também funcionam sem serviço externo. Para habilitar a recuperação semântica, configure `OPENROUTER_API_KEY`, reinicie a API e execute o backfill idempotente com `pnpm --filter @ticket-overlord/api search:backfill`. O comando não é executado automaticamente.
+
 ### Autenticação implementada
 
 - Clientes: `/cadastro`, `/login`, `/confirmar-email`, `/esqueci-senha` e `/redefinir-senha`.
@@ -119,6 +121,7 @@ O catálogo público e o seed funcionam sem chamar serviços externos. Para busc
 - O catálogo público lê somente eventos locais `PUBLISHED`; rascunhos não ficam visíveis.
 - Catálogo e painel usam paginação no PostgreSQL para operar com milhares de eventos sem transferir todo o conjunto ao navegador.
 - O seed cria 9.000 eventos publicados em 30 organizações e reutiliza quatro capas, sem depender do TMDb durante a carga.
+- O cabeçalho sugere eventos, categorias, cidades e locais após dois caracteres; resultados completos usam ranking textual e, quando indexados, semântico.
 
 ### Reserva e pagamento implementados
 
@@ -185,6 +188,7 @@ O endpoint `GET http://localhost:3001/` retorna o estado da API. Os contratos im
 - A chave privada Ed25519 fica versionada no PostgreSQL nesta demonstração e deve migrar para KMS ou secret manager antes de uso real.
 - O adapter de console revela links somente no desenvolvimento local e é proibido quando `APP_ENV=production`.
 - Contas e eventos demonstrativos são dados descartáveis; o ambiente não deve armazenar informações reais.
+- Eventos novos permanecem disponíveis no FTS imediatamente, mas exigem nova execução do backfill para participar da recuperação semântica.
 
 ## Dados de demonstração
 

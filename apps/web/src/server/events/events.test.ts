@@ -41,7 +41,7 @@ describe("public event catalog", () => {
     await listPublishedEvents(1, "festival");
 
     expect(backendRequest).toHaveBeenCalledWith(
-      "/events/published?page=1&pageSize=48&search=festival",
+      "/search?page=1&pageSize=48&q=festival",
       {},
     );
   });

@@ -46,7 +46,7 @@ describe('Checkout API (e2e)', () => {
 
   beforeEach(async () => {
     await pool.query(
-      'TRUNCATE payments, reservations, events, auth_sessions, auth_tokens, organization_members, organizations, users RESTART IDENTITY CASCADE',
+      'TRUNCATE ticket_signing_keys, payments, reservations, events, auth_sessions, auth_tokens, organization_members, organizations, users RESTART IDENTITY CASCADE',
     );
     await redis.flushDb();
   });
