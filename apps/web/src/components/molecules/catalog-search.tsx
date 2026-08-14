@@ -107,9 +107,11 @@ export function CatalogSearch({
     } else if (event.key === "Enter" && activeIndex >= 0) {
       event.preventDefault();
       const suggestion = suggestions[activeIndex]!;
-      const link = document.getElementById(`${listboxId}-${activeIndex}`);
       selectSuggestion(suggestion);
-      if (link instanceof HTMLAnchorElement) link.click();
+      window.setTimeout(
+        () => window.location.assign(suggestionHref(suggestion)),
+        0,
+      );
     }
   }
 

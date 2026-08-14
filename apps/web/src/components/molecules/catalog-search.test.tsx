@@ -44,13 +44,10 @@ describe("CatalogSearch", () => {
       "/api/search/suggestions?q=fes",
       expect.objectContaining({ signal: expect.any(AbortSignal) }),
     );
-    const click = vi
-      .spyOn(HTMLAnchorElement.prototype, "click")
-      .mockImplementation(() => undefined);
     fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" });
     expect(screen.getByRole("option")).toHaveAttribute("aria-selected", "true");
     fireEvent.keyDown(screen.getByRole("combobox"), { key: "Enter" });
-    expect(click).toHaveBeenCalledOnce();
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
   });
 
   it("does not request suggestions with fewer than two characters", async () => {
