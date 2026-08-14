@@ -11,6 +11,7 @@ describe("ResetPasswordCard", () => {
     window.location.hash = "token=test-token";
     render(<ResetPasswordCard />);
 
+    expect(window.location.hash).toBe("");
     expect(screen.getByRole("meter", { name: "Força da senha" })).toBeInTheDocument();
     expect(screen.getAllByRole("button", { name: "Mostrar senha" })).toHaveLength(2);
   });

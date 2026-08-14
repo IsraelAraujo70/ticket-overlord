@@ -17,13 +17,14 @@ export function CatalogExperience({ user = null }: { user?: AuthUser | null }) {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [page, setPage] = useState(1);
 
   const loadCatalog = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true);
     setError(false);
 
     try {
-      setCatalog(await requestCatalog(signal));
+      setCatalog(await requestCatalog(page, signal));
     } catch (requestError) {
       if (requestError instanceof DOMException && requestError.name === "AbortError") {
         return;
@@ -34,11 +35,11 @@ export function CatalogExperience({ user = null }: { user?: AuthUser | null }) {
         setIsLoading(false);
       }
     }
-  }, []);
+  }, [page]);
 
   useEffect(() => {
     const controller = new AbortController();
-    requestCatalog(controller.signal)
+    requestCatalog(page, controller.signal)
       .then(setCatalog)
       .catch((requestError: unknown) => {
         if (!(requestError instanceof DOMException && requestError.name === "AbortError")) {
@@ -51,7 +52,7 @@ export function CatalogExperience({ user = null }: { user?: AuthUser | null }) {
         }
       });
     return () => controller.abort();
-  }, []);
+  }, [page]);
 
   return (
     <div className="min-h-screen bg-background">
@@ -70,6 +71,11 @@ export function CatalogExperience({ user = null }: { user?: AuthUser | null }) {
           <>
             <LandingHero events={catalog.highlights} />
             <EventLineup sections={catalog.sections} />
+            <CatalogPagination
+              page={catalog.meta.page}
+              pages={catalog.meta.pages}
+              onPageChange={setPage}
+            />
           </>
         ) : null}
         {!isLoading && !error && catalog && !catalog.highlights.length ? (
@@ -87,8 +93,8 @@ export function CatalogExperience({ user = null }: { user?: AuthUser | null }) {
   );
 }
 
-async function requestCatalog(signal?: AbortSignal) {
-  const response = await fetch("/api/catalog", {
+async function requestCatalog(page: number, signal?: AbortSignal) {
+  const response = await fetch(`/api/catalog?page=${page}`, {
     headers: { Accept: "application/json" },
     signal,
   });
@@ -98,6 +104,25 @@ async function requestCatalog(signal?: AbortSignal) {
   }
 
   return (await response.json()) as CatalogResponse;
+}
+
+function CatalogPagination({
+  page,
+  pages,
+  onPageChange,
+}: {
+  page: number;
+  pages: number;
+  onPageChange: (page: number) => void;
+}) {
+  if (pages <= 1) return null;
+  return (
+    <nav className="mx-auto flex max-w-7xl items-center justify-center gap-4 px-5 pb-14" aria-label="Paginação do catálogo">
+      <Button variant="outline" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>Anterior</Button>
+      <span className="font-mono text-sm">Página {page} de {pages}</span>
+      <Button variant="outline" disabled={page >= pages} onClick={() => onPageChange(page + 1)}>Próxima</Button>
+    </nav>
+  );
 }
 
 function CatalogLoading() {

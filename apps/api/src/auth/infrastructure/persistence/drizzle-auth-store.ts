@@ -252,6 +252,25 @@ export class DrizzleAuthStore extends AuthStore {
     return this.replaceToken(input, 'PASSWORD_RESET', true);
   }
 
+  async hasValidPasswordResetToken(
+    tokenHash: string,
+    now: Date,
+  ): Promise<boolean> {
+    const [token] = await this.database
+      .select({ tokenHash: authTokens.tokenHash })
+      .from(authTokens)
+      .where(
+        and(
+          eq(authTokens.tokenHash, tokenHash),
+          eq(authTokens.purpose, 'PASSWORD_RESET'),
+          isNull(authTokens.consumedAt),
+          gt(authTokens.expiresAt, now),
+        ),
+      )
+      .limit(1);
+    return Boolean(token);
+  }
+
   async resetPasswordAndRevokeSessions(
     input: ResetPasswordInput,
   ): Promise<boolean> {

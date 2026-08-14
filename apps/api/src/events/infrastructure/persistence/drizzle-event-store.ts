@@ -1,9 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
-import { and, asc, desc, eq, gt } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gt, sql, type SQL } from 'drizzle-orm';
 import { DATABASE } from '../../../database/database.constants';
 import { events } from '../../../database/schema';
 import type { Database } from '../../../database/database.types';
-import type { CreateEventRecord } from '../../application/ports/event-store';
+import type {
+  CreateEventRecord,
+  EventListQuery,
+  EventPage,
+} from '../../application/ports/event-store';
 import { EventStore } from '../../application/ports/event-store';
 import type { EventRecord } from '../../domain/event.types';
 
@@ -47,30 +51,19 @@ export class DrizzleEventStore extends EventStore {
     return published ? eventRecord(published) : null;
   }
 
-  async listForOrganization(organizationId: string): Promise<EventRecord[]> {
-    const rows = await this.database
-      .select()
-      .from(events)
-      .where(eq(events.organizationId, organizationId))
-      .orderBy(desc(events.createdAt));
-    return rows.map(eventRecord);
+  listForOrganization(
+    organizationId: string,
+    query: EventListQuery,
+  ): Promise<EventPage> {
+    return this.listPage(query, [eq(events.organizationId, organizationId)]);
   }
 
-  async listAll(): Promise<EventRecord[]> {
-    const rows = await this.database
-      .select()
-      .from(events)
-      .orderBy(desc(events.createdAt));
-    return rows.map(eventRecord);
+  listAll(query: EventListQuery): Promise<EventPage> {
+    return this.listPage(query, []);
   }
 
-  async listPublished(): Promise<EventRecord[]> {
-    const rows = await this.database
-      .select()
-      .from(events)
-      .where(eq(events.status, 'PUBLISHED'))
-      .orderBy(asc(events.startsAt));
-    return rows.map(eventRecord);
+  listPublished(query: EventListQuery): Promise<EventPage> {
+    return this.listPage(query, [eq(events.status, 'PUBLISHED')], true);
   }
 
   async findForOrganization(
@@ -104,6 +97,51 @@ export class DrizzleEventStore extends EventStore {
       .limit(1);
     return row ? eventRecord(row) : null;
   }
+
+  private async listPage(
+    query: EventListQuery,
+    requiredConditions: SQL[],
+    chronological = false,
+  ): Promise<EventPage> {
+    const search = normalizeSearch(query.search ?? '');
+    const searchCondition = search
+      ? sql`to_tsvector(
+          'portuguese',
+          translate(
+            lower(${events.title} || ' ' || ${events.summary} || ' ' || ${events.category} || ' ' || ${events.city} || ' ' || ${events.venue}),
+            'áàãâäéèêëíìîïóòõôöúùûüç',
+            'aaaaaeeeeiiiiooooouuuuc'
+          )
+        ) @@ websearch_to_tsquery('portuguese', ${search})`
+      : undefined;
+    const where = and(...requiredConditions, searchCondition);
+    const offset = (query.page - 1) * query.pageSize;
+    const [rows, totals] = await Promise.all([
+      this.database
+        .select()
+        .from(events)
+        .where(where)
+        .orderBy(chronological ? asc(events.startsAt) : desc(events.createdAt))
+        .limit(query.pageSize)
+        .offset(offset),
+      this.database.select({ total: count() }).from(events).where(where),
+    ]);
+
+    return {
+      items: rows.map(eventRecord),
+      total: totals[0]?.total ?? 0,
+      page: query.page,
+      pageSize: query.pageSize,
+    };
+  }
+}
+
+function normalizeSearch(value: string): string {
+  return value
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('pt-BR');
 }
 
 function eventRecord(row: typeof events.$inferSelect): EventRecord {

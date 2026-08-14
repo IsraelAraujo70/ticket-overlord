@@ -43,7 +43,7 @@ Prepare PostgreSQL e MinIO, crie o bucket local e aplique as migrations:
 pnpm dev:prepare
 ```
 
-Carregue os usuários de avaliação e um evento publicado com sua capa:
+Carregue os usuários de avaliação e o conjunto paginado de eventos:
 
 ```bash
 pnpm db:seed
@@ -59,7 +59,7 @@ Todos os usuários de demonstração usam a senha `TicketOverlord2026!`:
 | Cliente 2     | `customer.two@ticketoverlord.local` |
 | Portaria      | `gate@ticketoverlord.local`         |
 
-Os seeds são idempotentes e podem ser executados novamente. Cada execução restaura quatro eventos de categorias diferentes para o dia atual e oito ingressos válidos do Cliente 1, permitindo repetir os testes da portaria.
+O seed é idempotente e pode ser executado novamente. Por padrão ele mantém 9.000 eventos publicados em 30 organizações, quatro capas compartilhadas e oito ingressos válidos do Cliente 1. Use `SEED_EVENT_COUNT` entre 4 e 50.000 para ajustar o volume.
 
 ## 4. Desenvolvimento local
 
@@ -125,9 +125,13 @@ Use `Ctrl+C` e depois `pnpm dev:down` para encerrar. Os volumes do PostgreSQL e 
 
 ## 7. Ambiente publicado
 
-A URL planejada para o ambiente de demonstração é `https://ticketoverlord.israeldeveloper.com.br`.
+O ambiente de demonstração está disponível em:
 
-Esse endereço ainda não deve ser tratado como disponível até o deploy ser concluído e verificado. Depois da publicação, o README será atualizado com o status e os avaliadores poderão exercitar o fluxo sem executar o projeto localmente.
+- Web: `https://ticketoverlord.israeldeveloper.com.br`;
+- API: `https://api.ticketoverlord.israeldeveloper.com.br`;
+- Swagger: `https://api.ticketoverlord.israeldeveloper.com.br/docs`.
+
+As credenciais do ambiente publicado são dados de avaliação e devem ser fornecidas separadamente. A senha fallback documentada neste guia é exclusivamente local.
 
 ## 8. Problemas comuns
 
@@ -152,6 +156,20 @@ Crie um token de leitura da API do TMDb, configure `TMDB_READ_ACCESS_TOKEN` no `
 
 ## 9. Armazenamento em produção
 
-Com `APP_ENV=production`, a API usa o endpoint nativo da AWS, `S3_FORCE_PATH_STYLE=false` e a cadeia padrão de credenciais do AWS SDK. Configure `S3_BUCKET` e `S3_REGION`; prefira uma role IAM da plataforma. Credenciais explícitas continuam aceitas por `S3_ACCESS_KEY_ID` e `S3_SECRET_ACCESS_KEY` quando o ambiente exigir.
+No Railway, configure `S3_ENDPOINT_URL` e `S3_PUBLIC_ENDPOINT_URL` com os endpoints S3-compatible do Railway Bucket, além de `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID` e `S3_SECRET_ACCESS_KEY`. Use `S3_FORCE_PATH_STYLE=false`.
 
-Não configure `S3_ENDPOINT_URL` ou `S3_PUBLIC_ENDPOINT_URL` na AWS. Essas variáveis existem para serviços compatíveis com S3, como o MinIO local.
+Na AWS, omita os endpoints customizados e prefira uma role IAM. O MinIO local usa os endpoints e credenciais definidos no `.env.example`.
+
+## 10. Seed autorizado em produção
+
+O seed de produção nunca roda automaticamente. A execução one-off precisa definir, somente durante o comando:
+
+```bash
+APP_ENV=production \
+ALLOW_PRODUCTION_DEMO_SEED=true \
+DEMO_PASSWORD='<senha-fornecida-fora-do-repositorio>' \
+SEED_EVENT_COUNT=9000 \
+node dist/src/database/seed.js
+```
+
+Confirme o projeto, ambiente, serviço e banco antes da execução. O comando cria ou atualiza contas demonstrativas verificadas, 30 organizações, 9.000 eventos e oito ingressos; não use em um banco com dados reais.

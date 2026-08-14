@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { DatabaseModule } from '../database/database.module';
+import { RateLimitModule } from '../rate-limit/rate-limit.module';
 import { EmailVerificationService } from './application/email-verification.service';
 import { PasswordRecoveryService } from './application/password-recovery.service';
 import { AuthStore } from './application/ports/auth-store';
@@ -17,7 +18,7 @@ import { AuthExceptionFilter } from './presentation/auth-exception.filter';
 import { AuthGuard } from './presentation/auth.guard';
 
 @Module({
-  imports: [ConfigModule, DatabaseModule],
+  imports: [ConfigModule, DatabaseModule, RateLimitModule],
   controllers: [AuthController],
   providers: [
     RegistrationService,

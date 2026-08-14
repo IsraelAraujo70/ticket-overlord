@@ -18,10 +18,16 @@ export function AdminEventsList({
   created,
   events,
   readOnly = false,
+  page = 1,
+  pages = 1,
+  search = "",
 }: {
   created: boolean;
   events: AdminEvent[];
   readOnly?: boolean;
+  page?: number;
+  pages?: number;
+  search?: string;
 }) {
   return (
     <div className="flex flex-col gap-8">
@@ -57,11 +63,20 @@ export function AdminEventsList({
       ) : null}
 
       {events.length ? (
-        <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
-          {events.map((event) => (
-            <AdminEventCard key={event.id} event={event} readOnly={readOnly} />
-          ))}
-        </div>
+        <>
+          <div className="grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+            {events.map((event) => (
+              <AdminEventCard key={event.id} event={event} readOnly={readOnly} />
+            ))}
+          </div>
+          {pages > 1 ? (
+            <nav className="flex items-center justify-center gap-4" aria-label="Paginação dos eventos administrativos">
+              <Link aria-disabled={page <= 1} className={buttonVariants({ variant: "outline", className: page <= 1 ? "pointer-events-none opacity-50" : "" })} href={`/admin/eventos?page=${Math.max(1, page - 1)}&search=${encodeURIComponent(search)}`}>Anterior</Link>
+              <span className="font-mono text-sm">Página {page} de {pages}</span>
+              <Link aria-disabled={page >= pages} className={buttonVariants({ variant: "outline", className: page >= pages ? "pointer-events-none opacity-50" : "" })} href={`/admin/eventos?page=${Math.min(pages, page + 1)}&search=${encodeURIComponent(search)}`}>Próxima</Link>
+            </nav>
+          ) : null}
+        </>
       ) : (
         <Empty className="min-h-80 border">
           <EmptyHeader>

@@ -98,6 +98,11 @@ export abstract class AuthStore {
     input: ReplaceTokenInput,
   ): Promise<EmailRecipient | null>;
 
+  abstract hasValidPasswordResetToken(
+    tokenHash: string,
+    now: Date,
+  ): Promise<boolean>;
+
   abstract resetPasswordAndRevokeSessions(
     input: ResetPasswordInput,
   ): Promise<boolean>;

@@ -55,7 +55,7 @@ const publishedEvents: AdminEvent[] = [
 
 describe("GET /api/catalog", () => {
   beforeEach(() => {
-    vi.mocked(listPublishedEvents).mockResolvedValue([
+    const items = [
       ...publishedEvents,
       {
         ...publishedEvents[0],
@@ -65,7 +65,16 @@ describe("GET /api/catalog", () => {
         summary: "Música brasileira ao vivo.",
         category: "Shows",
       },
-    ]);
+    ];
+    vi.mocked(listPublishedEvents).mockImplementation((_page, search) => {
+      const normalizedSearch = normalize(search);
+      const matches = normalizedSearch
+        ? items.filter((item) =>
+            normalize([item.title, item.summary, item.category, item.city, item.venue].join(" ")).includes(normalizedSearch),
+          )
+        : items;
+      return Promise.resolve({ items: matches, total: matches.length, page: 1, pageSize: 48 });
+    });
   });
 
   it("returns the catalog grouped by category", async () => {
@@ -78,7 +87,7 @@ describe("GET /api/catalog", () => {
       "auto-da-compadecida-recife",
       "bacurau-fortaleza",
     ]);
-    expect(body.meta).toEqual({ query: "", total: 5 });
+    expect(body.meta).toEqual({ query: "", total: 5, page: 1, pageSize: 48, pages: 1 });
     expect(body.sections.map((section) => section.title)).toEqual([
       "Cinema",
       "Shows",
@@ -93,7 +102,7 @@ describe("GET /api/catalog", () => {
     );
     const body = (await response.json()) as CatalogResponse;
 
-    expect(body.meta).toEqual({ query: "classico", total: 1 });
+    expect(body.meta).toEqual({ query: "classico", total: 1, page: 1, pageSize: 48, pages: 1 });
     expect(body.highlights[0]?.title).toBe("Cidade de Deus");
     expect(body.sections).toHaveLength(1);
   });
@@ -104,7 +113,7 @@ describe("GET /api/catalog", () => {
     );
     const body = (await response.json()) as CatalogResponse;
 
-    expect(body.meta).toEqual({ query: "cidade de deus", total: 1 });
+    expect(body.meta).toEqual({ query: "cidade de deus", total: 1, page: 1, pageSize: 48, pages: 1 });
     expect(body.highlights[0]?.title).toBe("Cidade de Deus");
     expect(body.sections).toHaveLength(1);
   });
@@ -119,6 +128,10 @@ describe("GET /api/catalog", () => {
     expect(body.highlights[0]?.title).toBe("Central do Brasil");
   });
 });
+
+function normalize(value = "") {
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLocaleLowerCase("pt-BR");
+}
 
 function event(
   overrides: Pick<

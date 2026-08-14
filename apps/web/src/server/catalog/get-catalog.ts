@@ -11,25 +11,10 @@ function normalize(value: string) {
     .toLocaleLowerCase("pt-BR");
 }
 
-function matchesQuery(event: CatalogEvent, query: string) {
-  const searchable = [
-    event.title,
-    event.summary,
-    event.category,
-    event.city,
-    event.venue,
-  ].join(" ");
-
-  return normalize(searchable).includes(normalize(query));
-}
-
-export async function getCatalog(query = ""): Promise<CatalogResponse> {
+export async function getCatalog(query = "", page = 1): Promise<CatalogResponse> {
   const normalizedQuery = query.trim().slice(0, 100);
-  const publishedEvents = await listPublishedEvents();
-  const catalogEvents = publishedEvents.map(toCatalogEvent);
-  const events = normalizedQuery
-    ? catalogEvents.filter((event) => matchesQuery(event, normalizedQuery))
-    : catalogEvents;
+  const publishedEvents = await listPublishedEvents(page, normalizedQuery);
+  const events = publishedEvents.items.map(toCatalogEvent);
   const featuredEvents = events.filter((event) => event.featured);
 
   return {
@@ -37,7 +22,10 @@ export async function getCatalog(query = ""): Promise<CatalogResponse> {
     sections: groupByCategory(events),
     meta: {
       query: normalizedQuery,
-      total: events.length,
+      total: publishedEvents.total,
+      page: publishedEvents.page,
+      pageSize: publishedEvents.pageSize,
+      pages: Math.max(1, Math.ceil(publishedEvents.total / publishedEvents.pageSize)),
     },
   };
 }
@@ -61,7 +49,7 @@ function groupByCategory(events: CatalogEvent[]) {
 }
 
 function toCatalogEvent(
-  event: Awaited<ReturnType<typeof listPublishedEvents>>[number],
+  event: Awaited<ReturnType<typeof listPublishedEvents>>["items"][number],
   index: number,
 ): CatalogEvent {
   const startsAt = new Date(event.startsAt);

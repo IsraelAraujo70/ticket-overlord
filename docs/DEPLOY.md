@@ -1,6 +1,6 @@
 # Deploy no Railway
 
-Este documento descreve a configuração aprovada do Ticket Overlord no Railway. Ele não comprova que o ambiente está disponível; o status público só deve ser atualizado depois da verificação do deploy.
+Este documento descreve a configuração do Ticket Overlord publicada no Railway. O estado precisa ser verificado novamente depois de cada deploy.
 
 ## Recursos
 
@@ -30,6 +30,8 @@ Configure sem registrar valores secretos em arquivos ou logs:
 - `S3_FORCE_PATH_STYLE=false`;
 - `S3_PRESIGNED_URL_TTL_SECONDS=900`.
 
+`APP_ENV=production` também é definido na imagem da API para que uma variável ausente não habilite defaults locais.
+
 O Railway fornece `PORT` automaticamente. A API executa `node dist/src/database/migrate.js` como pre-deploy e inicia com o comando definido na imagem.
 
 ## Variáveis da web
@@ -41,7 +43,7 @@ O navegador acessa a web por HTTPS. Chamadas da aplicação passam pelo BFF do N
 
 ## Dados de demonstração
 
-O seed não roda automaticamente. Quando autorizado, execute uma vez contra o ambiente de produção com `node dist/src/database/seed.js`. Ele cria contas demonstrativas, quatro eventos do dia e oito ingressos válidos. Uma nova execução restaura esses ingressos para `VALID`.
+O seed não roda automaticamente. Quando autorizado, execute no serviço API com `ALLOW_PRODUCTION_DEMO_SEED=true`, uma `DEMO_PASSWORD` secreta e `SEED_EVENT_COUNT=9000`. Ele mantém 30 organizações, 9.000 eventos publicados, quatro capas compartilhadas e oito ingressos válidos. Uma nova execução é idempotente e restaura esses ingressos para `VALID`.
 
 ## Verificação
 

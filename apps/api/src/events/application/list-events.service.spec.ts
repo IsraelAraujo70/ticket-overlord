@@ -2,7 +2,11 @@ import type { AuthenticatedUser } from '../../auth/domain/auth.types';
 import type { EventRecord } from '../domain/event.types';
 import { ListEventsService } from './list-events.service';
 import { EventImageStorage } from './ports/event-image-storage';
-import { EventStore } from './ports/event-store';
+import {
+  EventStore,
+  type EventListQuery,
+  type EventPage,
+} from './ports/event-store';
 
 const events: EventRecord[] = [
   event('event-1', 'organization-1'),
@@ -16,17 +20,26 @@ class FakeEventStore extends EventStore {
   publishDraftForOrganization(): Promise<EventRecord | null> {
     return Promise.resolve(null);
   }
-  listForOrganization(organizationId: string): Promise<EventRecord[]> {
+  listForOrganization(
+    organizationId: string,
+    query: EventListQuery,
+  ): Promise<EventPage> {
     return Promise.resolve(
-      events.filter((item) => item.organizationId === organizationId),
+      page(
+        events.filter((item) => item.organizationId === organizationId),
+        query,
+      ),
     );
   }
-  listAll(): Promise<EventRecord[]> {
-    return Promise.resolve(events);
+  listAll(query: EventListQuery): Promise<EventPage> {
+    return Promise.resolve(page(events, query));
   }
-  listPublished(): Promise<EventRecord[]> {
+  listPublished(query: EventListQuery): Promise<EventPage> {
     return Promise.resolve(
-      events.filter((item) => item.status === 'PUBLISHED'),
+      page(
+        events.filter((item) => item.status === 'PUBLISHED'),
+        query,
+      ),
     );
   }
   findForOrganization(
@@ -71,21 +84,37 @@ describe('ListEventsService', () => {
 
   it('keeps organizers scoped to their organization', async () => {
     await expect(
-      service.forOrganizer(user('ORGANIZER')),
-    ).resolves.toMatchObject([
-      { id: 'event-1', organizationId: 'organization-1' },
-    ]);
+      service.forOrganizer(user('ORGANIZER'), query()),
+    ).resolves.toMatchObject({
+      items: [{ id: 'event-1', organizationId: 'organization-1' }],
+      total: 1,
+    });
   });
 
   it('lets global admins read every event and cover', async () => {
     const admin = user('ADMIN');
 
-    await expect(service.forOrganizer(admin)).resolves.toHaveLength(2);
+    await expect(service.forOrganizer(admin, query())).resolves.toMatchObject({
+      total: 2,
+    });
     await expect(
       service.coverForOrganizer(admin, 'event-2'),
     ).resolves.toContain('organization-2/events/event-2');
   });
 });
+
+function query(): EventListQuery {
+  return { page: 1, pageSize: 50 };
+}
+
+function page(items: EventRecord[], value: EventListQuery): EventPage {
+  return {
+    items,
+    total: items.length,
+    page: value.page,
+    pageSize: value.pageSize,
+  };
+}
 
 function user(role: 'ORGANIZER' | 'ADMIN'): AuthenticatedUser {
   return {

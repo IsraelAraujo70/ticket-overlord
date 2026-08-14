@@ -9,15 +9,22 @@ import { getCurrentUser } from "@/server/auth/session";
 export default async function AdminEventsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ created?: string }>;
+  searchParams: Promise<{ created?: string; page?: string; search?: string }>;
 }) {
-  const { created } = await searchParams;
+  const { created, page: requestedPage, search = "" } = await searchParams;
+  const parsedPage = Number(requestedPage ?? "1");
+  const page = Number.isSafeInteger(parsedPage) && parsedPage > 0 ? parsedPage : 1;
   const user = await getCurrentUser();
   let events: AdminEvent[] = [];
+  let total = 0;
+  let pageSize = 50;
   let failed = false;
 
   try {
-    events = await listOrganizerEvents();
+    const result = await listOrganizerEvents(page, search);
+    events = result.items;
+    total = result.total;
+    pageSize = result.pageSize;
   } catch {
     failed = true;
   }
@@ -46,6 +53,9 @@ export default async function AdminEventsPage({
       events={events}
       created={created === "1"}
       readOnly={user?.role === "ADMIN"}
+      page={page}
+      pages={Math.max(1, Math.ceil(total / pageSize))}
+      search={search}
     />
   );
 }

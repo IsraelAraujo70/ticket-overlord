@@ -110,13 +110,17 @@ export class EnvironmentVariables {
 export function validateEnvironment(
   values: Record<string, unknown>,
 ): EnvironmentVariables {
-  const isProduction = values.APP_ENV === 'production';
+  const appEnvironment =
+    values.APP_ENV ??
+    (values.NODE_ENV === 'production' ? 'production' : 'local');
+  const isProduction = appEnvironment === 'production';
   const environment = plainToInstance(
     EnvironmentVariables,
     {
       ...values,
-      APP_ENV: values.APP_ENV ?? 'local',
-      EMAIL_PROVIDER: values.EMAIL_PROVIDER ?? 'console',
+      APP_ENV: appEnvironment,
+      EMAIL_PROVIDER:
+        values.EMAIL_PROVIDER ?? (isProduction ? 'resend' : 'console'),
       PORT: values.PORT ?? 3001,
       REDIS_URL:
         values.REDIS_URL ??

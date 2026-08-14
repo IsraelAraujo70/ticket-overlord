@@ -188,6 +188,15 @@ describe('Ticket Overlord API (e2e)', () => {
             '/events': {
               get: {
                 operationId: 'forOrganizer',
+                responses: {
+                  200: {
+                    content: {
+                      'application/json': {
+                        schema: { $ref: '#/components/schemas/EventPage' },
+                      },
+                    },
+                  },
+                },
                 security: [{ bearer: [] }],
               },
               post: {
@@ -219,7 +228,18 @@ describe('Ticket Overlord API (e2e)', () => {
               },
             },
             '/events/published': {
-              get: { operationId: 'published' },
+              get: {
+                operationId: 'published',
+                responses: {
+                  200: {
+                    content: {
+                      'application/json': {
+                        schema: { $ref: '#/components/schemas/EventPage' },
+                      },
+                    },
+                  },
+                },
+              },
             },
             '/events/{eventId}/publish': {
               post: {
@@ -237,6 +257,18 @@ describe('Ticket Overlord API (e2e)', () => {
           },
           components: {
             schemas: {
+              EventPage: {
+                required: ['items', 'total', 'page', 'pageSize'],
+                properties: {
+                  items: {
+                    type: 'array',
+                    items: { $ref: '#/components/schemas/Event' },
+                  },
+                  total: { type: 'number', minimum: 0 },
+                  page: { type: 'number', minimum: 1 },
+                  pageSize: { type: 'number', minimum: 1, maximum: 100 },
+                },
+              },
               RegisterDto: {
                 properties: {
                   password: { pattern: STRONG_PASSWORD_PATTERN.source },
@@ -257,12 +289,43 @@ describe('Ticket Overlord API (e2e)', () => {
             },
           },
         });
-        const document = response.body as unknown as {
-          paths: { '/events': { get: { description?: string } } };
+        const document = response.body as {
+          paths: {
+            '/events': {
+              get: {
+                description?: string;
+                parameters: Array<{
+                  name: string;
+                  in: string;
+                  schema: Record<string, unknown>;
+                }>;
+              };
+            };
+          };
         };
         expect(document.paths['/events'].get.description).toContain(
           'Administradores globais recebem todos os eventos',
         );
+        const parameters = document.paths['/events'].get.parameters;
+        expect(parameters.find(({ name }) => name === 'page')).toMatchObject({
+          in: 'query',
+          schema: { type: 'number', minimum: 1, default: 1 },
+        });
+        expect(
+          parameters.find(({ name }) => name === 'pageSize'),
+        ).toMatchObject({
+          in: 'query',
+          schema: {
+            type: 'number',
+            minimum: 1,
+            maximum: 100,
+            default: 48,
+          },
+        });
+        expect(parameters.find(({ name }) => name === 'search')).toMatchObject({
+          in: 'query',
+          schema: { type: 'string', maxLength: 100 },
+        });
       });
   });
 
@@ -634,12 +697,19 @@ describe('Ticket Overlord API (e2e)', () => {
       .set('Authorization', `Bearer ${token}`)
       .expect(200)
       .expect((response) => {
-        expect(response.body).toHaveLength(2);
+        const body = response.body as { items: unknown[]; total: number };
+        expect(body).toMatchObject({ total: 2, page: 1, pageSize: 48 });
+        expect(body.items).toHaveLength(2);
       });
+    await request(app.getHttpServer())
+      .get('/events?page=2&pageSize=1&search=hamlet')
+      .set('Authorization', `Bearer ${token}`)
+      .expect(200)
+      .expect({ items: [], total: 1, page: 2, pageSize: 1 });
     await request(app.getHttpServer())
       .get('/events/published')
       .expect(200)
-      .expect([]);
+      .expect({ items: [], total: 0, page: 1, pageSize: 48 });
 
     const eventId = (created.body as { id: string }).id;
     await request(app.getHttpServer())
@@ -677,7 +747,7 @@ describe('Ticket Overlord API (e2e)', () => {
       .get('/events')
       .set('Authorization', `Bearer ${otherToken}`)
       .expect(200)
-      .expect([]);
+      .expect({ items: [], total: 0, page: 1, pageSize: 48 });
 
     const adminPassword = 'AdminStrong2026!';
     const adminPasswordHash = await new ScryptPasswordHasher().hash(
@@ -699,7 +769,9 @@ describe('Ticket Overlord API (e2e)', () => {
       .set('Authorization', `Bearer ${adminToken}`)
       .expect(200)
       .expect((response) => {
-        expect(response.body).toHaveLength(2);
+        const body = response.body as { items: unknown[]; total: number };
+        expect(body.total).toBe(2);
+        expect(body.items).toHaveLength(2);
       });
     await request(app.getHttpServer())
       .get(`/events/${eventId}/cover`)
@@ -749,9 +821,13 @@ describe('Ticket Overlord API (e2e)', () => {
       .get('/events/published')
       .expect(200)
       .expect((response) => {
-        const body = response.body as Array<{ id: string; status: string }>;
-        expect(body).toHaveLength(1);
-        expect(body[0]).toMatchObject({
+        const body = response.body as {
+          items: Array<{ id: string; status: string }>;
+          total: number;
+        };
+        expect(body.total).toBe(1);
+        expect(body.items).toHaveLength(1);
+        expect(body.items[0]).toMatchObject({
           id: eventId,
           status: 'PUBLISHED',
         });

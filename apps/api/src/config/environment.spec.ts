@@ -51,6 +51,15 @@ describe('environment validation', () => {
     ).toThrow('Invalid environment configuration');
   });
 
+  it('fails closed when NODE_ENV is production and APP_ENV is omitted', () => {
+    expect(() =>
+      validateEnvironment({
+        NODE_ENV: 'production',
+        DATABASE_URL: 'postgresql://user:password@localhost:5432/database',
+      }),
+    ).toThrow('Invalid environment configuration');
+  });
+
   it('uses native AWS S3 resolution in production', () => {
     const environment = validateEnvironment({
       APP_ENV: 'production',

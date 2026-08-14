@@ -4,7 +4,7 @@ Plataforma de eventos e ingressos desenvolvida para o desafio técnico **Verzel 
 
 O produto permitirá que um organizador publique eventos a partir de um catálogo externo, clientes reservem e comprem ingressos com pagamento simulado e profissionais de portaria validem os ingressos por QR Code ou código manual.
 
-> **Status:** fluxo local completo implementado, incluindo autenticação, publicação de eventos, reserva concorrente, pagamento simulado, ingressos assinados, compartilhamento e portaria. A aplicação ainda não foi publicada.
+> **Status:** fluxo completo implementado e publicado no Railway. Web: <https://ticketoverlord.israeldeveloper.com.br>. API e Swagger: <https://api.ticketoverlord.israeldeveloper.com.br>.
 
 ## Fluxo principal
 
@@ -22,7 +22,7 @@ O produto permitirá que um organizador publique eventos a partir de um catálog
 - PostgreSQL 18 como fonte de verdade, com Drizzle ORM e migrations SQL versionadas.
 - TMDb para sessões de cinema, cadastro manual para outras categorias e eventos locais persistidos no PostgreSQL.
 - MinIO local e Railway Bucket S3-compatible em produção para capas privadas com URLs temporárias.
-- PostgreSQL Full Text Search na primeira versão.
+- Busca textual paginada no PostgreSQL, sem distinção de acentos.
 - pnpm 11 workspaces, sem orquestrador adicional.
 - Docker Compose para validar as imagens de produção localmente.
 - Railway para deploy.
@@ -108,7 +108,7 @@ O catálogo público e o seed funcionam sem chamar serviços externos. Para busc
 - Cadastro público somente para cliente e organizador.
 - Confirmação de e-mail obrigatória com login automático, sessões opacas revogáveis e recuperação de senha de uso único.
 - Cadastro de organizador com CNPJ numérico ou alfanumérico, telefone brasileiro em E.164, UF restrita às 27 unidades federativas e endereço preenchido pelo ViaCEP através da API.
-- `ADMIN` autenticável, ainda sem painel global.
+- `ADMIN` autenticável com visão global somente leitura dos eventos.
 - `ORGANIZER_STAFF` disponível apenas como fixture; o fluxo de convite será a próxima etapa.
 
 ### Eventos implementados
@@ -117,7 +117,8 @@ O catálogo público e o seed funcionam sem chamar serviços externos. Para busc
 - `/admin/eventos/novo` usa o TMDb em Cinema e permite título e descrição manuais nas demais categorias, sempre criando um rascunho com data, local, capacidade, preço e capa.
 - Capas obrigatórias em JPEG, PNG ou WebP, com limite de 5 MiB, são armazenadas no MinIO local através da API compatível com S3.
 - O catálogo público lê somente eventos locais `PUBLISHED`; rascunhos não ficam visíveis.
-- O seed cria eventos publicados de Cinema, Shows, Teatro e Gastronomia com capas locais, sem depender do TMDb durante a carga.
+- Catálogo e painel usam paginação no PostgreSQL para operar com milhares de eventos sem transferir todo o conjunto ao navegador.
+- O seed cria 9.000 eventos publicados em 30 organizações e reutiliza quatro capas, sem depender do TMDb durante a carga.
 
 ### Reserva e pagamento implementados
 
@@ -181,11 +182,11 @@ O endpoint `GET http://localhost:3001/` retorna o estado da API. Os contratos im
 - A câmera requer HTTPS fora de `localhost` e permissão do navegador; o código manual permanece disponível como fallback.
 - A chave privada Ed25519 fica versionada no PostgreSQL nesta demonstração e deve migrar para KMS ou secret manager antes de uso real.
 - O adapter de console revela links somente no desenvolvimento local e é proibido quando `APP_ENV=production`.
-- Nenhum ambiente foi publicado.
+- Contas e eventos demonstrativos são dados descartáveis; o ambiente não deve armazenar informações reais.
 
 ## Dados de demonstração
 
-Após `pnpm db:seed`, as contas abaixo estão verificadas e usam a senha local `TicketOverlord2026!`:
+Após `pnpm db:seed`, as contas abaixo estão verificadas e usam a senha **somente local** `TicketOverlord2026!`:
 
 | Papel                                  | E-mail                              |
 | -------------------------------------- | ----------------------------------- |
@@ -195,8 +196,8 @@ Após `pnpm db:seed`, as contas abaixo estão verificadas e usam a senha local `
 | Cliente 2                              | `customer.two@ticketoverlord.local` |
 | Portaria, representando convite aceito | `gate@ticketoverlord.local`         |
 
-O seed também cria para o dia da execução quatro eventos publicados, distribuídos entre Cinema, Shows, Teatro e Gastronomia, e dois ingressos pagos por evento para o Cliente 1, totalizando oito ingressos. Use essa conta em `/meus-ingressos` e a conta de Portaria em `/admin/portaria` para avaliar leitura do QR, evento incorreto, uso único e os demais resultados da validação.
+O seed é idempotente e cria 9.000 eventos publicados em 30 organizações, além de dois ingressos pagos para cada um dos quatro eventos principais do Cliente 1. Use essa conta em `/meus-ingressos` e a conta de Portaria em `/admin/portaria` para avaliar leitura do QR, evento incorreto, uso único e os demais resultados da validação. Em produção, `DEMO_PASSWORD` é obrigatória e não fica versionada.
 
 ## Uso de IA
 
-ChatGPT e Codex estão sendo utilizados na análise do desafio, nas discussões de arquitetura e na documentação. As decisões são revisadas e aprovadas pelo desenvolvedor. O histórico de uso, as contribuições manuais e as limitações serão atualizados conforme o projeto evoluir.
+ChatGPT e Codex foram usados como ferramentas de apoio para decompor requisitos, revisar decisões, implementar partes do frontend e backend, criar testes e investigar falhas de deploy. O desenvolvedor definiu o produto, aprovou as decisões, revisou o código e executou os testes manuais. A integração com IA não faz parte do runtime: web, API, pagamentos simulados, QR Code e portaria funcionam sem ChatGPT, Codex ou qualquer modelo configurado.

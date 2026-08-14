@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from '../auth/auth.module';
 import { DatabaseModule } from '../database/database.module';
+import { RateLimitModule } from '../rate-limit/rate-limit.module';
 import { CreateEventService } from './application/create-event.service';
 import { ListEventsService } from './application/list-events.service';
 import { PublishEventService } from './application/publish-event.service';
@@ -17,7 +18,7 @@ import { EventsController } from './presentation/events.controller';
 import { ExternalCatalogController } from './presentation/external-catalog.controller';
 
 @Module({
-  imports: [ConfigModule, DatabaseModule, AuthModule],
+  imports: [ConfigModule, DatabaseModule, AuthModule, RateLimitModule],
   controllers: [EventsController, ExternalCatalogController],
   providers: [
     CreateEventService,

@@ -11,6 +11,32 @@ import {
   Min,
 } from 'class-validator';
 
+export class EventListQueryDto {
+  @ApiPropertyOptional({ type: Number, default: 1, minimum: 1 })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  page = 1;
+
+  @ApiPropertyOptional({
+    type: Number,
+    default: 48,
+    minimum: 1,
+    maximum: 100,
+  })
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  pageSize = 48;
+
+  @ApiPropertyOptional({ maxLength: 100 })
+  @IsOptional()
+  @IsString()
+  @Length(1, 100)
+  search?: string;
+}
+
 export class CreateEventDto {
   @ApiProperty({ example: 'Cinema' })
   @IsString()
@@ -134,4 +160,19 @@ export class EventDto {
 export class EventCoverUrlDto {
   @ApiProperty({ format: 'uri' })
   url!: string;
+}
+
+@ApiSchema({ name: 'EventPage' })
+export class EventPageDto {
+  @ApiProperty({ type: EventDto, isArray: true })
+  items!: EventDto[];
+
+  @ApiProperty({ minimum: 0 })
+  total!: number;
+
+  @ApiProperty({ minimum: 1 })
+  page!: number;
+
+  @ApiProperty({ minimum: 1, maximum: 100 })
+  pageSize!: number;
 }

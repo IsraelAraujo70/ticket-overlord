@@ -26,5 +26,8 @@ export interface CatalogResponse {
   meta: {
     query: string;
     total: number;
+    page: number;
+    pageSize: number;
+    pages: number;
   };
 }

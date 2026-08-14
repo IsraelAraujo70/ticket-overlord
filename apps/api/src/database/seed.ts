@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { resolve } from 'node:path';
 import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import type { UserRole } from '../auth/domain/user-role';
@@ -15,12 +15,36 @@ if (!connectionString) {
   throw new Error('DATABASE_URL must be set to run the seed.');
 }
 
-const demoPassword = process.env.DEMO_PASSWORD ?? 'TicketOverlord2026!';
+const appEnvironment =
+  process.env.APP_ENV ??
+  (process.env.NODE_ENV === 'production' ? 'production' : 'local');
+const isProduction = appEnvironment === 'production';
+if (isProduction && process.env.ALLOW_PRODUCTION_DEMO_SEED !== 'true') {
+  throw new Error(
+    'ALLOW_PRODUCTION_DEMO_SEED=true is required to seed production.',
+  );
+}
+const demoPassword =
+  process.env.DEMO_PASSWORD ??
+  (isProduction ? undefined : 'TicketOverlord2026!');
+if (!demoPassword) {
+  throw new Error('DEMO_PASSWORD is required to seed production.');
+}
+const seedPassword = demoPassword;
+const requestedEventCount = Number(process.env.SEED_EVENT_COUNT ?? '9000');
+if (
+  !Number.isSafeInteger(requestedEventCount) ||
+  requestedEventCount < 4 ||
+  requestedEventCount > 50_000
+) {
+  throw new Error('SEED_EVENT_COUNT must be an integer between 4 and 50000.');
+}
+const seedEventCount = requestedEventCount;
+const seedOrganizationCount = 30;
 const pool = new Pool({ connectionString });
 const database = drizzle(pool);
 const passwordHasher = new ScryptPasswordHasher();
 const s3Bucket = process.env.S3_BUCKET ?? 'ticket-overlord-events';
-const isProduction = process.env.APP_ENV === 'production';
 const s3Endpoint =
   process.env.S3_ENDPOINT_URL ??
   (isProduction ? undefined : 'http://localhost:9000');
@@ -54,7 +78,24 @@ function todayAt(time: string): Date {
   return new Date(`${saoPauloDate}T${time}:00-03:00`);
 }
 
-const demoEvents = [
+interface SeedEvent {
+  id: string;
+  externalSource: 'TMDB' | null;
+  externalId: string | null;
+  category: string;
+  slug: string;
+  title: string;
+  summary: string;
+  sourceReleaseDate: string | null;
+  startsAt: Date;
+  venue: string;
+  city: string;
+  capacity: number;
+  priceInCents: number;
+  image: string;
+}
+
+const demoEvents: SeedEvent[] = [
   {
     id: '10000000-0000-4000-8000-000000000001',
     externalSource: 'TMDB',
@@ -123,6 +164,42 @@ const demoEvents = [
     priceInCents: 4800,
     image: 'gastronomy.webp',
   },
+];
+
+const generatedTemplates = [
+  {
+    category: 'Shows e festivais',
+    title: 'Festival Sonora',
+    image: 'concert-hero.webp',
+  },
+  { category: 'Teatro', title: 'Entre Atos', image: 'theatre.webp' },
+  {
+    category: 'Gastronomia',
+    title: 'Sabores da Cidade',
+    image: 'gastronomy.webp',
+  },
+  {
+    category: 'Conferências',
+    title: 'Tech Futures',
+    image: 'concert-hero.webp',
+  },
+  {
+    category: 'Esportes',
+    title: 'Arena em Movimento',
+    image: 'concert-hero.webp',
+  },
+  { category: 'Comédia', title: 'Noite de Risadas', image: 'comedy.webp' },
+] as const;
+
+const cities = [
+  ['São Paulo', 'Centro de Convenções'],
+  ['Rio de Janeiro', 'Marina da Glória'],
+  ['Curitiba', 'Teatro Guaíra'],
+  ['Belo Horizonte', 'Palácio das Artes'],
+  ['Porto Alegre', 'Auditório Araújo Vianna'],
+  ['Salvador', 'Concha Acústica'],
+  ['Recife', 'Classic Hall'],
+  ['Brasília', 'Centro Internacional de Convenções'],
 ] as const;
 
 const demoPurchases = [
@@ -148,18 +225,20 @@ const demoPurchases = [
   },
 ] as const;
 
-async function upsertUser(input: {
-  fullName: string;
-  email: string;
-  role: UserRole;
-}): Promise<string> {
+async function upsertUser(
+  input: {
+    fullName: string;
+    email: string;
+    role: UserRole;
+  },
+  passwordHash: string,
+): Promise<string> {
   const email = input.email.toLowerCase();
   const [existing] = await database
     .select({ id: users.id })
     .from(users)
     .where(eq(users.email, email))
     .limit(1);
-  const passwordHash = await passwordHasher.hash(demoPassword);
   const now = new Date();
 
   if (existing) {
@@ -193,106 +272,199 @@ async function upsertUser(input: {
   return created.id;
 }
 
-async function run(): Promise<void> {
-  const adminId = await upsertUser({
-    fullName: 'Administrador Ticket Overlord',
-    email: 'admin@ticketoverlord.local',
-    role: 'ADMIN',
-  });
-  const organizerId = await upsertUser({
-    fullName: 'Olívia Organizadora',
-    email: 'organizer@ticketoverlord.local',
-    role: 'ORGANIZER',
-  });
-  const customerOneId = await upsertUser({
-    fullName: 'Carlos Comprador',
-    email: 'customer.one@ticketoverlord.local',
-    role: 'CUSTOMER',
-  });
-  const customerTwoId = await upsertUser({
-    fullName: 'Camila Compradora',
-    email: 'customer.two@ticketoverlord.local',
-    role: 'CUSTOMER',
-  });
-  const staffId = await upsertUser({
-    fullName: 'Gabriel Portaria',
-    email: 'gate@ticketoverlord.local',
-    role: 'ORGANIZER_STAFF',
-  });
-
-  const [existingOrganization] = await database
+async function upsertOrganization(input: {
+  name: string;
+  cnpj: string;
+  city: string;
+  state: string;
+}): Promise<string> {
+  const [existing] = await database
     .select({ id: organizations.id })
     .from(organizations)
-    .where(eq(organizations.cnpj, '11222333000181'))
+    .where(eq(organizations.cnpj, input.cnpj))
     .limit(1);
+  const values = {
+    name: input.name,
+    cnpj: input.cnpj,
+    phone: '+5511999999999',
+    postalCode: '01001000',
+    street: 'Praça dos Eventos',
+    number: '100',
+    complement: null,
+    neighborhood: 'Centro',
+    city: input.city,
+    state: input.state,
+  };
 
-  let organizationId = existingOrganization?.id;
-
-  if (organizationId) {
+  if (existing) {
     await database
       .update(organizations)
-      .set({
-        name: 'Aurora Eventos',
-        phone: '+5511999999999',
-        postalCode: '01001000',
-        street: 'Praça da Sé',
-        number: '100',
-        complement: null,
-        neighborhood: 'Sé',
-        city: 'São Paulo',
-        state: 'SP',
-        updatedAt: new Date(),
-      })
-      .where(eq(organizations.id, organizationId));
-  } else {
-    const [createdOrganization] = await database
-      .insert(organizations)
-      .values({
-        name: 'Aurora Eventos',
-        cnpj: '11222333000181',
-        phone: '+5511999999999',
-        postalCode: '01001000',
-        street: 'Praça da Sé',
-        number: '100',
-        neighborhood: 'Sé',
-        city: 'São Paulo',
-        state: 'SP',
-      })
-      .returning({ id: organizations.id });
-    organizationId = createdOrganization?.id;
+      .set({ ...values, updatedAt: new Date() })
+      .where(eq(organizations.id, existing.id));
+    return existing.id;
   }
 
-  if (!organizationId) {
-    throw new Error('Could not seed organization.');
+  const [created] = await database
+    .insert(organizations)
+    .values(values)
+    .returning({ id: organizations.id });
+  if (!created) throw new Error(`Could not seed organization ${input.cnpj}.`);
+  return created.id;
+}
+
+function deterministicCnpj(index: number): string {
+  const root = `${70_000_000 + index}`.padStart(8, '0') + '0001';
+  const first = cnpjDigit(root, [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+  const second = cnpjDigit(
+    `${root}${first}`,
+    [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2],
+  );
+  return `${root}${first}${second}`;
+}
+
+function cnpjDigit(value: string, weights: number[]): number {
+  const sum = [...value].reduce(
+    (total, digit, index) => total + Number(digit) * (weights[index] ?? 0),
+    0,
+  );
+  const remainder = sum % 11;
+  return remainder < 2 ? 0 : 11 - remainder;
+}
+
+function generatedEvent(index: number): SeedEvent {
+  const template = generatedTemplates[index % generatedTemplates.length];
+  const [city, venue] = cities[index % cities.length];
+  const sequence = index + 1;
+  const startsAt = new Date(
+    Date.now() +
+      (1 + (index % 365)) * 24 * 60 * 60 * 1000 +
+      (index % 12) * 60 * 60 * 1000,
+  );
+  return {
+    id: `50000000-0000-4000-8000-${String(sequence).padStart(12, '0')}`,
+    externalSource: null,
+    externalId: null,
+    category: template.category,
+    slug: `seed-${template.category.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-${sequence}`,
+    title: `${template.title} ${sequence}`,
+    summary: `${template.title} reúne experiências de ${template.category.toLowerCase()} em ${city}.`,
+    sourceReleaseDate: null,
+    startsAt,
+    venue,
+    city,
+    capacity: 100 + (index % 901),
+    priceInCents: 2000 + (index % 80) * 100,
+    image: template.image,
+  };
+}
+
+async function run(): Promise<void> {
+  const passwordHash = await passwordHasher.hash(seedPassword);
+  const adminId = await upsertUser(
+    {
+      fullName: 'Administrador Ticket Overlord',
+      email: 'admin@ticketoverlord.local',
+      role: 'ADMIN',
+    },
+    passwordHash,
+  );
+  const organizerId = await upsertUser(
+    {
+      fullName: 'Olívia Organizadora',
+      email: 'organizer@ticketoverlord.local',
+      role: 'ORGANIZER',
+    },
+    passwordHash,
+  );
+  const customerOneId = await upsertUser(
+    {
+      fullName: 'Carlos Comprador',
+      email: 'customer.one@ticketoverlord.local',
+      role: 'CUSTOMER',
+    },
+    passwordHash,
+  );
+  const customerTwoId = await upsertUser(
+    {
+      fullName: 'Camila Compradora',
+      email: 'customer.two@ticketoverlord.local',
+      role: 'CUSTOMER',
+    },
+    passwordHash,
+  );
+  const staffId = await upsertUser(
+    {
+      fullName: 'Gabriel Portaria',
+      email: 'gate@ticketoverlord.local',
+      role: 'ORGANIZER_STAFF',
+    },
+    passwordHash,
+  );
+
+  const organizationIds: string[] = [];
+  for (let index = 0; index < seedOrganizationCount; index += 1) {
+    const organizationId = await upsertOrganization({
+      name: index === 0 ? 'Aurora Eventos' : `Produtora Overlord ${index + 1}`,
+      cnpj: index === 0 ? '11222333000181' : deterministicCnpj(index),
+      city: cities[index % cities.length][0],
+      state: index % 2 === 0 ? 'SP' : 'RJ',
+    });
+    organizationIds.push(organizationId);
+
+    const ownerId =
+      index === 0
+        ? organizerId
+        : await upsertUser(
+            {
+              fullName: `Organizador Demo ${index + 1}`,
+              email: `organizer.${index + 1}@ticketoverlord.local`,
+              role: 'ORGANIZER',
+            },
+            passwordHash,
+          );
+    await database
+      .insert(organizationMembers)
+      .values({ organizationId, userId: ownerId, role: 'OWNER' })
+      .onConflictDoNothing();
   }
+
+  const organizationId = organizationIds[0];
+  if (!organizationId) throw new Error('Could not seed organizations.');
 
   await database
     .insert(organizationMembers)
-    .values([
-      { organizationId, userId: organizerId, role: 'OWNER' },
-      { organizationId, userId: staffId, role: 'STAFF' },
-    ])
+    .values([{ organizationId, userId: staffId, role: 'STAFF' }])
     .onConflictDoNothing();
 
-  for (const event of demoEvents) {
-    const coverObjectKey = `organizations/${organizationId}/events/${event.id}/cover.webp`;
+  const seedEvents = [
+    ...demoEvents,
+    ...Array.from({ length: seedEventCount - demoEvents.length }, (_, index) =>
+      generatedEvent(index),
+    ),
+  ];
+  const imageNames = [...new Set(seedEvents.map((event) => event.image))];
+  for (const image of imageNames) {
     const cover = await readFile(
-      resolve(process.cwd(), '../web/public/images/events', event.image),
+      resolve(process.cwd(), '../web/public/images/events', image),
     );
     await s3Client.send(
       new PutObjectCommand({
         Bucket: s3Bucket,
-        Key: coverObjectKey,
+        Key: `seed/covers/${image}`,
         Body: cover,
         ContentLength: cover.length,
         ContentType: 'image/webp',
       }),
     );
-    await database
-      .insert(events)
-      .values({
+  }
+
+  for (let offset = 0; offset < seedEvents.length; offset += 250) {
+    const batch = seedEvents
+      .slice(offset, offset + 250)
+      .map((event, index) => ({
         id: event.id,
-        organizationId,
+        organizationId:
+          organizationIds[(offset + index) % organizationIds.length],
         externalSource: event.externalSource,
         externalId: event.externalId,
         slug: event.slug,
@@ -306,32 +478,58 @@ async function run(): Promise<void> {
         city: event.city,
         capacity: event.capacity,
         priceInCents: event.priceInCents,
-        currency: 'BRL',
-        coverObjectKey,
+        currency: 'BRL' as const,
+        coverObjectKey: `seed/covers/${event.image}`,
         coverContentType: 'image/webp',
-        status: 'PUBLISHED',
-      })
+        status: 'PUBLISHED' as const,
+      }));
+    await database
+      .insert(events)
+      .values(batch)
       .onConflictDoUpdate({
         target: events.slug,
         set: {
-          organizationId,
-          externalSource: event.externalSource,
-          externalId: event.externalId,
-          title: event.title,
-          summary: event.summary,
-          category: event.category,
-          sourceReleaseDate: event.sourceReleaseDate,
-          startsAt: event.startsAt,
-          venue: event.venue,
-          city: event.city,
-          capacity: event.capacity,
-          priceInCents: event.priceInCents,
-          coverObjectKey,
-          coverContentType: 'image/webp',
-          status: 'PUBLISHED',
+          organizationId: sql`excluded.organization_id`,
+          externalSource: sql`excluded.external_source`,
+          externalId: sql`excluded.external_id`,
+          title: sql`excluded.title`,
+          summary: sql`excluded.summary`,
+          category: sql`excluded.category`,
+          sourceReleaseDate: sql`excluded.source_release_date`,
+          startsAt: sql`excluded.starts_at`,
+          venue: sql`excluded.venue`,
+          city: sql`excluded.city`,
+          capacity: sql`excluded.capacity`,
+          priceInCents: sql`excluded.price_in_cents`,
+          coverObjectKey: sql`excluded.cover_object_key`,
+          coverContentType: sql`excluded.cover_content_type`,
+          status: sql`excluded.status`,
           updatedAt: new Date(),
         },
       });
+  }
+
+  for (const event of demoEvents) {
+    await database
+      .update(events)
+      .set({
+        organizationId,
+        externalSource: event.externalSource,
+        externalId: event.externalId,
+        title: event.title,
+        summary: event.summary,
+        category: event.category,
+        sourceReleaseDate: event.sourceReleaseDate,
+        startsAt: event.startsAt,
+        venue: event.venue,
+        city: event.city,
+        capacity: event.capacity,
+        priceInCents: event.priceInCents,
+        coverObjectKey: `seed/covers/${event.image}`,
+        status: 'PUBLISHED',
+        updatedAt: new Date(),
+      })
+      .where(eq(events.slug, event.slug));
   }
 
   const client = await pool.connect();
@@ -404,7 +602,7 @@ async function run(): Promise<void> {
   }
 
   console.log(
-    `Seeded users ${[adminId, organizerId, customerOneId, customerTwoId, staffId].join(', ')}, organization ${organizationId}, ${demoEvents.length} published events, and ${demoEvents.length * 2} demo tickets.`,
+    `Seeded users ${[adminId, organizerId, customerOneId, customerTwoId, staffId].join(', ')}, ${organizationIds.length} organizations, ${seedEvents.length} published events, ${imageNames.length} shared covers, and ${demoEvents.length * 2} demo tickets.`,
   );
 }
 

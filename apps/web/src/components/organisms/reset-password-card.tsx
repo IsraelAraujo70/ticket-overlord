@@ -19,6 +19,7 @@ export function ResetPasswordCard({ admin = false }: { admin?: boolean }) {
 
   useEffect(() => {
     const currentToken = new URLSearchParams(window.location.hash.slice(1)).get("token") ?? "";
+    window.history.replaceState(null, "", `${window.location.pathname}${window.location.search}`);
     void Promise.resolve().then(() => {
       setToken(currentToken);
       if (!currentToken) {

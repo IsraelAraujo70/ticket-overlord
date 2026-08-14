@@ -48,10 +48,18 @@ export class PasswordRecoveryService {
   }
 
   async reset(rawToken: string, password: string): Promise<void> {
+    const tokenHash = this.tokenGenerator.hash(rawToken);
+    const now = new Date();
+    if (!(await this.store.hasValidPasswordResetToken(tokenHash, now))) {
+      throw new AuthError(
+        'INVALID_OR_EXPIRED_TOKEN',
+        'O link de recuperação é inválido ou expirou.',
+      );
+    }
     const reset = await this.store.resetPasswordAndRevokeSessions({
-      tokenHash: this.tokenGenerator.hash(rawToken),
+      tokenHash,
       passwordHash: await this.passwordHasher.hash(password),
-      now: new Date(),
+      now,
     });
 
     if (!reset) {

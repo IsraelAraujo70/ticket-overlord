@@ -33,6 +33,7 @@ RUN pnpm install --prod --frozen-lockfile --filter @ticket-overlord/api...
 FROM node:24.18.1-alpine AS runner
 
 ENV NODE_ENV=production
+ENV APP_ENV=production
 ENV PORT=3001
 
 WORKDIR /app

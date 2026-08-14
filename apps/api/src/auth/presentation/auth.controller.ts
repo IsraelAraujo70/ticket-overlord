@@ -28,6 +28,8 @@ import type { AuthenticatedSession } from '../domain/auth.types';
 import { AuthExceptionFilter } from './auth-exception.filter';
 import { AuthGuard } from './auth.guard';
 import { CurrentAuth } from './current-auth.decorator';
+import { RateLimit } from '../../rate-limit/presentation/rate-limit.decorator';
+import { RateLimitGuard } from '../../rate-limit/presentation/rate-limit.guard';
 import {
   EmailDto,
   LoginDto,
@@ -54,6 +56,13 @@ export class AuthController {
   ) {}
 
   @Post('register')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({
+    name: 'register',
+    limit: 5,
+    windowSeconds: 3600,
+    identities: ['ip'],
+  })
   @ApiOperation({ summary: 'Cadastrar cliente ou organizador' })
   @ApiCreatedResponse({ type: RegistrationResponseDto })
   @ApiBadRequestResponse({ description: 'Dados de cadastro inválidos.' })
@@ -63,6 +72,13 @@ export class AuthController {
   }
 
   @Post('email/confirm')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({
+    name: 'confirm-email',
+    limit: 10,
+    windowSeconds: 600,
+    identities: ['ip', 'token'],
+  })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Confirmar o e-mail' })
   @ApiOkResponse({ type: EmailConfirmationResponseDto })
@@ -72,6 +88,13 @@ export class AuthController {
   }
 
   @Post('email/resend')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({
+    name: 'resend-email',
+    limit: 3,
+    windowSeconds: 3600,
+    identities: ['ip', 'email'],
+  })
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Reenviar confirmação sem enumerar contas' })
   @ApiNoContentResponse({ description: 'Solicitação processada.' })
@@ -80,6 +103,13 @@ export class AuthController {
   }
 
   @Post('login')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({
+    name: 'login',
+    limit: 10,
+    windowSeconds: 60,
+    identities: ['ip', 'email'],
+  })
   @HttpCode(HttpStatus.OK)
   @ApiOperation({ summary: 'Autenticar uma conta verificada' })
   @ApiOkResponse({ type: LoginResponseDto })
@@ -109,6 +139,13 @@ export class AuthController {
   }
 
   @Post('password/forgot')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({
+    name: 'forgot-password',
+    limit: 3,
+    windowSeconds: 3600,
+    identities: ['ip', 'email'],
+  })
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Solicitar recuperação sem enumerar contas' })
   @ApiNoContentResponse({ description: 'Solicitação processada.' })
@@ -117,6 +154,13 @@ export class AuthController {
   }
 
   @Post('password/reset')
+  @UseGuards(RateLimitGuard)
+  @RateLimit({
+    name: 'reset-password',
+    limit: 5,
+    windowSeconds: 3600,
+    identities: ['ip', 'token'],
+  })
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Redefinir senha com token de uso único' })
   @ApiNoContentResponse({ description: 'Senha redefinida.' })

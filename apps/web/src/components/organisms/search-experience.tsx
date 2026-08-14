@@ -22,13 +22,14 @@ export function SearchExperience({
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [page, setPage] = useState(1);
 
   const loadResults = useCallback(async (signal?: AbortSignal) => {
     setIsLoading(true);
     setError(false);
 
     try {
-      setCatalog(await requestResults(initialQuery, signal));
+      setCatalog(await requestResults(initialQuery, page, signal));
     } catch (requestError) {
       if (requestError instanceof DOMException && requestError.name === "AbortError") {
         return;
@@ -39,11 +40,11 @@ export function SearchExperience({
         setIsLoading(false);
       }
     }
-  }, [initialQuery]);
+  }, [initialQuery, page]);
 
   useEffect(() => {
     const controller = new AbortController();
-    requestResults(initialQuery, controller.signal)
+    requestResults(initialQuery, page, controller.signal)
       .then(setCatalog)
       .catch((requestError: unknown) => {
         if (!(requestError instanceof DOMException && requestError.name === "AbortError")) {
@@ -57,7 +58,7 @@ export function SearchExperience({
       });
 
     return () => controller.abort();
-  }, [initialQuery]);
+  }, [initialQuery, page]);
 
   const events = catalog?.sections.flatMap((section) => section.events) ?? [];
 
@@ -83,6 +84,11 @@ export function SearchExperience({
                   <CatalogEventCard key={event.id} event={event} />
                 ))}
               </div>
+              <SearchPagination
+                page={catalog.meta.page}
+                pages={catalog.meta.pages}
+                onPageChange={setPage}
+              />
             </div>
           </section>
         ) : null}
@@ -91,7 +97,15 @@ export function SearchExperience({
             icon={SearchXIcon}
             title="Nenhum evento encontrado"
             description={`Não encontramos resultados para “${catalog.meta.query}”. Tente outra atração, cidade ou categoria.`}
-            action={<Button variant="outline" render={<Link href="/" />}>Ver todos os eventos</Button>}
+            action={
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={<Link href="/" />}
+              >
+                Ver todos os eventos
+              </Button>
+            }
           />
         ) : null}
       </main>
@@ -100,8 +114,10 @@ export function SearchExperience({
   );
 }
 
-async function requestResults(query: string, signal?: AbortSignal) {
-  const search = query ? `?query=${encodeURIComponent(query)}` : "";
+async function requestResults(query: string, page: number, signal?: AbortSignal) {
+  const params = new URLSearchParams({ page: String(page) });
+  if (query) params.set("query", query);
+  const search = `?${params.toString()}`;
   const response = await fetch(`/api/catalog${search}`, {
     headers: { Accept: "application/json" },
     signal,
@@ -112,6 +128,17 @@ async function requestResults(query: string, signal?: AbortSignal) {
   }
 
   return (await response.json()) as CatalogResponse;
+}
+
+function SearchPagination({ page, pages, onPageChange }: { page: number; pages: number; onPageChange: (page: number) => void }) {
+  if (pages <= 1) return null;
+  return (
+    <nav className="mt-10 flex items-center justify-center gap-4" aria-label="Paginação dos resultados">
+      <Button variant="outline" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>Anterior</Button>
+      <span className="font-mono text-sm">Página {page} de {pages}</span>
+      <Button variant="outline" disabled={page >= pages} onClick={() => onPageChange(page + 1)}>Próxima</Button>
+    </nav>
+  );
 }
 
 function SearchHeading({ query, total }: { query: string; total?: number }) {

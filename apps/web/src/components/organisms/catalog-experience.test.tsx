@@ -23,7 +23,7 @@ const event = {
 const catalog: CatalogResponse = {
   highlights: [event],
   sections: [{ id: "shows", title: "Shows e festivais", events: [event] }],
-  meta: { query: "", total: 1 },
+  meta: { query: "", total: 1, page: 1, pageSize: 48, pages: 1 },
 };
 
 function jsonResponse(body: CatalogResponse, ok = true) {
@@ -48,7 +48,7 @@ describe("CatalogExperience", () => {
   it("shows an empty state when no events match", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(() => jsonResponse({ highlights: [], sections: [], meta: { query: "x", total: 0 } })),
+      vi.fn(() => jsonResponse({ highlights: [], sections: [], meta: { query: "x", total: 0, page: 1, pageSize: 48, pages: 1 } })),
     );
     render(<CatalogExperience />);
     expect(await screen.findByText("Nenhum evento encontrado")).toBeInTheDocument();
@@ -65,7 +65,7 @@ describe("CatalogExperience", () => {
     expect(screen.getByLabelText("Pesquisar eventos")).toHaveAttribute("name", "q");
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(fetchMock).toHaveBeenCalledWith(
-      "/api/catalog",
+      "/api/catalog?page=1",
       expect.objectContaining({ headers: { Accept: "application/json" } }),
     );
   });

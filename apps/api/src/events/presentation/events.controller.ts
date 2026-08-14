@@ -9,6 +9,7 @@ import {
   ParseFilePipe,
   ParseUUIDPipe,
   Post,
+  Query,
   UploadedFile,
   UseFilters,
   UseGuards,
@@ -30,13 +31,21 @@ import {
 } from '@nestjs/swagger';
 import type { AuthenticatedSession } from '../../auth/domain/auth.types';
 import { AuthGuard } from '../../auth/presentation/auth.guard';
+import { RateLimit } from '../../rate-limit/presentation/rate-limit.decorator';
+import { RateLimitGuard } from '../../rate-limit/presentation/rate-limit.guard';
 import { CurrentAuth } from '../../auth/presentation/current-auth.decorator';
 import { CreateEventService } from '../application/create-event.service';
 import { ListEventsService } from '../application/list-events.service';
 import { PublishEventService } from '../application/publish-event.service';
 import { EVENT_IMAGE_MAX_BYTES } from '../domain/event.types';
 import { EventExceptionFilter } from './event-exception.filter';
-import { CreateEventDto, EventCoverUrlDto, EventDto } from './dto/event.dto';
+import {
+  CreateEventDto,
+  EventCoverUrlDto,
+  EventDto,
+  EventListQueryDto,
+  EventPageDto,
+} from './dto/event.dto';
 
 @ApiTags('Events')
 @UseFilters(EventExceptionFilter)
@@ -50,9 +59,9 @@ export class EventsController {
 
   @Get('published')
   @ApiOperation({ summary: 'Listar eventos publicados' })
-  @ApiOkResponse({ type: EventDto, isArray: true })
-  published(): Promise<EventDto[]> {
-    return this.listEvents.published();
+  @ApiOkResponse({ type: EventPageDto })
+  published(@Query() query: EventListQueryDto): Promise<EventPageDto> {
+    return this.listEvents.published(query);
   }
 
   @Get('published/:eventId/cover')
@@ -73,11 +82,14 @@ export class EventsController {
     description:
       'Organizadores recebem apenas os eventos da própria organização. Administradores globais recebem todos os eventos em modo somente leitura.',
   })
-  @ApiOkResponse({ type: EventDto, isArray: true })
+  @ApiOkResponse({ type: EventPageDto })
   @ApiUnauthorizedResponse({ description: 'Sessão ausente ou inválida.' })
   @ApiForbiddenResponse({ description: 'Conta sem acesso administrativo.' })
-  forOrganizer(@CurrentAuth() auth: AuthenticatedSession): Promise<EventDto[]> {
-    return this.listEvents.forOrganizer(auth.user);
+  forOrganizer(
+    @CurrentAuth() auth: AuthenticatedSession,
+    @Query() query: EventListQueryDto,
+  ): Promise<EventPageDto> {
+    return this.listEvents.forOrganizer(auth.user, query);
   }
 
   @Get(':eventId/cover')
@@ -100,7 +112,13 @@ export class EventsController {
 
   @Post()
   @ApiBearerAuth('bearer')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RateLimitGuard)
+  @RateLimit({
+    name: 'create-event',
+    limit: 30,
+    windowSeconds: 3600,
+    identities: ['organization'],
+  })
   @UseInterceptors(
     FileInterceptor('cover', { limits: { fileSize: EVENT_IMAGE_MAX_BYTES } }),
   )
