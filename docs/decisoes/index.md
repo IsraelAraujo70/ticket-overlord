@@ -42,3 +42,4 @@ Este diretório contém as decisões técnicas aprovadas para o Ticket Overlord.
 | 2026-08-13 12:42:27 -03:00 | Aceita      | [Eventos globais somente leitura para administradores](./2026-08-13-1242-admin-global-eventos-somente-leitura.md)        |
 | 2026-08-14 11:04:16 -03:00 | Aceita      | [Hardening, paginação e seed de volume](./2026-08-14-1104-hardening-paginacao-e-seed-de-volume.md)                        |
 | 2026-08-14 11:56:12 -03:00 | Aceita      | [Cache do catálogo público](./2026-08-14-1156-cache-do-catalogo-publico.md)                                              |
+| 2026-08-14 16:30:03 -03:00 | Aceita      | [Relatórios operacionais por organização](./2026-08-14-1630-relatorios-operacionais-por-organizacao.md)                  |
