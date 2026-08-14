@@ -44,3 +44,4 @@ Este diretório contém as decisões técnicas aprovadas para o Ticket Overlord.
 | 2026-08-14 11:56:12 -03:00 | Aceita      | [Cache do catálogo público](./2026-08-14-1156-cache-do-catalogo-publico.md)                                              |
 | 2026-08-14 16:00:16 -03:00 | Aceita      | [Search híbrida com PostgreSQL e pgvector](./2026-08-14-1600-search-hibrida-postgresql-pgvector.md)                      |
 | 2026-08-14 16:30:03 -03:00 | Aceita      | [Relatórios operacionais por organização](./2026-08-14-1630-relatorios-operacionais-por-organizacao.md)                  |
+| 2026-08-14 19:42:13 -03:00 | Aceita      | [Eventos iniciados permanecem informativos](./2026-08-14-1942-eventos-iniciados-informativos.md)                         |

@@ -27,6 +27,7 @@ const event = {
   coverUrl: "/cover.jpg",
   availableQuantity: 3,
   maxQuantityPerReservation: 10,
+  isPurchasable: true,
 };
 
 describe("EventDetailExperience", () => {
@@ -52,5 +53,24 @@ describe("EventDetailExperience", () => {
       "href",
       "/login?returnTo=%2Feventos%2Fcinema-session",
     );
+  });
+
+  it("keeps a started event informative without rendering purchase controls", () => {
+    render(
+      <EventDetailExperience
+        event={{
+          ...event,
+          startsAt: "2020-09-05T22:00:00.000Z",
+          availableQuantity: 0,
+          isPurchasable: false,
+        }}
+        user={{ id: "customer-id", fullName: "Maria", email: "maria@example.com", role: "CUSTOMER", organizationId: null }}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "As vendas foram encerradas" })).toBeInTheDocument();
+    expect(screen.getByText(/permanece disponível para consulta/)).toBeInTheDocument();
+    expect(screen.queryByText("Quantidade")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /reservar/i })).not.toBeInTheDocument();
   });
 });

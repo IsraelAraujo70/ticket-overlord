@@ -206,4 +206,6 @@ O seed é idempotente e cria 9.000 eventos publicados em 30 organizações, alé
 
 ## Uso de IA
 
-ChatGPT e Codex foram usados como ferramentas de apoio para decompor requisitos, revisar decisões, implementar partes do frontend e backend, criar testes e investigar falhas de deploy. O desenvolvedor definiu o produto, aprovou as decisões, revisou o código e executou os testes manuais. A integração com IA não faz parte do runtime: web, API, pagamentos simulados, QR Code e portaria funcionam sem ChatGPT, Codex ou qualquer modelo configurado.
+Usei ChatGPT e Codex durante todo o projeto como apoio para discutir e mapear requisitos, pesquisar alternativas e registrar decisões técnicas. Também usei IA para gerar e revisar código, smoke tests e testes E2E, além de automatizar fluxos no navegador com Playwright.
+
+Essas ferramentas complementaram minha avaliação, mas não substituíram os testes manuais. Eu revisei as mudanças e também percorri pessoalmente os fluxos do produto, incluindo compra, ingressos, QR Code e portaria.

@@ -17,9 +17,9 @@ export class PublishedEventController {
   constructor(private readonly getPublishedEvent: GetPublishedEventService) {}
 
   @Get('published/:slug')
-  @ApiOperation({ summary: 'Obter detalhe e disponibilidade do evento' })
+  @ApiOperation({ summary: 'Obter detalhe do evento publicado' })
   @ApiOkResponse({ type: PublishedEventDetailDto })
-  @ApiNotFoundResponse({ description: 'Evento não disponível para venda.' })
+  @ApiNotFoundResponse({ description: 'Evento publicado não encontrado.' })
   @ApiServiceUnavailableResponse({
     description: 'Checkout temporariamente indisponível.',
   })

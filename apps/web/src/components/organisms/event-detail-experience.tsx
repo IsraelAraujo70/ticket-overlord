@@ -56,7 +56,7 @@ export function EventDetailExperience({
             </div>
             <div className="flex flex-col justify-center">
               <p className="font-mono text-xs tracking-[0.2em] text-ticket-coral uppercase">
-                {event.category} · ingressos disponíveis
+                {event.category} · {event.isPurchasable ? "ingressos disponíveis" : "evento encerrado"}
               </p>
               <h1 className="mt-4 font-heading text-6xl leading-[0.85] font-bold uppercase sm:text-7xl lg:text-8xl">
                 {event.title}
@@ -72,7 +72,8 @@ export function EventDetailExperience({
           </div>
         </section>
 
-        <section className="mx-auto grid max-w-7xl gap-8 px-5 py-12 lg:grid-cols-[1fr_24rem] lg:px-8 lg:py-16">
+        {event.isPurchasable ? (
+          <section className="mx-auto grid max-w-7xl gap-8 px-5 py-12 lg:grid-cols-[1fr_24rem] lg:px-8 lg:py-16">
           <div>
             <p className="font-mono text-xs tracking-[0.18em] text-primary uppercase">Entrada geral</p>
             <h2 className="mt-2 font-heading text-4xl font-bold uppercase">Escolha sua quantidade</h2>
@@ -125,7 +126,18 @@ export function EventDetailExperience({
               </p>
             </form>
           </aside>
-        </section>
+          </section>
+        ) : (
+          <section className="mx-auto max-w-7xl px-5 py-12 lg:px-8 lg:py-16">
+            <div className="max-w-3xl rounded-2xl border bg-white p-8 shadow-xl shadow-ticket-ink/10">
+              <p className="font-mono text-xs tracking-[0.18em] text-ticket-coral uppercase">Evento encerrado</p>
+              <h2 className="mt-2 font-heading text-4xl font-bold uppercase">As vendas foram encerradas</h2>
+              <p className="mt-4 max-w-2xl leading-7 text-muted-foreground">
+                Este evento já começou. A página permanece disponível para consulta, mas não aceita novas reservas ou compras.
+              </p>
+            </div>
+          </section>
+        )}
       </main>
       <PublicFooter />
     </div>

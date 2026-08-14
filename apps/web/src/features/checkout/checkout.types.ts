@@ -18,6 +18,7 @@ export interface PublishedEventDetail {
   coverUrl: string;
   availableQuantity: number;
   maxQuantityPerReservation: number;
+  isPurchasable: boolean;
 }
 
 export interface ReservationEventSummary {

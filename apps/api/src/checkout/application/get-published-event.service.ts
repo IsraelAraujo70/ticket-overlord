@@ -18,7 +18,7 @@ export class GetPublishedEventService {
     private readonly images: EventImageStorage,
   ) {}
 
-  /** Returns a future published event with its current logical availability. */
+  /** Returns a published event and exposes whether it can still be purchased. */
   async bySlug(slug: string): Promise<PresentedPublishedEvent> {
     const event = await this.store.findPublishedEventBySlug(slug);
     if (!event) {
@@ -29,12 +29,30 @@ export class GetPublishedEventService {
     }
 
     const { coverObjectKey, ...published } = event;
+    let isPurchasable = event.isPurchasable;
+    let availableQuantity = 0;
+
+    if (isPurchasable) {
+      try {
+        availableQuantity = await this.store.synchronizeInventory(
+          event.id,
+          (snapshot) => this.holds.available(snapshot),
+        );
+      } catch (error) {
+        if (
+          !(error instanceof CheckoutError) ||
+          error.code !== 'EVENT_NOT_AVAILABLE'
+        ) {
+          throw error;
+        }
+        isPurchasable = false;
+      }
+    }
+
     return {
       ...published,
-      availableQuantity: await this.store.synchronizeInventory(
-        event.id,
-        (snapshot) => this.holds.available(snapshot),
-      ),
+      availableQuantity,
+      isPurchasable,
       coverUrl: await this.images.createReadUrl(coverObjectKey),
     };
   }
