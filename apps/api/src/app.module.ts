@@ -8,6 +8,7 @@ import { CheckoutModule } from './checkout/checkout.module';
 import { validateEnvironment } from './config/environment';
 import { DatabaseModule } from './database/database.module';
 import { EventsModule } from './events/events.module';
+import { SearchModule } from './search/search.module';
 import { TicketsModule } from './tickets/tickets.module';
 
 @Module({
@@ -22,6 +23,7 @@ import { TicketsModule } from './tickets/tickets.module';
     AuthModule,
     AddressModule,
     EventsModule,
+    SearchModule,
     CheckoutModule,
     TicketsModule,
   ],

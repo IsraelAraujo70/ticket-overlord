@@ -1,0 +1,56 @@
+import { Injectable } from '@nestjs/common';
+import { presentEvent } from '../../events/application/create-event.service';
+import { EventImageStorage } from '../../events/application/ports/event-image-storage';
+import type {
+  PresentedSearchEventPage,
+  SearchSuggestion,
+} from '../domain/search.types';
+import { EmbeddingProvider } from './ports/embedding-provider';
+import { PublishedEventSearch } from './ports/published-event-search';
+
+@Injectable()
+export class SearchEventsService {
+  constructor(
+    private readonly searchStore: PublishedEventSearch,
+    private readonly embeddings: EmbeddingProvider,
+    private readonly images: EventImageStorage,
+  ) {}
+
+  async search(input: {
+    query: string;
+    page: number;
+    pageSize: number;
+  }): Promise<PresentedSearchEventPage> {
+    const query = normalizeQuery(input.query);
+    let page;
+
+    if (this.embeddings.isConfigured()) {
+      try {
+        const embedding = await this.embeddings.embedQuery(query);
+        page = await this.searchStore.searchHybrid(
+          { ...input, query },
+          embedding,
+        );
+      } catch {
+        page = await this.searchStore.searchLexical({ ...input, query });
+      }
+    } else {
+      page = await this.searchStore.searchLexical({ ...input, query });
+    }
+
+    return {
+      ...page,
+      items: await Promise.all(
+        page.items.map((event) => presentEvent(event, this.images)),
+      ),
+    };
+  }
+
+  suggestions(query: string, limit: number): Promise<SearchSuggestion[]> {
+    return this.searchStore.suggest(normalizeQuery(query), limit);
+  }
+}
+
+function normalizeQuery(value: string): string {
+  return value.trim().normalize('NFC').slice(0, 100);
+}

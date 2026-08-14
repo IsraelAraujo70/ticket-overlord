@@ -8,7 +8,7 @@ O projeto usa um ambiente `production` com:
 
 - `web`: Next.js standalone construído por `apps/web/Dockerfile`;
 - `api`: NestJS construído por `apps/api/Dockerfile`;
-- PostgreSQL gerenciado como fonte de verdade;
+- PostgreSQL 18 com pgvector como fonte de verdade;
 - Redis gerenciado para holds temporários;
 - Railway Bucket privado para capas de eventos.
 
@@ -25,6 +25,8 @@ Configure sem registrar valores secretos em arquivos ou logs:
 - `RESEND_API_KEY` e `RESEND_FROM_EMAIL`;
 - `WEB_BASE_URL` com a origem HTTPS pública da web;
 - `TMDB_READ_ACCESS_TOKEN`;
+- `OPENROUTER_API_KEY` para recuperação semântica, opcional porque o FTS é o fallback;
+- `OPENROUTER_EMBEDDING_MODEL=openai/text-embedding-3-small`;
 - `S3_ENDPOINT_URL` e `S3_PUBLIC_ENDPOINT_URL` com o endpoint do bucket;
 - `S3_BUCKET`, `S3_REGION`, `S3_ACCESS_KEY_ID` e `S3_SECRET_ACCESS_KEY` com as credenciais do bucket;
 - `S3_FORCE_PATH_STYLE=false`;
@@ -33,6 +35,8 @@ Configure sem registrar valores secretos em arquivos ou logs:
 `APP_ENV=production` também é definido na imagem da API para que uma variável ausente não habilite defaults locais.
 
 O Railway fornece `PORT` automaticamente. A API executa `node dist/src/database/migrate.js` como pre-deploy e inicia com o comando definido na imagem.
+
+A migration de busca executa `CREATE EXTENSION vector`. Antes de publicar a branch de search, substitua o PostgreSQL padrão por um serviço/template Railway que disponibilize pgvector e confirme a restauração dos dados. A migration falha de forma fechada no PostgreSQL padrão, antes de iniciar a nova API.
 
 ## Variáveis da web
 
@@ -44,6 +48,8 @@ O navegador acessa a web por HTTPS. Chamadas da aplicação passam pelo BFF do N
 ## Dados de demonstração
 
 O seed não roda automaticamente. Quando autorizado, execute no serviço API com `ALLOW_PRODUCTION_DEMO_SEED=true`, uma `DEMO_PASSWORD` secreta e `SEED_EVENT_COUNT=9000`. Ele mantém 30 organizações, 9.000 eventos publicados, quatro capas compartilhadas e oito ingressos válidos. Uma nova execução é idempotente e restaura esses ingressos para `VALID`.
+
+O backfill semântico também não roda automaticamente. Após deploy e migration autorizados, execute `node dist/src/search/backfill-search-embeddings.js` no serviço API e acompanhe o término. Ele escreve somente vetores ausentes ou cujo conteúdo/modelo mudou. O FTS atende buscas durante toda a operação.
 
 ## Verificação
 

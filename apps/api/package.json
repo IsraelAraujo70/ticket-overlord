@@ -11,6 +11,8 @@
     "db:migrate:runtime": "node dist/src/database/migrate.js",
     "db:seed": "ts-node src/database/seed.ts",
     "db:seed:runtime": "node dist/src/database/seed.js",
+    "search:backfill": "ts-node src/search/backfill-search-embeddings.ts",
+    "search:backfill:runtime": "node dist/src/search/backfill-search-embeddings.js",
     "format": "prettier --write \"src/**/*.ts\" \"test/**/*.ts\"",
     "start": "nest start",
     "dev": "nest start --watch",

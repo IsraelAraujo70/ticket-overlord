@@ -18,6 +18,7 @@ export function configureOpenApi(app: INestApplication): void {
     .addTag('Addresses', 'Preenchimento de endereço por CEP.')
     .addTag('External catalog', 'Catálogo de filmes usado para criar eventos.')
     .addTag('Events', 'Eventos locais e suas capas.')
+    .addTag('Search', 'Autocomplete e busca híbrida de eventos publicados.')
     .addTag('Checkout', 'Reservas e pagamentos simulados.')
     .addBearerAuth(
       { type: 'http', scheme: 'bearer', bearerFormat: 'opaque-session' },
