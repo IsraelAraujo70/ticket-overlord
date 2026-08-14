@@ -206,32 +206,6 @@ O seed é idempotente e cria 9.000 eventos publicados em 30 organizações, alé
 
 ## Uso de IA
 
-Usei IA em duas frentes separadas: como assistência durante o desenvolvimento e, opcionalmente, como parte da busca semântica em runtime.
+Usei ChatGPT e Codex durante todo o projeto como apoio para discutir e mapear requisitos, pesquisar alternativas e registrar decisões técnicas. Também usei IA para gerar e revisar código, smoke tests e testes E2E, além de automatizar fluxos no navegador com Playwright.
 
-### Ferramentas e atividades assistidas
-
-- **ChatGPT** foi usado para discutir requisitos, explorar alternativas e decompor o desafio em entregas verificáveis.
-- **Codex no T3 Code** ajudou a inspecionar o repositório, implementar partes da web e da API, escrever testes, revisar diffs, investigar falhas locais e de produção e validar os fluxos no navegador.
-- **ImageGen** foi usado para gerar uma proposta visual da marca, posteriormente adaptada aos componentes e assets do produto.
-- **OpenRouter** é usado apenas pela funcionalidade opcional de embeddings da busca híbrida. Sem sua configuração, a busca continua funcionando com Full Text Search e trigramas no PostgreSQL.
-
-Código e respostas gerados não foram tratados como evidência de funcionamento. Cada mudança foi revisada no contexto do repositório e validada, conforme o risco, com lint, testes unitários, contratos E2E contra PostgreSQL e Redis reais, build, inspeção no navegador e smoke tests no ambiente publicado.
-
-### Trabalho e decisões do desenvolvedor
-
-Eu defini o escopo, as prioridades, os critérios de aceitação e aprovei cada mudança de produto, arquitetura e produção. Também fiz a avaliação manual dos papéis de cliente, organizador, administrador e portaria, incluindo a leitura do QR Code pelo celular, além da revisão visual e da aceitação final do produto. Domínios, credenciais e autorizações para alterações no ambiente de produção permaneceram sob meu controle.
-
-As principais escolhas técnicas foram deliberadas, e não adotadas apenas por sugestão de um modelo:
-
-- PostgreSQL e Drizzle foram escolhidos como fonte de verdade para manter inventário, pagamentos e validação atômica auditáveis.
-- Redis protege holds temporários de reserva sem transformar o cache em fonte de verdade.
-- O pagamento foi simulado porque o desafio avalia o fluxo e a consistência, não a integração com um adquirente real.
-- A busca usa FTS, trigramas e `pgvector` no próprio PostgreSQL para entregar recuperação lexical e semântica sem introduzir Elasticsearch ou Milvus no prazo do challenge.
-- A importação do TMDb ficou restrita a Cinema; outras categorias preservam cadastro manual para representar eventos locais de verdade.
-- Railway foi escolhido para publicar web, API, PostgreSQL, Redis e storage compatível com S3 em um ambiente reproduzível.
-
-O contexto, as alternativas e as consequências dessas escolhas estão versionados no [índice de decisões técnicas](./docs/decisoes/index.md).
-
-### O que não depende de IA
-
-Autenticação, criação de eventos, reservas, pagamento simulado, emissão e compartilhamento de ingressos, QR Code e validação na portaria funcionam sem ChatGPT, Codex ou qualquer modelo configurado. A IA em runtime é uma melhoria opcional da relevância da busca, com fallback determinístico para a recuperação lexical.
+Essas ferramentas complementaram minha avaliação, mas não substituíram os testes manuais. Eu revisei as mudanças e também percorri pessoalmente os fluxos do produto, incluindo compra, ingressos, QR Code e portaria.

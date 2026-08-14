@@ -176,6 +176,11 @@ export class PublishedEventDetailDto {
 
   @ApiProperty({ minimum: 1, maximum: 10 })
   maxQuantityPerReservation!: number;
+
+  @ApiProperty({
+    description: 'Indica se o evento ainda aceita novas reservas.',
+  })
+  isPurchasable!: boolean;
 }
 
 export function reservationDto(row: ReservationRecord): ReservationDto {

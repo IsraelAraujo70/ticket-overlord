@@ -67,4 +67,5 @@ export interface PublishedEventDetail {
   coverContentType: string;
   availableQuantity: number;
   maxQuantityPerReservation: number;
+  isPurchasable: boolean;
 }

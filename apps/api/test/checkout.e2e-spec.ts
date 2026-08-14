@@ -111,6 +111,7 @@ describe('Checkout API (e2e)', () => {
               PublishedEventDetail: {
                 properties: {
                   availableQuantity: { minimum: 0 },
+                  isPurchasable: { type: 'boolean' },
                   maxQuantityPerReservation: { maximum: 10, minimum: 1 },
                 },
               },
@@ -153,6 +154,34 @@ describe('Checkout API (e2e)', () => {
           maxQuantityPerReservation: 10,
         });
         expect(body).not.toHaveProperty('organizationId');
+      });
+  });
+
+  it('keeps a started published event visible but blocks new reservations', async () => {
+    const fixture = await createFixture(pool, 5);
+    await pool.query(
+      "UPDATE events SET starts_at = now() - interval '1 minute' WHERE id = $1",
+      [fixture.eventId],
+    );
+
+    await request(app.getHttpServer())
+      .get(`/events/published/${fixture.slug}`)
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({
+          id: fixture.eventId,
+          availableQuantity: 0,
+          isPurchasable: false,
+        });
+      });
+
+    await request(app.getHttpServer())
+      .post('/reservations')
+      .set('Authorization', `Bearer ${fixture.customerToken}`)
+      .send({ eventId: fixture.eventId, quantity: 1 })
+      .expect(404)
+      .expect(({ body }) => {
+        expect(body).toMatchObject({ code: 'EVENT_NOT_AVAILABLE' });
       });
   });
 

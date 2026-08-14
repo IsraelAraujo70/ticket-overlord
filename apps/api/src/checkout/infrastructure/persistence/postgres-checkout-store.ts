@@ -34,6 +34,7 @@ interface EventRow {
   cover_object_key: string;
   cover_content_type: string;
   confirmed_quantity: number;
+  is_purchasable: boolean;
 }
 interface ReservationRow {
   id: string;
@@ -73,7 +74,7 @@ export class PostgresCheckoutStore extends ConfirmedCheckoutStore {
     slug: string,
   ): Promise<PublishedEventDetail | null> {
     const result = await this.pool.query<EventRow>(
-      `${eventSelect} WHERE e.slug = $1 AND e.status = 'PUBLISHED' AND e.starts_at > now() GROUP BY e.id`,
+      `${eventSelect} WHERE e.slug = $1 AND e.status = 'PUBLISHED' GROUP BY e.id`,
       [slug],
     );
     const row = result.rows[0];
@@ -90,6 +91,7 @@ export class PostgresCheckoutStore extends ConfirmedCheckoutStore {
       coverContentType: row.cover_content_type,
       availableQuantity: Math.max(row.capacity - row.confirmed_quantity, 0),
       maxQuantityPerReservation: MAX_QUANTITY_PER_RESERVATION,
+      isPurchasable: row.is_purchasable,
     };
   }
 
@@ -359,7 +361,7 @@ export class PostgresCheckoutStore extends ConfirmedCheckoutStore {
   }
 }
 
-const eventSelect = `SELECT e.*, COALESCE(SUM(r.quantity) FILTER (WHERE r.status = 'PAID'), 0)::integer confirmed_quantity FROM events e LEFT JOIN reservations r ON r.event_id = e.id`;
+const eventSelect = `SELECT e.*, COALESCE(SUM(r.quantity) FILTER (WHERE r.status = 'PAID'), 0)::integer confirmed_quantity, e.starts_at > now() is_purchasable FROM events e LEFT JOIN reservations r ON r.event_id = e.id`;
 async function advisoryLock(client: PoolClient, key: string) {
   await client.query(`SELECT pg_advisory_xact_lock(hashtextextended($1, 0))`, [
     key,
