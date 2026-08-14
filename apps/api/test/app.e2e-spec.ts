@@ -461,6 +461,22 @@ describe('Ticket Overlord API (e2e)', () => {
         expect(body.items[0]).toMatchObject({ slug: 'festival-jazz' });
       });
 
+    await request(app.getHttpServer())
+      .get('/search/suggestions?q=experiencia')
+      .expect(200)
+      .expect(({ body }) => {
+        expect(body).toEqual(
+          expect.arrayContaining([
+            {
+              kind: 'EVENT',
+              label: 'Festival de Jazz',
+              value: 'Festival de Jazz',
+              slug: 'festival-jazz',
+            },
+          ]),
+        );
+      });
+
     await request(app.getHttpServer()).get('/search?q=a').expect(400);
     await request(app.getHttpServer())
       .get('/search/suggestions?q=a')

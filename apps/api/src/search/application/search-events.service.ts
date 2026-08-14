@@ -46,8 +46,32 @@ export class SearchEventsService {
     };
   }
 
-  suggestions(query: string, limit: number): Promise<SearchSuggestion[]> {
-    return this.searchStore.suggest(normalizeQuery(query), limit);
+  async suggestions(query: string, limit: number): Promise<SearchSuggestion[]> {
+    const normalized = normalizeQuery(query);
+    const lexical = await this.searchStore.suggest(normalized, limit);
+    if (
+      lexical.length > 0 ||
+      normalized.length < 4 ||
+      !this.embeddings.isConfigured()
+    ) {
+      return lexical;
+    }
+
+    try {
+      const embedding = await this.embeddings.embedQuery(normalized);
+      const semantic = await this.searchStore.searchHybrid(
+        { query: normalized, page: 1, pageSize: Math.min(limit, 4) },
+        embedding,
+      );
+      return semantic.items.map((event) => ({
+        kind: 'EVENT',
+        label: event.title,
+        value: event.title,
+        slug: event.slug,
+      }));
+    } catch {
+      return lexical;
+    }
   }
 }
 

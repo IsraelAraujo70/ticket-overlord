@@ -29,7 +29,11 @@ export class SearchController {
   }
 
   @Get('suggestions')
-  @ApiOperation({ summary: 'Sugerir eventos, categorias, cidades e locais' })
+  @ApiOperation({
+    summary: 'Sugerir eventos, categorias, cidades e locais',
+    description:
+      'Prioriza autocomplete lexical indexado e usa eventos semanticamente próximos quando não há correspondência textual.',
+  })
   @ApiOkResponse({ type: SearchSuggestionDto, isArray: true })
   suggestions(
     @Query() query: SearchSuggestionsQueryDto,

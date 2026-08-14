@@ -29,6 +29,20 @@ const kindLabels: Record<SearchSuggestionKind, string> = {
   VENUE: "Local",
 };
 
+type CatalogSuggestion =
+  | SearchSuggestion
+  | {
+      kind: "QUERY";
+      label: string;
+      value: string;
+      slug: null;
+    };
+
+const suggestionKindLabels: Record<CatalogSuggestion["kind"], string> = {
+  ...kindLabels,
+  QUERY: "Busca",
+};
+
 export function CatalogSearch({
   defaultValue = "",
   isLoading = false,
@@ -36,7 +50,7 @@ export function CatalogSearch({
   const listboxId = useId();
   const requestId = useRef(0);
   const [query, setQuery] = useState(defaultValue);
-  const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<CatalogSuggestion[]>([]);
   const [isOpen, setIsOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
 
@@ -58,17 +72,19 @@ export function CatalogSearch({
           throw new Error(`Suggestions failed with ${response.status}.`);
         const results = (await response.json()) as SearchSuggestion[];
         if (currentRequest !== requestId.current) return;
-        setSuggestions(results);
+        setSuggestions(
+          results.length > 0 ? results : [querySuggestion(normalized)],
+        );
         setActiveIndex(-1);
-        setIsOpen(results.length > 0);
+        setIsOpen(true);
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError")
           return;
         if (currentRequest !== requestId.current) return;
-        setSuggestions([]);
-        setIsOpen(false);
+        setSuggestions([querySuggestion(normalized)]);
+        setIsOpen(true);
       }
-    }, 200);
+    }, 400);
 
     return () => {
       window.clearTimeout(timeout);
@@ -76,17 +92,17 @@ export function CatalogSearch({
     };
   }, [query]);
 
-  function selectSuggestion(suggestion: SearchSuggestion) {
+  function selectSuggestion(suggestion: CatalogSuggestion) {
     setQuery(suggestion.value);
     setIsOpen(false);
   }
 
   function handleQueryChange(value: string) {
     setQuery(value);
+    setIsOpen(false);
+    setActiveIndex(-1);
     if (value.trim().length < 2) {
       setSuggestions([]);
-      setIsOpen(false);
-      setActiveIndex(-1);
     }
   }
 
@@ -185,7 +201,7 @@ export function CatalogSearch({
                   {suggestion.label}
                 </span>
                 <span className="shrink-0 font-mono text-[10px] uppercase tracking-wider text-ticket-muted">
-                  {kindLabels[suggestion.kind]}
+                  {suggestionKindLabels[suggestion.kind]}
                 </span>
               </a>
             </li>
@@ -197,15 +213,17 @@ export function CatalogSearch({
 }
 
 /** Maps a catalog suggestion to its public destination. */
-export function suggestionHref(suggestion: SearchSuggestion): string {
+export function suggestionHref(suggestion: CatalogSuggestion): string {
   if (suggestion.kind === "EVENT" && suggestion.slug) {
     return `/eventos/${encodeURIComponent(suggestion.slug)}`;
   }
   return `/search?q=${encodeURIComponent(suggestion.value)}`;
 }
 
-function SuggestionIcon({ kind }: { kind: SearchSuggestionKind }) {
+function SuggestionIcon({ kind }: { kind: CatalogSuggestion["kind"] }) {
   const className = "size-4 shrink-0 text-ticket-blue";
+  if (kind === "QUERY")
+    return <SearchIcon className={className} aria-hidden="true" />;
   if (kind === "EVENT")
     return <TicketIcon className={className} aria-hidden="true" />;
   if (kind === "CATEGORY")
@@ -213,4 +231,13 @@ function SuggestionIcon({ kind }: { kind: SearchSuggestionKind }) {
   if (kind === "CITY")
     return <MapPinIcon className={className} aria-hidden="true" />;
   return <CalendarDaysIcon className={className} aria-hidden="true" />;
+}
+
+function querySuggestion(query: string): CatalogSuggestion {
+  return {
+    kind: "QUERY",
+    label: `Buscar por “${query}”`,
+    value: query,
+    slug: null,
+  };
 }

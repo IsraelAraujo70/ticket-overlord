@@ -38,7 +38,7 @@ describe("CatalogSearch", () => {
       target: { value: "fes" },
     });
     expect(fetch).not.toHaveBeenCalled();
-    await act(async () => vi.advanceTimersByTime(200));
+    await act(async () => vi.advanceTimersByTime(400));
 
     expect(fetch).toHaveBeenCalledWith(
       "/api/search/suggestions?q=fes",
@@ -57,6 +57,22 @@ describe("CatalogSearch", () => {
     });
     await act(async () => vi.advanceTimersByTime(300));
     expect(fetch).not.toHaveBeenCalled();
+  });
+
+  it("offers the submitted search when the API has no suggestions", async () => {
+    vi.mocked(fetch).mockResolvedValue(
+      new Response(JSON.stringify([]), { status: 200 }),
+    );
+    render(<CatalogSearch />);
+
+    fireEvent.change(screen.getByRole("combobox"), {
+      target: { value: "quero commid" },
+    });
+    await act(async () => vi.advanceTimersByTime(400));
+
+    expect(
+      screen.getByRole("option", { name: /Buscar por “quero commid”/ }),
+    ).toHaveAttribute("href", "/search?q=quero%20commid");
   });
 
   it("maps event and facet suggestions to public destinations", () => {
