@@ -13,6 +13,7 @@ import { SearchEventsService } from './search-events.service';
 class FakeSearchStore extends PublishedEventSearch {
   lexicalCalls = 0;
   hybridCalls = 0;
+  suggestionResults: SearchSuggestion[] = [];
 
   searchLexical(query: SearchQuery): Promise<SearchEventPage> {
     this.lexicalCalls += 1;
@@ -25,7 +26,7 @@ class FakeSearchStore extends PublishedEventSearch {
   }
 
   suggest(): Promise<SearchSuggestion[]> {
-    return Promise.resolve([]);
+    return Promise.resolve(this.suggestionResults);
   }
 
   listIndexCandidates(): Promise<SearchIndexCandidate[]> {
@@ -40,6 +41,7 @@ class FakeSearchStore extends PublishedEventSearch {
 class FakeEmbeddingProvider extends EmbeddingProvider {
   readonly model = 'test-model';
   readonly dimensions = 3;
+  queryCalls = 0;
 
   constructor(
     private readonly configured: boolean,
@@ -53,6 +55,7 @@ class FakeEmbeddingProvider extends EmbeddingProvider {
   }
 
   embedQuery(): Promise<readonly number[]> {
+    this.queryCalls += 1;
     return this.shouldFail
       ? Promise.reject(new Error('provider unavailable'))
       : Promise.resolve([1, 0, 0]);
@@ -108,6 +111,65 @@ describe('SearchEventsService', () => {
     ).resolves.toMatchObject({ total: 1 });
     expect(store.hybridCalls).toBe(0);
     expect(store.lexicalCalls).toBe(1);
+  });
+
+  it('keeps indexed lexical suggestions ahead of semantic retrieval', async () => {
+    const store = new FakeSearchStore();
+    store.suggestionResults = [
+      {
+        kind: 'CATEGORY',
+        label: 'Shows',
+        value: 'Shows',
+        slug: null,
+      },
+    ];
+    const embeddings = new FakeEmbeddingProvider(true);
+    const service = new SearchEventsService(
+      store,
+      embeddings,
+      new FakeImages(),
+    );
+
+    await expect(service.suggestions('show', 8)).resolves.toEqual(
+      store.suggestionResults,
+    );
+    expect(embeddings.queryCalls).toBe(0);
+    expect(store.hybridCalls).toBe(0);
+  });
+
+  it('returns semantic event suggestions when lexical autocomplete is empty', async () => {
+    const store = new FakeSearchStore();
+    const embeddings = new FakeEmbeddingProvider(true);
+    const service = new SearchEventsService(
+      store,
+      embeddings,
+      new FakeImages(),
+    );
+
+    await expect(service.suggestions('quero ouvir musica', 8)).resolves.toEqual(
+      [
+        {
+          kind: 'EVENT',
+          label: 'Festival de Jazz',
+          value: 'Festival de Jazz',
+          slug: 'festival-jazz',
+        },
+      ],
+    );
+    expect(embeddings.queryCalls).toBe(1);
+    expect(store.hybridCalls).toBe(1);
+  });
+
+  it('returns no API suggestions when semantic fallback is unavailable', async () => {
+    const store = new FakeSearchStore();
+    const service = new SearchEventsService(
+      store,
+      new FakeEmbeddingProvider(true, true),
+      new FakeImages(),
+    );
+
+    await expect(service.suggestions('quero comida', 8)).resolves.toEqual([]);
+    expect(store.hybridCalls).toBe(0);
   });
 });
 

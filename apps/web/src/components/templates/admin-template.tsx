@@ -1,9 +1,6 @@
 import { AdminHeader } from "@/components/organisms/admin-header";
 import { AppSidebar } from "@/components/organisms/app-sidebar";
-import {
-  SidebarInset,
-  SidebarProvider,
-} from "@/components/ui/sidebar";
+import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import type { AuthUser } from "@/server/auth/auth.types";
 
 export function AdminTemplate({
@@ -22,9 +19,9 @@ export function AdminTemplate({
       }
     >
       <AppSidebar role={user.role} />
-      <SidebarInset>
+      <SidebarInset className="min-w-0">
         <AdminHeader user={user} />
-        <div className="flex min-w-0 flex-1 flex-col overflow-auto p-4 md:p-6 lg:p-8">
+        <div className="flex min-w-0 flex-1 flex-col p-4 md:p-6 lg:p-8">
           {children}
         </div>
       </SidebarInset>

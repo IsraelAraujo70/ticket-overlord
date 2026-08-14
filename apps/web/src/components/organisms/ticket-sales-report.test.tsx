@@ -20,6 +20,7 @@ describe('TicketSalesReport', () => {
     expect(screen.getByDisplayValue('Tech')).toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Últimos 7 dias' })).toBeInTheDocument();
     expect(screen.queryByText('Pedidos')).not.toBeInTheDocument();
+    expect(screen.getByRole('table').parentElement).toHaveClass('overflow-x-auto');
   });
 
   it('directs an empty report toward search or publication', () => {
