@@ -5,7 +5,6 @@ import {
   ChartNoAxesCombinedIcon,
   ClipboardCheckIcon,
   DoorOpenIcon,
-  ShoppingBagIcon,
   TicketCheckIcon,
 } from "lucide-react";
 import Link from "next/link";
@@ -31,7 +30,6 @@ const navItems = [
   { title: "Visão geral", icon: ChartNoAxesCombinedIcon, href: "/admin" },
   { title: "Eventos", icon: CalendarDaysIcon, href: "/admin/eventos" },
   { title: "Ingressos", icon: TicketCheckIcon, href: "/admin/ingressos" },
-  { title: "Pedidos", icon: ShoppingBagIcon, href: "/admin/pedidos" },
   { title: "Portaria", icon: ClipboardCheckIcon, href: "/admin/portaria" },
 ];
 
