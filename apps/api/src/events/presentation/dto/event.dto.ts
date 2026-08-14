@@ -30,10 +30,10 @@ export class EventListQueryDto {
   @Max(100)
   pageSize = 48;
 
-  @ApiPropertyOptional({ maxLength: 100 })
+  @ApiPropertyOptional({ minLength: 2, maxLength: 100 })
   @IsOptional()
   @IsString()
-  @Length(1, 100)
+  @Length(2, 100)
   search?: string;
 }
 

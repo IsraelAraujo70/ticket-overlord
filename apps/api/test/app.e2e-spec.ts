@@ -324,7 +324,7 @@ describe('Ticket Overlord API (e2e)', () => {
         });
         expect(parameters.find(({ name }) => name === 'search')).toMatchObject({
           in: 'query',
-          schema: { type: 'string', maxLength: 100 },
+          schema: { type: 'string', minLength: 2, maxLength: 100 },
         });
       });
   });
@@ -710,6 +710,9 @@ describe('Ticket Overlord API (e2e)', () => {
       .get('/events/published')
       .expect(200)
       .expect({ items: [], total: 0, page: 1, pageSize: 48 });
+    await request(app.getHttpServer())
+      .get('/events/published?search=a')
+      .expect(400);
 
     const eventId = (created.body as { id: string }).id;
     await request(app.getHttpServer())

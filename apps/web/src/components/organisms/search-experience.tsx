@@ -12,6 +12,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import type { CatalogResponse } from "@/features/catalog/catalog.types";
 import type { AuthUser } from "@/server/auth/auth.types";
 
+const MINIMUM_SEARCH_LENGTH = 2;
+
 export function SearchExperience({
   initialQuery,
   user = null,
@@ -19,12 +21,18 @@ export function SearchExperience({
   initialQuery: string;
   user?: AuthUser | null;
 }) {
+  const isQueryTooShort =
+    initialQuery.length > 0 && initialQuery.length < MINIMUM_SEARCH_LENGTH;
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(!isQueryTooShort);
   const [error, setError] = useState(false);
   const [page, setPage] = useState(1);
 
   const loadResults = useCallback(async (signal?: AbortSignal) => {
+    if (isQueryTooShort) {
+      return;
+    }
+
     setIsLoading(true);
     setError(false);
 
@@ -40,12 +48,19 @@ export function SearchExperience({
         setIsLoading(false);
       }
     }
-  }, [initialQuery, page]);
+  }, [initialQuery, isQueryTooShort, page]);
 
   useEffect(() => {
+    if (isQueryTooShort) {
+      return;
+    }
+
     const controller = new AbortController();
     requestResults(initialQuery, page, controller.signal)
-      .then(setCatalog)
+      .then((result) => {
+        setCatalog(result);
+        setError(false);
+      })
       .catch((requestError: unknown) => {
         if (!(requestError instanceof DOMException && requestError.name === "AbortError")) {
           setError(true);
@@ -58,17 +73,37 @@ export function SearchExperience({
       });
 
     return () => controller.abort();
-  }, [initialQuery, page]);
+  }, [initialQuery, isQueryTooShort, page]);
 
   const events = catalog?.sections.flatMap((section) => section.events) ?? [];
 
   return (
     <div className="min-h-screen bg-background">
-      <PublicHeader isLoading={isLoading} query={initialQuery} user={user} />
-      <main aria-busy={isLoading}>
+      <PublicHeader
+        isLoading={!isQueryTooShort && isLoading}
+        query={initialQuery}
+        user={user}
+      />
+      <main aria-busy={!isQueryTooShort && isLoading}>
         <SearchHeading query={initialQuery} total={catalog?.meta.total} />
-        {isLoading ? <SearchLoading /> : null}
-        {!isLoading && error ? (
+        {isQueryTooShort ? (
+          <SearchMessage
+            icon={SearchXIcon}
+            title="Digite pelo menos 2 caracteres"
+            description="Use uma atração, cidade ou categoria com pelo menos dois caracteres."
+            action={
+              <Button
+                variant="outline"
+                nativeButton={false}
+                render={<Link href="/" />}
+              >
+                Ver todos os eventos
+              </Button>
+            }
+          />
+        ) : null}
+        {!isQueryTooShort && isLoading ? <SearchLoading /> : null}
+        {!isQueryTooShort && !isLoading && error ? (
           <SearchMessage
             icon={AlertCircleIcon}
             title="Não foi possível buscar eventos"
@@ -76,7 +111,7 @@ export function SearchExperience({
             action={<Button onClick={() => void loadResults()}>Tentar novamente</Button>}
           />
         ) : null}
-        {!isLoading && !error && catalog && events.length > 0 ? (
+        {!isQueryTooShort && !isLoading && !error && catalog && events.length > 0 ? (
           <section aria-label="Resultados da busca">
             <div className="mx-auto max-w-7xl px-5 py-10 lg:px-8 lg:py-14">
               <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -92,7 +127,7 @@ export function SearchExperience({
             </div>
           </section>
         ) : null}
-        {!isLoading && !error && catalog && events.length === 0 ? (
+        {!isQueryTooShort && !isLoading && !error && catalog && events.length === 0 ? (
           <SearchMessage
             icon={SearchXIcon}
             title="Nenhum evento encontrado"

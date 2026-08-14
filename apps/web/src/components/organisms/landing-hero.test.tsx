@@ -84,4 +84,25 @@ describe("LandingHero", () => {
 
     expect(screen.getByRole("heading", { name: "Frequência Urbana" })).toBeInTheDocument();
   });
+
+  it("lets long featured content define the hero height", () => {
+    mockMotionPreference(true);
+    render(
+      <LandingHero
+        events={[
+          {
+            ...highlights[0],
+            title: "Festival Overlord de Música Brasileira Independente",
+            summary: "Uma programação extensa que precisa permanecer inteiramente visível.",
+          },
+        ]}
+      />,
+    );
+
+    const heading = screen.getByRole("heading", {
+      name: "Festival Overlord de Música Brasileira Independente",
+    });
+    expect(heading.parentElement?.parentElement?.parentElement).toHaveClass("relative");
+    expect(screen.getByText(/programação extensa/)).toBeInTheDocument();
+  });
 });

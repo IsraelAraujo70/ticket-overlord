@@ -61,7 +61,7 @@ export function LandingHero({ events }: { events: CatalogEvent[] }) {
     >
       <div
         key={event.id}
-        className="animate-in fade-in absolute inset-0 duration-700 motion-reduce:animate-none"
+        className="animate-in fade-in relative duration-700 motion-reduce:animate-none"
         aria-live={isPaused ? "polite" : "off"}
         aria-atomic="true"
       >
@@ -75,7 +75,7 @@ export function LandingHero({ events }: { events: CatalogEvent[] }) {
           className="object-cover"
         />
         <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(7,10,23,0.94)_0%,rgba(7,10,23,0.72)_42%,rgba(7,10,23,0.12)_78%)]" />
-        <div className="relative mx-auto flex min-h-[31rem] max-w-7xl items-end px-5 py-14 lg:px-8 lg:py-16">
+        <div className="relative mx-auto flex min-h-[31rem] max-w-7xl items-end px-5 pt-14 pb-24 lg:px-8 lg:pt-16 lg:pb-24">
           <div className="max-w-2xl space-y-5">
             <div className="flex items-center gap-3">
               <Badge className="bg-ticket-coral text-ticket-coral-foreground">

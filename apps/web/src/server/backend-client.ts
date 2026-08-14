@@ -5,6 +5,13 @@ export interface BackendErrorBody {
   message?: string | string[];
 }
 
+interface BackendRequestInit extends RequestInit {
+  next?: {
+    revalidate?: number | false;
+    tags?: string[];
+  };
+}
+
 export class BackendRequestError extends Error {
   constructor(
     readonly status: number,
@@ -19,9 +26,10 @@ export function backendBaseUrl(): string {
   return (process.env.API_BASE_URL ?? "http://localhost:3001").replace(/\/$/, "");
 }
 
+/** Calls the API privately unless the caller explicitly supplies a Next.js cache policy. */
 export async function backendRequest<T>(
   path: string,
-  init?: RequestInit,
+  init?: BackendRequestInit,
 ): Promise<T> {
   let response: Response;
 
@@ -35,7 +43,7 @@ export async function backendRequest<T>(
           : {}),
         ...init?.headers,
       },
-      cache: "no-store",
+      cache: init?.cache ?? (init?.next ? undefined : "no-store"),
     });
   } catch {
     throw new BackendRequestError(

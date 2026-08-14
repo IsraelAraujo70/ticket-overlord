@@ -1,6 +1,6 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import type {
   AdminEvent,
   EventActionState,
@@ -9,6 +9,7 @@ import type {
 } from "@/features/events/event.types";
 import { backendRequest, BackendRequestError } from "@/server/backend-client";
 import { getSessionToken } from "@/server/auth/session";
+import { PUBLISHED_EVENTS_CACHE_TAG } from "@/server/events/event-cache";
 
 const allowedImageTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
 const maxImageBytes = 5 * 1024 * 1024;
@@ -172,6 +173,7 @@ export async function publishEventAction(
   }
 
   revalidatePath("/admin/eventos");
+  updateTag(PUBLISHED_EVENTS_CACHE_TAG);
   revalidatePath("/");
   revalidatePath("/search");
   return { status: "success" };

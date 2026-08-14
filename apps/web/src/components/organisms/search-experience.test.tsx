@@ -40,6 +40,23 @@ describe("SearchExperience", () => {
     expect(screen.getByLabelText("Buscando eventos")).toBeInTheDocument();
   });
 
+  it("explains the minimum query length without calling the catalog", () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(<SearchExperience initialQuery="a" />);
+
+    expect(
+      screen.getByRole("heading", { name: "Digite pelo menos 2 caracteres" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText("Buscando eventos")).not.toBeInTheDocument();
+    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.getByLabelText("Pesquisar eventos")).toHaveAttribute(
+      "minlength",
+      "2",
+    );
+  });
+
   it("shows an error state when the search request fails", async () => {
     vi.stubGlobal("fetch", vi.fn(() => jsonResponse(results, false)));
     render(<SearchExperience initialQuery="fre" />);

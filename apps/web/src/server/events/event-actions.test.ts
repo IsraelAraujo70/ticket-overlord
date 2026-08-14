@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
+vi.mock("next/cache", () => ({ revalidatePath: vi.fn(), updateTag: vi.fn() }));
 vi.mock("@/server/auth/session", () => ({ getSessionToken: vi.fn() }));
 vi.mock("@/server/backend-client", () => ({
   BackendRequestError: class BackendRequestError extends Error {
@@ -9,7 +9,7 @@ vi.mock("@/server/backend-client", () => ({
   backendRequest: vi.fn(),
 }));
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { getSessionToken } from "@/server/auth/session";
 import { backendRequest } from "@/server/backend-client";
 import { initialEventActionState } from "@/features/events/event.types";
@@ -128,6 +128,7 @@ describe("event actions", () => {
     expect(revalidatePath).toHaveBeenCalledWith("/admin/eventos");
     expect(revalidatePath).toHaveBeenCalledWith("/");
     expect(revalidatePath).toHaveBeenCalledWith("/search");
+    expect(updateTag).toHaveBeenCalledWith("published-events");
   });
 });
 

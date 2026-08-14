@@ -3,6 +3,10 @@ import "server-only";
 import { backendRequest } from "@/server/backend-client";
 import { getSessionToken } from "@/server/auth/session";
 import type { AdminEvent } from "@/features/events/event.types";
+import {
+  PUBLISHED_EVENTS_CACHE_TAG,
+  PUBLISHED_EVENTS_REVALIDATE_SECONDS,
+} from "@/server/events/event-cache";
 
 export interface EventPage {
   items: AdminEvent[];
@@ -29,10 +33,22 @@ export async function listOrganizerEvents(page = 1, search = ""): Promise<EventP
   });
 }
 
+/** Lists public events with a short shared cache only for unfiltered catalog pages. */
 export async function listPublishedEvents(page = 1, search = ""): Promise<EventPage> {
   const params = new URLSearchParams({ page: String(page), pageSize: "48" });
-  if (search.trim()) params.set("search", search.trim().slice(0, 100));
-  return backendRequest<EventPage>(`/events/published?${params.toString()}`);
+  const normalizedSearch = search.trim().slice(0, 100);
+  if (normalizedSearch) params.set("search", normalizedSearch);
+
+  return backendRequest<EventPage>(`/events/published?${params.toString()}`, {
+    ...(normalizedSearch
+      ? {}
+      : {
+          next: {
+            revalidate: PUBLISHED_EVENTS_REVALIDATE_SECONDS,
+            tags: [PUBLISHED_EVENTS_CACHE_TAG],
+          },
+        }),
+  });
 }
 
 export async function organizerCoverUrl(eventId: string): Promise<string> {
