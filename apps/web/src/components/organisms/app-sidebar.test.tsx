@@ -24,7 +24,6 @@ describe("AppSidebar", () => {
     ["Visão geral", "/admin"],
     ["Eventos", "/admin/eventos"],
     ["Ingressos", "/admin/ingressos"],
-    ["Pedidos", "/admin/pedidos"],
     ["Portaria", "/admin/portaria"],
   ])("links %s to %s", (title, href) => {
     render(
@@ -67,5 +66,15 @@ describe("AppSidebar", () => {
     );
 
     expect(screen.queryByRole("link", { name: "Portaria" })).not.toBeInTheDocument();
+  });
+
+  it("does not expose the unused orders section", () => {
+    render(
+      <SidebarProvider>
+        <AppSidebar role="ORGANIZER" />
+      </SidebarProvider>,
+    );
+
+    expect(screen.queryByRole("link", { name: "Pedidos" })).not.toBeInTheDocument();
   });
 });

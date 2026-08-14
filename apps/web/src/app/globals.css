@@ -183,6 +183,26 @@
     content: "";
   }
 
+  .report-ticket {
+    position: relative;
+  }
+
+  .report-ticket::after {
+    position: absolute;
+    right: 1.25rem;
+    bottom: -0.4rem;
+    left: 1.25rem;
+    height: 0.8rem;
+    background-image: radial-gradient(
+      circle,
+      var(--background) 0.28rem,
+      transparent 0.3rem
+    );
+    background-position: left center;
+    background-size: 1.1rem 0.8rem;
+    content: "";
+  }
+
   @media (min-width: 48rem) {
     .ticket-card {
       grid-template-columns: 10rem 1fr;

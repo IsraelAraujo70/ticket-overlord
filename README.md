@@ -134,6 +134,8 @@ Autocomplete e FTS também funcionam sem serviço externo. Para habilitar a recu
 
 - Cada unidade de uma compra aprovada gera um ingresso individual com QR Code assinado por Ed25519 e código manual.
 - `/meus-ingressos` lista a carteira do cliente; cada ingresso pode ser aberto e compartilhado por um link secreto somente para visualização.
+- `/admin` resume compras, ingressos vendidos, receita e check-ins em períodos móveis de 7, 30 e 90 dias ou em todo o histórico.
+- `/admin/ingressos` apresenta o relatório paginado por evento, com ocupação e disponibilidade acumuladas. Organizadores veem somente a própria organização e o administrador global opera em modo somente leitura.
 - `/admin/portaria` permite que organizador ou staff leia o QR pela câmera ou informe o código manual para eventos da própria organização.
 - A validação é atômica, aceita um ingresso somente uma vez e apenas no dia do evento em `America/Sao_Paulo`.
 

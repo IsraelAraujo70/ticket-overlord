@@ -8,6 +8,7 @@ import { CheckoutModule } from './checkout/checkout.module';
 import { validateEnvironment } from './config/environment';
 import { DatabaseModule } from './database/database.module';
 import { EventsModule } from './events/events.module';
+import { ReportingModule } from './reporting/reporting.module';
 import { SearchModule } from './search/search.module';
 import { TicketsModule } from './tickets/tickets.module';
 
@@ -26,6 +27,7 @@ import { TicketsModule } from './tickets/tickets.module';
     SearchModule,
     CheckoutModule,
     TicketsModule,
+    ReportingModule,
   ],
   controllers: [AppController],
   providers: [AppService],
