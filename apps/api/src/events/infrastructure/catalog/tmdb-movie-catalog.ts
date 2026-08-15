@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ExternalMovieCatalog } from '../../application/ports/external-movie-catalog';
 import { EventError } from '../../domain/event.errors';
-import type { ExternalMovie } from '../../domain/event.types';
+import type { ExternalMovie } from '../../application/models/event.models';
 
 interface TmdbMovie {
   id: number;

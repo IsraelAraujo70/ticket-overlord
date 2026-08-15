@@ -1,17 +1,17 @@
 import { Injectable } from '@nestjs/common';
-import { presentEvent } from '../../events/application/create-event.service';
+import { presentEvent } from '../../events/application/event-presenter';
 import { EventImageStorage } from '../../events/application/ports/event-image-storage';
 import type {
   PresentedSearchEventPage,
   SearchSuggestion,
-} from '../domain/search.types';
+} from './models/search.models';
 import { EmbeddingProvider } from './ports/embedding-provider';
-import { PublishedEventSearch } from './ports/published-event-search';
+import { PublishedEventSearchReader } from './ports/published-event-search';
 
 @Injectable()
 export class SearchEventsService {
   constructor(
-    private readonly searchStore: PublishedEventSearch,
+    private readonly searchStore: PublishedEventSearchReader,
     private readonly embeddings: EmbeddingProvider,
     private readonly images: EventImageStorage,
   ) {}

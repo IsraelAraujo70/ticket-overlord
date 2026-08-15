@@ -6,11 +6,12 @@ import {
   EVENT_IMAGE_MAX_BYTES,
   EVENT_IMAGE_TYPES,
   type EventImageType,
-  type EventRecord,
-  type PresentedEvent,
 } from '../domain/event.types';
+import type { PresentedEvent } from './models/event.models';
+import { organizerOrganization } from './event-access';
+import { presentEvent } from './event-presenter';
 import { EventImageStorage } from './ports/event-image-storage';
-import { EventStore } from './ports/event-store';
+import { EventDraftWriter } from './ports/event-store';
 import { ExternalMovieCatalog } from './ports/external-movie-catalog';
 
 export interface CreateEventCommand {
@@ -30,7 +31,7 @@ export interface CreateEventCommand {
 export class CreateEventService {
   constructor(
     private readonly catalog: ExternalMovieCatalog,
-    private readonly store: EventStore,
+    private readonly store: EventDraftWriter,
     private readonly images: EventImageStorage,
   ) {}
 
@@ -147,37 +148,6 @@ export class CreateEventService {
       sourceImageUrl: null,
     };
   }
-}
-
-/** Ensures event mutations always belong to an organizer organization. */
-export function organizerOrganization(user: AuthenticatedUser): string {
-  if (user.role !== 'ORGANIZER') {
-    throw new EventError(
-      'ORGANIZER_REQUIRED',
-      'Somente organizadores podem gerenciar eventos.',
-    );
-  }
-
-  if (!user.organizationId) {
-    throw new EventError(
-      'ORGANIZATION_REQUIRED',
-      'A conta precisa estar vinculada a uma organização.',
-    );
-  }
-
-  return user.organizationId;
-}
-
-/** Converts a stored object key into a response with a short-lived read URL. */
-export async function presentEvent(
-  event: EventRecord,
-  images: EventImageStorage,
-): Promise<PresentedEvent> {
-  const { coverObjectKey, ...stored } = event;
-  return {
-    ...stored,
-    coverUrl: await images.createReadUrl(coverObjectKey),
-  };
 }
 
 function validateImage(buffer: Buffer): {

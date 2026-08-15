@@ -1,15 +1,13 @@
 import { Injectable } from '@nestjs/common';
 import type { AuthenticatedUser } from '../../auth/domain/auth.types';
 import { TicketError } from '../domain/ticket.errors';
-import type {
-  GateEventView,
-  GateValidationResult,
-} from '../domain/ticket.types';
-import { TicketStore } from './ports/ticket-store';
+import type { GateEventView } from './models/ticket.models';
+import type { GateValidationResult } from '../domain/ticket.types';
+import { GateTicketStore } from './ports/ticket-store';
 
 @Injectable()
 export class GateService {
-  constructor(private readonly store: TicketStore) {}
+  constructor(private readonly store: GateTicketStore) {}
 
   events(user: AuthenticatedUser): Promise<GateEventView[]> {
     return this.store.listGateEvents(organizationId(user));

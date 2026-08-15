@@ -6,7 +6,7 @@ import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
 import type { UserRole } from '../auth/domain/user-role';
 import { ScryptPasswordHasher } from '../auth/infrastructure/security/scrypt-password-hasher';
-import { PostgresTicketStore } from '../tickets/infrastructure/persistence/postgres-ticket-store';
+import { issuePaidReservationTickets } from '../tickets/infrastructure/persistence/issue-paid-reservation-tickets';
 import { events, organizationMembers, organizations, users } from './schema';
 
 const connectionString = process.env.DATABASE_URL;
@@ -535,7 +535,6 @@ async function run(): Promise<void> {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    const ticketStore = new PostgresTicketStore(pool);
     for (const [index, event] of demoEvents.entries()) {
       const purchase = demoPurchases[index];
       if (!purchase) throw new Error(`Missing demo purchase for ${event.id}.`);
@@ -580,7 +579,7 @@ async function run(): Promise<void> {
           purchase.paymentKey,
         ],
       );
-      await ticketStore.issueForPaidReservation(client, {
+      await issuePaidReservationTickets(client, {
         reservationId: purchase.reservationId,
         eventId: event.id,
         customerId: customerOneId,

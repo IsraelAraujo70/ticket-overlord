@@ -1,12 +1,8 @@
-import type { EventRecord } from '../../events/domain/event.types';
-import type {
-  SearchEventPage,
-  SearchIndexCandidate,
-  SearchSuggestion,
-} from '../domain/search.types';
+import type { EventRecord } from '../../events/application/models/event.models';
+import type { SearchIndexCandidate } from './models/search.models';
 import { BackfillSearchEmbeddingsService } from './backfill-search-embeddings.service';
 import { EmbeddingProvider } from './ports/embedding-provider';
-import { PublishedEventSearch } from './ports/published-event-search';
+import { SearchEmbeddingIndexStore } from './ports/published-event-search';
 
 class FakeEmbeddingProvider extends EmbeddingProvider {
   readonly model = 'test-model';
@@ -25,19 +21,10 @@ class FakeEmbeddingProvider extends EmbeddingProvider {
   }
 }
 
-class FakeSearchStore extends PublishedEventSearch {
+class FakeSearchStore extends SearchEmbeddingIndexStore {
   private indexedHash: string | null = null;
   private indexedModel: string | null = null;
 
-  searchLexical(): Promise<SearchEventPage> {
-    throw new Error('Not implemented for this test.');
-  }
-  searchHybrid(): Promise<SearchEventPage> {
-    throw new Error('Not implemented for this test.');
-  }
-  suggest(): Promise<SearchSuggestion[]> {
-    throw new Error('Not implemented for this test.');
-  }
   listIndexCandidates(
     afterEventId: string | null,
   ): Promise<SearchIndexCandidate[]> {

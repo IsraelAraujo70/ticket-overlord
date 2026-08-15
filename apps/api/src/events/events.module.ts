@@ -7,7 +7,11 @@ import { CreateEventService } from './application/create-event.service';
 import { ListEventsService } from './application/list-events.service';
 import { PublishEventService } from './application/publish-event.service';
 import { EventImageStorage } from './application/ports/event-image-storage';
-import { EventStore } from './application/ports/event-store';
+import {
+  EventCatalogReader,
+  EventDraftWriter,
+  EventPublisher,
+} from './application/ports/event-store';
 import { ExternalMovieCatalog } from './application/ports/external-movie-catalog';
 import { SearchExternalMoviesService } from './application/search-external-movies.service';
 import { TmdbMovieCatalog } from './infrastructure/catalog/tmdb-movie-catalog';
@@ -27,7 +31,10 @@ import { ExternalCatalogController } from './presentation/external-catalog.contr
     SearchExternalMoviesService,
     EventExceptionFilter,
     { provide: ExternalMovieCatalog, useClass: TmdbMovieCatalog },
-    { provide: EventStore, useClass: DrizzleEventStore },
+    DrizzleEventStore,
+    { provide: EventDraftWriter, useExisting: DrizzleEventStore },
+    { provide: EventPublisher, useExisting: DrizzleEventStore },
+    { provide: EventCatalogReader, useExisting: DrizzleEventStore },
     { provide: EventImageStorage, useClass: S3EventImageStorage },
   ],
   exports: [EventImageStorage],

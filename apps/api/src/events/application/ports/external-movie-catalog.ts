@@ -1,4 +1,4 @@
-import type { ExternalMovie } from '../../domain/event.types';
+import type { ExternalMovie } from '../models/event.models';
 
 export abstract class ExternalMovieCatalog {
   abstract search(query: string): Promise<ExternalMovie[]>;

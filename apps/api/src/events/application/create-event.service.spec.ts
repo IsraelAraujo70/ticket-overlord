@@ -4,9 +4,9 @@ import {
   EventImageStorage,
   type StoreEventImageInput,
 } from './ports/event-image-storage';
-import { EventStore, type CreateEventRecord } from './ports/event-store';
+import { EventDraftWriter, type CreateEventRecord } from './ports/event-store';
 import { ExternalMovieCatalog } from './ports/external-movie-catalog';
-import type { EventRecord, ExternalMovie } from '../domain/event.types';
+import type { EventRecord, ExternalMovie } from './models/event.models';
 
 const organizer: AuthenticatedUser = {
   id: 'user-1',
@@ -56,7 +56,7 @@ class FakeImageStorage extends EventImageStorage {
   }
 }
 
-class FakeEventStore extends EventStore {
+class FakeEventStore extends EventDraftWriter {
   created: CreateEventRecord[] = [];
   failure: Error | null = null;
 
@@ -68,34 +68,6 @@ class FakeEventStore extends EventStore {
       createdAt: new Date('2026-08-11T18:00:00Z'),
       updatedAt: new Date('2026-08-11T18:00:00Z'),
     });
-  }
-
-  publishDraftForOrganization(): Promise<EventRecord | null> {
-    return Promise.resolve(null);
-  }
-
-  listForOrganization(): Promise<EventRecord[]> {
-    return Promise.resolve([]);
-  }
-
-  listAll(): Promise<EventRecord[]> {
-    return Promise.resolve([]);
-  }
-
-  listPublished(): Promise<EventRecord[]> {
-    return Promise.resolve([]);
-  }
-
-  findForOrganization(): Promise<EventRecord | null> {
-    return Promise.resolve(null);
-  }
-
-  findById(): Promise<EventRecord | null> {
-    return Promise.resolve(null);
-  }
-
-  findPublished(): Promise<EventRecord | null> {
-    return Promise.resolve(null);
   }
 }
 

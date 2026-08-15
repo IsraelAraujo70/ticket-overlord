@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
+  Inject,
   Injectable,
   Logger,
   OnApplicationShutdown,
@@ -8,16 +9,20 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { createClient, type RedisClientType } from 'redis';
+import { HOLD_POLICY } from '../../checkout.constants';
 import {
-  InventoryHoldStore,
+  HoldMaintenanceStore,
+  HoldReconciliationStore,
+  InventoryAvailabilityStore,
+  PaymentHoldStore,
+  ReservationHoldStore,
   type EventInventorySnapshot,
   type ProcessingHold,
 } from '../../application/ports/inventory-hold-store';
 import { CheckoutError } from '../../domain/checkout.errors';
-import type { ReservationRecord } from '../../domain/checkout.types';
+import type { HoldPolicy } from '../../domain/hold-policy';
+import type { ReservationRecord } from '../../application/models/checkout.models';
 
-const HOLD_DURATION_MS = 10 * 60 * 1000;
-const PROCESSING_TIMEOUT_MS = 30 * 1000;
 const scriptNames = [
   'init',
   'create',
@@ -31,8 +36,14 @@ type ScriptName = (typeof scriptNames)[number];
 
 @Injectable()
 export class RedisInventoryHoldStore
-  extends InventoryHoldStore
-  implements OnModuleInit, OnApplicationShutdown
+  implements
+    InventoryAvailabilityStore,
+    ReservationHoldStore,
+    PaymentHoldStore,
+    HoldReconciliationStore,
+    HoldMaintenanceStore,
+    OnModuleInit,
+    OnApplicationShutdown
 {
   private readonly logger = new Logger(RedisInventoryHoldStore.name);
   private readonly client: RedisClientType;
@@ -41,8 +52,10 @@ export class RedisInventoryHoldStore
     { source: string; sha?: string }
   >();
 
-  constructor(config: ConfigService) {
-    super();
+  constructor(
+    config: ConfigService,
+    @Inject(HOLD_POLICY) private readonly policy: HoldPolicy,
+  ) {
     this.client = createClient({
       url: config.getOrThrow<string>('REDIS_URL'),
       disableOfflineQueue: true,
@@ -141,7 +154,7 @@ export class RedisInventoryHoldStore
   ): Promise<ReservationRecord> {
     const id = crypto.randomUUID();
     const now = Date.now();
-    const expiresAt = now + HOLD_DURATION_MS;
+    const expiresAt = now + this.policy.durationMs;
     const result = await this.run(
       'create',
       [
@@ -234,7 +247,7 @@ export class RedisInventoryHoldStore
         input.idempotencyKey,
         input.outcome,
         input.reservationId,
-        String(PROCESSING_TIMEOUT_MS),
+        String(this.policy.processingTimeoutMs),
       ],
     );
     if (result[0] === 'MISSING')
@@ -296,7 +309,7 @@ export class RedisInventoryHoldStore
         String(hold.fencingToken),
         hold.id,
         processingMember(hold),
-        String(HOLD_DURATION_MS),
+        String(this.policy.durationMs),
       ],
     );
   }

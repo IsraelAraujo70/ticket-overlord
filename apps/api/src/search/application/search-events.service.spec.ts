@@ -1,16 +1,15 @@
-import type { EventRecord } from '../../events/domain/event.types';
+import type { EventRecord } from '../../events/application/models/event.models';
 import { EventImageStorage } from '../../events/application/ports/event-image-storage';
 import type {
   SearchEventPage,
-  SearchIndexCandidate,
   SearchQuery,
   SearchSuggestion,
-} from '../domain/search.types';
+} from './models/search.models';
 import { EmbeddingProvider } from './ports/embedding-provider';
-import { PublishedEventSearch } from './ports/published-event-search';
+import { PublishedEventSearchReader } from './ports/published-event-search';
 import { SearchEventsService } from './search-events.service';
 
-class FakeSearchStore extends PublishedEventSearch {
+class FakeSearchStore extends PublishedEventSearchReader {
   lexicalCalls = 0;
   hybridCalls = 0;
   suggestionResults: SearchSuggestion[] = [];
@@ -27,14 +26,6 @@ class FakeSearchStore extends PublishedEventSearch {
 
   suggest(): Promise<SearchSuggestion[]> {
     return Promise.resolve(this.suggestionResults);
-  }
-
-  listIndexCandidates(): Promise<SearchIndexCandidate[]> {
-    return Promise.resolve([]);
-  }
-
-  upsertEmbeddings(): Promise<void> {
-    return Promise.resolve();
   }
 }
 

@@ -3,7 +3,7 @@ import { IsEnum, IsInt, IsUUID, Max, Min } from 'class-validator';
 import type {
   PaymentResult,
   ReservationRecord,
-} from '../../domain/checkout.types';
+} from '../../application/models/checkout.models';
 
 export class CreateReservationDto {
   @ApiProperty({ format: 'uuid' })

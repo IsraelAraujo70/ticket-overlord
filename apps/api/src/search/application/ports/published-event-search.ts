@@ -3,15 +3,18 @@ import type {
   SearchIndexCandidate,
   SearchQuery,
   SearchSuggestion,
-} from '../../domain/search.types';
+} from '../models/search.models';
 
-export abstract class PublishedEventSearch {
+export abstract class PublishedEventSearchReader {
   abstract searchLexical(query: SearchQuery): Promise<SearchEventPage>;
   abstract searchHybrid(
     query: SearchQuery,
     embedding: readonly number[],
   ): Promise<SearchEventPage>;
   abstract suggest(query: string, limit: number): Promise<SearchSuggestion[]>;
+}
+
+export abstract class SearchEmbeddingIndexStore {
   abstract listIndexCandidates(
     afterEventId: string | null,
     limit: number,

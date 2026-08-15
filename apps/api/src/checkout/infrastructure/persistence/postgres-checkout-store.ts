@@ -1,21 +1,28 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Pool, PoolClient } from 'pg';
 import { POSTGRES_POOL } from '../../../database/database.constants';
-import { TicketStore } from '../../../tickets/application/ports/ticket-store';
-import { ConfirmedCheckoutStore } from '../../application/ports/confirmed-checkout-store';
+import { issuePaidReservationTickets } from '../../../tickets/infrastructure/persistence/issue-paid-reservation-tickets';
+import {
+  ConfirmedReservationReader,
+  InventorySnapshotReader,
+  InventorySynchronizer,
+  PaymentConfirmationStore,
+  PaymentReconciliationStore,
+  PublishedEventReader,
+} from '../../application/ports/confirmed-checkout-store';
 import type {
   EventInventorySnapshot,
   ProcessingHold,
 } from '../../application/ports/inventory-hold-store';
 import { CheckoutError } from '../../domain/checkout.errors';
 import {
-  MAX_QUANTITY_PER_RESERVATION,
   type PaymentRecord,
   type PaymentResult,
   type PublishedEventDetail,
   type ReservationDetail,
   type ReservationRecord,
-} from '../../domain/checkout.types';
+} from '../../application/models/checkout.models';
+import { MAX_QUANTITY_PER_RESERVATION } from '../../domain/checkout.types';
 
 interface EventRow {
   id: string;
@@ -62,13 +69,16 @@ interface PaymentRow {
 }
 
 @Injectable()
-export class PostgresCheckoutStore extends ConfirmedCheckoutStore {
-  constructor(
-    @Inject(POSTGRES_POOL) private readonly pool: Pool,
-    private readonly tickets: TicketStore,
-  ) {
-    super();
-  }
+export class PostgresCheckoutStore
+  implements
+    PublishedEventReader,
+    InventorySnapshotReader,
+    InventorySynchronizer,
+    ConfirmedReservationReader,
+    PaymentConfirmationStore,
+    PaymentReconciliationStore
+{
+  constructor(@Inject(POSTGRES_POOL) private readonly pool: Pool) {}
 
   async findPublishedEventBySlug(
     slug: string,
@@ -256,7 +266,7 @@ export class PostgresCheckoutStore extends ConfirmedCheckoutStore {
           hold.idempotencyKey,
         ],
       );
-      await this.tickets.issueForPaidReservation(client, {
+      await issuePaidReservationTickets(client, {
         reservationId: hold.id,
         eventId: hold.eventId,
         customerId: hold.customerId,

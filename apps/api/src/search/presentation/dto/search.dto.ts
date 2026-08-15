@@ -2,7 +2,7 @@ import { Transform, Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional, ApiSchema } from '@nestjs/swagger';
 import { IsInt, IsString, Length, Max, Min } from 'class-validator';
 import { EventPageDto } from '../../../events/presentation/dto/event.dto';
-import type { SearchSuggestionKind } from '../../domain/search.types';
+import type { SearchSuggestionKind } from '../../application/models/search.models';
 
 export class SearchQueryDto {
   @ApiProperty({ minLength: 2, maxLength: 100, example: 'festival jazz' })

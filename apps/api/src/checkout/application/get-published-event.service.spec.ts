@@ -1,9 +1,12 @@
 import { EventImageStorage } from '../../events/application/ports/event-image-storage';
 import { CheckoutError } from '../domain/checkout.errors';
-import type { PublishedEventDetail } from '../domain/checkout.types';
+import type { PublishedEventDetail } from './models/checkout.models';
 import { GetPublishedEventService } from './get-published-event.service';
-import { ConfirmedCheckoutStore } from './ports/confirmed-checkout-store';
-import { InventoryHoldStore } from './ports/inventory-hold-store';
+import {
+  InventorySynchronizer,
+  PublishedEventReader,
+} from './ports/confirmed-checkout-store';
+import { InventoryAvailabilityStore } from './ports/inventory-hold-store';
 
 const event: PublishedEventDetail = {
   id: 'event-id',
@@ -38,13 +41,13 @@ describe('GetPublishedEventService', () => {
             'Evento não disponível para venda.',
           ),
         ),
-    } as unknown as ConfirmedCheckoutStore;
+    } as unknown as PublishedEventReader & InventorySynchronizer;
     const available = jest.fn();
-    const holds = { available } as unknown as InventoryHoldStore;
+    const holds = { available } as unknown as InventoryAvailabilityStore;
     const images = {
       createReadUrl: jest.fn().mockResolvedValue('https://example.com/cover'),
     } as unknown as EventImageStorage;
-    const service = new GetPublishedEventService(store, holds, images);
+    const service = new GetPublishedEventService(store, store, holds, images);
 
     await expect(service.bySlug(event.slug)).resolves.toMatchObject({
       id: event.id,

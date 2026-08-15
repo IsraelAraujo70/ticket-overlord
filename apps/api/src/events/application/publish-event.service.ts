@@ -1,15 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import type { AuthenticatedUser } from '../../auth/domain/auth.types';
 import { EventError } from '../domain/event.errors';
-import type { PresentedEvent } from '../domain/event.types';
-import { organizerOrganization, presentEvent } from './create-event.service';
+import type { PresentedEvent } from './models/event.models';
+import { organizerOrganization } from './event-access';
+import { presentEvent } from './event-presenter';
 import { EventImageStorage } from './ports/event-image-storage';
-import { EventStore } from './ports/event-store';
+import { EventPublisher } from './ports/event-store';
 
 @Injectable()
 export class PublishEventService {
   constructor(
-    private readonly store: EventStore,
+    private readonly store: EventPublisher,
     private readonly images: EventImageStorage,
   ) {}
 

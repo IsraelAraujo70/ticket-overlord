@@ -1,17 +1,22 @@
 import { Injectable } from '@nestjs/common';
 import type { AuthenticatedUser } from '../../auth/domain/auth.types';
-import type { PaymentOutcome, PaymentResult } from '../domain/checkout.types';
+import type { PaymentOutcome } from '../domain/checkout.types';
 import { CheckoutError } from '../domain/checkout.errors';
-import { ConfirmedCheckoutStore } from './ports/confirmed-checkout-store';
-import { InventoryHoldStore } from './ports/inventory-hold-store';
+import type { PaymentResult } from './models/checkout.models';
+import { requireCustomer } from './customer-access';
+import {
+  InventorySnapshotReader,
+  PaymentConfirmationStore,
+} from './ports/confirmed-checkout-store';
+import { PaymentHoldStore } from './ports/inventory-hold-store';
 import { PaymentGateway } from './ports/payment-gateway';
-import { requireCustomer } from './reservation.service';
 
 @Injectable()
 export class PaymentService {
   constructor(
-    private readonly store: ConfirmedCheckoutStore,
-    private readonly holds: InventoryHoldStore,
+    private readonly store: PaymentConfirmationStore,
+    private readonly inventory: InventorySnapshotReader,
+    private readonly holds: PaymentHoldStore,
     private readonly gateway: PaymentGateway,
   ) {}
 
@@ -53,7 +58,7 @@ export class PaymentService {
           idempotencyKey,
           outcome,
         });
-        const snapshot = await this.store.inventorySnapshot(hold.eventId);
+        const snapshot = await this.inventory.inventorySnapshot(hold.eventId);
         await this.holds.confirm(hold, snapshot.confirmedQuantity);
       } catch (error) {
         if (

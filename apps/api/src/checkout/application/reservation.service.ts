@@ -6,9 +6,16 @@ import { validateReservationQuantity } from '../domain/reservation';
 import type {
   ReservationDetail,
   ReservationRecord,
-} from '../domain/checkout.types';
-import { ConfirmedCheckoutStore } from './ports/confirmed-checkout-store';
-import { InventoryHoldStore } from './ports/inventory-hold-store';
+} from './models/checkout.models';
+import { requireCustomer } from './customer-access';
+import {
+  ConfirmedReservationReader,
+  InventorySynchronizer,
+} from './ports/confirmed-checkout-store';
+import {
+  InventoryAvailabilityStore,
+  ReservationHoldStore,
+} from './ports/inventory-hold-store';
 
 export type PresentedReservationDetail = Omit<
   ReservationDetail,
@@ -22,8 +29,10 @@ export type PresentedReservationDetail = Omit<
 @Injectable()
 export class ReservationService {
   constructor(
-    private readonly store: ConfirmedCheckoutStore,
-    private readonly holds: InventoryHoldStore,
+    private readonly inventory: InventorySynchronizer,
+    private readonly confirmed: ConfirmedReservationReader,
+    private readonly availability: InventoryAvailabilityStore,
+    private readonly holds: ReservationHoldStore,
     private readonly images: EventImageStorage,
   ) {}
 
@@ -35,8 +44,8 @@ export class ReservationService {
   ): Promise<ReservationRecord> {
     const customerId = requireCustomer(user);
     validateReservationQuantity(quantity);
-    return this.store.synchronizeInventory(eventId, async (snapshot) => {
-      await this.holds.initialize(snapshot);
+    return this.inventory.synchronizeInventory(eventId, async (snapshot) => {
+      await this.availability.initialize(snapshot);
       return this.holds.create({ ...snapshot, customerId, quantity });
     });
   }
@@ -49,7 +58,7 @@ export class ReservationService {
     const customerId = requireCustomer(user);
     const reservation =
       (await this.holds.find(reservationId, customerId)) ??
-      (await this.store.findConfirmed(customerId, reservationId));
+      (await this.confirmed.findConfirmed(customerId, reservationId));
     if (!reservation) {
       throw new CheckoutError(
         'RESERVATION_NOT_FOUND',
@@ -57,7 +66,7 @@ export class ReservationService {
       );
     }
 
-    const event = await this.store.eventSummary(reservation.eventId);
+    const event = await this.confirmed.eventSummary(reservation.eventId);
     if (!event) {
       throw new CheckoutError(
         'RESERVATION_NOT_FOUND',
@@ -82,15 +91,4 @@ export class ReservationService {
       },
     };
   }
-}
-
-/** Restricts checkout operations to customer accounts. */
-export function requireCustomer(user: AuthenticatedUser): string {
-  if (user.role !== 'CUSTOMER') {
-    throw new CheckoutError(
-      'CUSTOMER_REQUIRED',
-      'Somente clientes podem realizar reservas e pagamentos.',
-    );
-  }
-  return user.id;
 }

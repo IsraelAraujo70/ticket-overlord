@@ -16,7 +16,7 @@ import { STRONG_PASSWORD_PATTERN } from '../src/auth/domain/validation/password'
 import { ScryptPasswordHasher } from '../src/auth/infrastructure/security/scrypt-password-hasher';
 import { POSTGRES_POOL } from '../src/database/database.constants';
 import { ExternalMovieCatalog } from '../src/events/application/ports/external-movie-catalog';
-import type { ExternalMovie } from '../src/events/domain/event.types';
+import type { ExternalMovie } from '../src/events/application/models/event.models';
 import { configureOpenApi } from '../src/openapi';
 import { EmbeddingProvider } from '../src/search/application/ports/embedding-provider';
 
