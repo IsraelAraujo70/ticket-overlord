@@ -1,4 +1,5 @@
-import { HttpException, type ExecutionContext } from '@nestjs/common';
+import { type ExecutionContext } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import type { RateLimitOptions } from './rate-limit.decorator';
 import { RateLimitGuard } from './rate-limit.guard';
 
@@ -12,10 +13,7 @@ describe('RateLimitGuard', () => {
 
   it('consumes hashed keys for every configured identity', async () => {
     const consume = jest.fn().mockResolvedValue(true);
-    const guard = new RateLimitGuard(
-      { get: jest.fn().mockReturnValue(options) },
-      { consume },
-    );
+    const guard = new RateLimitGuard(reflector(options), { consume });
 
     await expect(guard.canActivate(context())).resolves.toBe(true);
     expect(consume).toHaveBeenCalledTimes(2);
@@ -35,16 +33,13 @@ describe('RateLimitGuard', () => {
   });
 
   it('rejects the request when a counter is exhausted', async () => {
-    const guard = new RateLimitGuard(
-      { get: jest.fn().mockReturnValue(options) },
-      {
-        consume: jest.fn().mockResolvedValueOnce(true).mockResolvedValue(false),
-      },
-    );
+    const guard = new RateLimitGuard(reflector(options), {
+      consume: jest.fn().mockResolvedValueOnce(true).mockResolvedValue(false),
+    });
 
-    await expect(guard.canActivate(context())).rejects.toMatchObject<
-      Partial<HttpException>
-    >({ status: 429 });
+    await expect(guard.canActivate(context())).rejects.toMatchObject({
+      status: 429,
+    });
   });
 });
 
@@ -59,4 +54,10 @@ function context(): ExecutionContext {
       }),
     }),
   } as unknown as ExecutionContext;
+}
+
+function reflector(options: RateLimitOptions): Reflector {
+  return {
+    get: jest.fn().mockReturnValue(options),
+  } as unknown as Reflector;
 }

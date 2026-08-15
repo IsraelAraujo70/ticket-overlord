@@ -32,4 +32,60 @@ export default tseslint.config(
       'prettier/prettier': ['error', { endOfLine: 'auto' }],
     },
   },
+  {
+    files: ['src/**/domain/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            { name: 'pg', message: 'Domain code cannot depend on PostgreSQL.' },
+            { name: 'redis', message: 'Domain code cannot depend on Redis.' },
+            {
+              name: 'drizzle-orm',
+              message: 'Domain code cannot depend on Drizzle.',
+            },
+          ],
+          patterns: [
+            {
+              group: ['@nestjs/*', '**/infrastructure/**', '**/presentation/**'],
+              message:
+                'Domain code must remain independent from frameworks and adapters.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: ['src/**/application/{ports,models}/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: [
+            {
+              name: 'pg',
+              message: 'Application contracts cannot expose PostgreSQL types.',
+            },
+            {
+              name: 'redis',
+              message: 'Application contracts cannot expose Redis types.',
+            },
+            {
+              name: 'drizzle-orm',
+              message: 'Application contracts cannot expose Drizzle types.',
+            },
+          ],
+          patterns: [
+            {
+              group: ['@nestjs/*', '**/infrastructure/**', '**/presentation/**'],
+              message:
+                'Application contracts must not depend on frameworks or adapters.',
+            },
+          ],
+        },
+      ],
+    },
+  },
 );

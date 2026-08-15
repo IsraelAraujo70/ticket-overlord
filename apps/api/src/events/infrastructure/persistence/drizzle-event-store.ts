@@ -8,14 +8,18 @@ import type {
   EventListQuery,
   EventPage,
 } from '../../application/ports/event-store';
-import { EventStore } from '../../application/ports/event-store';
-import type { EventRecord } from '../../domain/event.types';
+import {
+  EventCatalogReader,
+  EventDraftWriter,
+  EventPublisher,
+} from '../../application/ports/event-store';
+import type { EventRecord } from '../../application/models/event.models';
 
 @Injectable()
-export class DrizzleEventStore extends EventStore {
-  constructor(@Inject(DATABASE) private readonly database: Database) {
-    super();
-  }
+export class DrizzleEventStore
+  implements EventDraftWriter, EventPublisher, EventCatalogReader
+{
+  constructor(@Inject(DATABASE) private readonly database: Database) {}
 
   async create(input: CreateEventRecord): Promise<EventRecord> {
     const [created] = await this.database

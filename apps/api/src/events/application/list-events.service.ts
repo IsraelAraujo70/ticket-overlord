@@ -1,10 +1,11 @@
 import { Injectable } from '@nestjs/common';
 import type { AuthenticatedUser } from '../../auth/domain/auth.types';
 import { EventError } from '../domain/event.errors';
-import type { PresentedEvent } from '../domain/event.types';
-import { organizerOrganization, presentEvent } from './create-event.service';
+import type { PresentedEvent } from './models/event.models';
+import { organizerOrganization } from './event-access';
+import { presentEvent } from './event-presenter';
 import { EventImageStorage } from './ports/event-image-storage';
-import { EventStore } from './ports/event-store';
+import { EventCatalogReader } from './ports/event-store';
 import type { EventListQuery } from './ports/event-store';
 
 export interface PresentedEventPage {
@@ -17,7 +18,7 @@ export interface PresentedEventPage {
 @Injectable()
 export class ListEventsService {
   constructor(
-    private readonly store: EventStore,
+    private readonly store: EventCatalogReader,
     private readonly images: EventImageStorage,
   ) {}
 
@@ -59,7 +60,7 @@ export class ListEventsService {
   }
 
   private async coverUrl(
-    event: Awaited<ReturnType<EventStore['findPublished']>>,
+    event: Awaited<ReturnType<EventCatalogReader['findPublished']>>,
   ): Promise<string> {
     if (!event) {
       throw new EventError('EVENT_NOT_FOUND', 'Evento não encontrado.');
@@ -69,7 +70,7 @@ export class ListEventsService {
   }
 
   private async presentPage(
-    page: Awaited<ReturnType<EventStore['listPublished']>>,
+    page: Awaited<ReturnType<EventCatalogReader['listPublished']>>,
   ): Promise<PresentedEventPage> {
     return {
       ...page,

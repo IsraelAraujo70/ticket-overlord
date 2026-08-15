@@ -1,8 +1,8 @@
 import { createHash } from 'node:crypto';
 import { Injectable, Logger } from '@nestjs/common';
-import type { EventRecord } from '../../events/domain/event.types';
+import type { EventRecord } from '../../events/application/models/event.models';
 import { EmbeddingProvider } from './ports/embedding-provider';
-import { PublishedEventSearch } from './ports/published-event-search';
+import { SearchEmbeddingIndexStore } from './ports/published-event-search';
 
 export interface SearchBackfillResult {
   scanned: number;
@@ -15,7 +15,7 @@ export class BackfillSearchEmbeddingsService {
   private readonly logger = new Logger(BackfillSearchEmbeddingsService.name);
 
   constructor(
-    private readonly searchStore: PublishedEventSearch,
+    private readonly searchStore: SearchEmbeddingIndexStore,
     private readonly embeddings: EmbeddingProvider,
   ) {}
 

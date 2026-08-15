@@ -1,9 +1,9 @@
 import type { AuthenticatedUser } from '../../auth/domain/auth.types';
-import type { EventRecord } from '../domain/event.types';
+import type { EventRecord } from './models/event.models';
 import { ListEventsService } from './list-events.service';
 import { EventImageStorage } from './ports/event-image-storage';
 import {
-  EventStore,
+  EventCatalogReader,
   type EventListQuery,
   type EventPage,
 } from './ports/event-store';
@@ -13,13 +13,7 @@ const events: EventRecord[] = [
   event('event-2', 'organization-2'),
 ];
 
-class FakeEventStore extends EventStore {
-  create(): Promise<EventRecord> {
-    throw new Error('Not implemented for this test.');
-  }
-  publishDraftForOrganization(): Promise<EventRecord | null> {
-    return Promise.resolve(null);
-  }
+class FakeEventStore extends EventCatalogReader {
   listForOrganization(
     organizationId: string,
     query: EventListQuery,

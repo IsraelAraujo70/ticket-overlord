@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import type { AuthenticatedUser } from '../../auth/domain/auth.types';
 import { TicketError } from '../domain/ticket.errors';
-import type { SharedTicketView, TicketView } from '../domain/ticket.types';
-import { TicketStore } from './ports/ticket-store';
+import type { SharedTicketView, TicketView } from './models/ticket.models';
+import { CustomerTicketReader } from './ports/ticket-store';
 
 @Injectable()
 export class TicketQueryService {
-  constructor(private readonly store: TicketStore) {}
+  constructor(private readonly store: CustomerTicketReader) {}
 
   list(user: AuthenticatedUser): Promise<TicketView[]> {
     ensureCustomer(user);

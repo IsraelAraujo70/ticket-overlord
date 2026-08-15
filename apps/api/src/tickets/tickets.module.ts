@@ -2,7 +2,10 @@ import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module';
 import { DatabaseModule } from '../database/database.module';
 import { GateService } from './application/gate.service';
-import { TicketStore } from './application/ports/ticket-store';
+import {
+  CustomerTicketReader,
+  GateTicketStore,
+} from './application/ports/ticket-store';
 import { TicketQueryService } from './application/ticket-query.service';
 import { PostgresTicketStore } from './infrastructure/persistence/postgres-ticket-store';
 import { GateController } from './presentation/gate.controller';
@@ -17,8 +20,9 @@ import { TicketsController } from './presentation/tickets.controller';
     TicketQueryService,
     GateService,
     TicketExceptionFilter,
-    { provide: TicketStore, useClass: PostgresTicketStore },
+    PostgresTicketStore,
+    { provide: CustomerTicketReader, useExisting: PostgresTicketStore },
+    { provide: GateTicketStore, useExisting: PostgresTicketStore },
   ],
-  exports: [TicketStore],
 })
 export class TicketsModule {}

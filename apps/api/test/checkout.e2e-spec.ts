@@ -7,7 +7,7 @@ import { createClient, type RedisClientType } from 'redis';
 import request from 'supertest';
 import type { App } from 'supertest/types';
 import { AppModule } from '../src/app.module';
-import { InventoryHoldStore } from '../src/checkout/application/ports/inventory-hold-store';
+import { PaymentHoldStore } from '../src/checkout/application/ports/inventory-hold-store';
 import { CheckoutError } from '../src/checkout/domain/checkout.errors';
 import { POSTGRES_POOL } from '../src/database/database.constants';
 import { configureOpenApi } from '../src/openapi';
@@ -433,7 +433,7 @@ describe('Checkout API (e2e)', () => {
       2,
     );
     const idempotencyKey = randomUUID();
-    const holds = app.get(InventoryHoldStore);
+    const holds = app.get(PaymentHoldStore);
     const confirm = jest
       .spyOn(holds, 'confirm')
       .mockRejectedValueOnce(

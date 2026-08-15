@@ -4,8 +4,7 @@ import {
   OnApplicationShutdown,
   OnModuleInit,
 } from '@nestjs/common';
-import { ConfirmedCheckoutStore } from '../../application/ports/confirmed-checkout-store';
-import { InventoryHoldStore } from '../../application/ports/inventory-hold-store';
+import { ReconcileProcessingHoldsService } from '../../application/reconcile-processing-holds.service';
 
 @Injectable()
 export class HoldMaintenanceService
@@ -16,8 +15,7 @@ export class HoldMaintenanceService
   private running = false;
 
   constructor(
-    private readonly holds: InventoryHoldStore,
-    private readonly confirmed: ConfirmedCheckoutStore,
+    private readonly reconciliation: ReconcileProcessingHoldsService,
   ) {}
 
   onModuleInit(): void {
@@ -33,23 +31,10 @@ export class HoldMaintenanceService
     if (this.running) return;
     this.running = true;
     try {
-      await this.holds.cleanupExpired();
-      for (const hold of await this.holds.processing()) {
-        try {
-          const reconciliation = await this.confirmed.reconcile(
-            hold.id,
-            hold.eventId,
-          );
-          if (reconciliation.result) {
-            await this.holds.confirm(hold, reconciliation.confirmedQuantity);
-          } else {
-            await this.holds.release(hold);
-          }
-        } catch (error) {
-          this.logger.warn(
-            `Hold ${hold.id} reconciliation skipped: ${error instanceof Error ? error.message : String(error)}`,
-          );
-        }
+      for (const failure of await this.reconciliation.run()) {
+        this.logger.warn(
+          `Hold ${failure.holdId} reconciliation skipped: ${failure.error instanceof Error ? failure.error.message : String(failure.error)}`,
+        );
       }
     } catch (error) {
       this.logger.warn(

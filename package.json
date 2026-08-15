@@ -17,6 +17,7 @@
     "db:up": "docker compose up -d --wait postgres",
     "infra:up": "docker compose up -d --wait postgres redis minio && docker compose run --rm minio-init",
     "lint": "pnpm --recursive --if-present lint",
+    "typecheck": "pnpm --recursive --if-present typecheck",
     "db:migrate": "DATABASE_URL=${DATABASE_URL:-postgresql://ticket_overlord:ticket_overlord@localhost:5432/ticket_overlord} pnpm --filter @ticket-overlord/api db:migrate",
     "db:seed": "DATABASE_URL=${DATABASE_URL:-postgresql://ticket_overlord:ticket_overlord@localhost:5432/ticket_overlord} pnpm --filter @ticket-overlord/api db:seed",
     "db:test:up": "docker compose up -d --wait postgres-test",

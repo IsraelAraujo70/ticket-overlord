@@ -1,4 +1,4 @@
-import type { EventRecord } from '../../domain/event.types';
+import type { EventRecord } from '../models/event.models';
 
 export type CreateEventRecord = Omit<EventRecord, 'createdAt' | 'updatedAt'>;
 
@@ -15,13 +15,23 @@ export interface EventPage {
   pageSize: number;
 }
 
-export abstract class EventStore {
+export abstract class EventDraftWriter {
   abstract create(input: CreateEventRecord): Promise<EventRecord>;
+}
+
+export abstract class EventPublisher {
   abstract publishDraftForOrganization(
     eventId: string,
     organizationId: string,
     publishedAt: Date,
   ): Promise<EventRecord | null>;
+  abstract findForOrganization(
+    eventId: string,
+    organizationId: string,
+  ): Promise<EventRecord | null>;
+}
+
+export abstract class EventCatalogReader {
   abstract listForOrganization(
     organizationId: string,
     query: EventListQuery,

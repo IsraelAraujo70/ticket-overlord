@@ -1,33 +1,26 @@
-import {
-  createHash,
-  createHmac,
-  generateKeyPairSync,
-  randomBytes,
-  randomUUID,
-} from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import type { Pool, PoolClient } from 'pg';
 import type { AuthenticatedUser } from '../../../auth/domain/auth.types';
 import { POSTGRES_POOL } from '../../../database/database.constants';
 import {
-  TicketStore,
-  type IssuedTicketSecret,
+  CustomerTicketReader,
+  GateTicketStore,
 } from '../../application/ports/ticket-store';
 import { isAdmissionDay } from '../../domain/admission-window';
-import { createQrCode, verifyQrCode } from '../../domain/ticket-crypto';
+import { verifyQrCode } from '../../domain/ticket-crypto';
 import type {
   GateEventView,
-  GateValidationResult,
   SharedTicketView,
-  TicketStatus,
   TicketView,
+} from '../../application/models/ticket.models';
+import type {
+  GateValidationResult,
+  TicketStatus,
 } from '../../domain/ticket.types';
-
-interface SigningKeyRow {
-  id: string;
-  public_key_pem: string;
-  private_key_pem: string;
-}
+import {
+  deriveTicketShareToken,
+  hashTicketSecret,
+} from './issue-paid-reservation-tickets';
 
 interface TicketRow {
   id: string;
@@ -55,61 +48,10 @@ interface GateTicketRow {
 }
 
 @Injectable()
-export class PostgresTicketStore extends TicketStore {
-  constructor(@Inject(POSTGRES_POOL) private readonly pool: Pool) {
-    super();
-  }
-
-  async issueForPaidReservation(
-    client: PoolClient,
-    input: {
-      reservationId: string;
-      eventId: string;
-      customerId: string;
-      quantity: number;
-    },
-  ): Promise<IssuedTicketSecret[]> {
-    const existing = await client.query<{ id: string }>(
-      'SELECT id FROM tickets WHERE reservation_id = $1 ORDER BY sequence',
-      [input.reservationId],
-    );
-    if (existing.rowCount === input.quantity) return [];
-
-    const key = await activeSigningKey(client);
-    const issued: IssuedTicketSecret[] = [];
-    for (let sequence = 1; sequence <= input.quantity; sequence += 1) {
-      const id = randomUUID();
-      const manualCode = randomBytes(9).toString('base64url').toUpperCase();
-      const shareToken = deriveShareToken(id, key.private_key_pem);
-      const qrCode = createQrCode(
-        key.id,
-        id,
-        input.eventId,
-        key.private_key_pem,
-      );
-      const inserted = await client.query<{ id: string }>(
-        `INSERT INTO tickets (
-          id, reservation_id, event_id, customer_id, sequence, manual_code,
-          manual_code_hash, share_token_hash, qr_version, signing_key_id, qr_code
-        ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,1,$9,$10)
-        ON CONFLICT (reservation_id, sequence) DO NOTHING RETURNING id`,
-        [
-          id,
-          input.reservationId,
-          input.eventId,
-          input.customerId,
-          sequence,
-          manualCode,
-          hash(manualCode),
-          hash(shareToken),
-          key.id,
-          qrCode,
-        ],
-      );
-      if (inserted.rows[0]) issued.push({ id, shareToken });
-    }
-    return issued;
-  }
+export class PostgresTicketStore
+  implements CustomerTicketReader, GateTicketStore
+{
+  constructor(@Inject(POSTGRES_POOL) private readonly pool: Pool) {}
 
   async listForCustomer(customerId: string): Promise<TicketView[]> {
     const result = await this.pool.query<TicketRow>(
@@ -140,7 +82,7 @@ export class PostgresTicketStore extends TicketStore {
        FROM tickets t JOIN events e ON e.id = t.event_id JOIN users u ON u.id = t.customer_id
        JOIN ticket_signing_keys k ON k.id = t.signing_key_id
        WHERE t.share_token_hash = $1`,
-      [hash(token)],
+      [hashTicketSecret(token)],
     );
     const row = result.rows[0];
     if (!row?.customer_name) return null;
@@ -250,7 +192,7 @@ export class PostgresTicketStore extends TicketStore {
         `SELECT t.id, t.event_id, t.status, e.starts_at FROM tickets t
          JOIN events e ON e.id = t.event_id
          WHERE t.manual_code_hash = $1 AND e.organization_id = $2`,
-        [hash(code.trim().toUpperCase()), organizationId],
+        [hashTicketSecret(code.trim().toUpperCase()), organizationId],
       );
       return result.rows[0] ?? null;
     }
@@ -288,38 +230,6 @@ const ticketProjection = `SELECT t.id, t.reservation_id, t.event_id, t.sequence,
   t.qr_code, t.status, t.used_at, t.created_at, e.title event_title, e.starts_at, e.venue, e.city,
   k.private_key_pem`;
 
-async function activeSigningKey(client: PoolClient): Promise<SigningKeyRow> {
-  await client.query(
-    "SELECT pg_advisory_xact_lock(hashtextextended('ticket-signing-key', 0))",
-  );
-  const existing = await client.query<SigningKeyRow>(
-    "SELECT id, public_key_pem, private_key_pem FROM ticket_signing_keys WHERE status = 'ACTIVE' LIMIT 1",
-  );
-  if (existing.rows[0]) return existing.rows[0];
-  const pair = generateKeyPairSync('ed25519', {
-    publicKeyEncoding: { format: 'pem', type: 'spki' },
-    privateKeyEncoding: { format: 'pem', type: 'pkcs8' },
-  });
-  const created = await client.query<SigningKeyRow>(
-    `INSERT INTO ticket_signing_keys (public_key_pem, private_key_pem)
-     VALUES ($1, $2) RETURNING id, public_key_pem, private_key_pem`,
-    [pair.publicKey, pair.privateKey],
-  );
-  const row = created.rows[0];
-  if (!row) throw new Error('Could not create ticket signing key.');
-  return row;
-}
-
-function hash(value: string): string {
-  return createHash('sha256').update(value).digest('hex');
-}
-
-function deriveShareToken(ticketId: string, privateKeyPem: string): string {
-  return createHmac('sha256', privateKeyPem)
-    .update(`ticket-share:${ticketId}`)
-    .digest('base64url');
-}
-
 function ticketView(row: TicketRow): TicketView {
   return {
     id: row.id,
@@ -328,7 +238,7 @@ function ticketView(row: TicketRow): TicketView {
     sequence: row.sequence,
     manualCode: row.manual_code,
     qrCode: row.qr_code,
-    shareToken: deriveShareToken(row.id, row.private_key_pem),
+    shareToken: deriveTicketShareToken(row.id, row.private_key_pem),
     status: row.status,
     usedAt: row.used_at,
     createdAt: row.created_at,

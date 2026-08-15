@@ -1,7 +1,7 @@
 import type {
   EventRecord,
   PresentedEvent,
-} from '../../events/domain/event.types';
+} from '../../../events/application/models/event.models';
 
 export type SearchSuggestionKind = 'EVENT' | 'CATEGORY' | 'CITY' | 'VENUE';
 

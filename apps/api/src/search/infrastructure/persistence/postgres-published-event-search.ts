@@ -1,15 +1,18 @@
 import { Inject, Injectable } from '@nestjs/common';
 import type { Pool } from 'pg';
 import { POSTGRES_POOL } from '../../../database/database.constants';
-import type { EventRecord } from '../../../events/domain/event.types';
+import type { EventRecord } from '../../../events/application/models/event.models';
 import type {
   SearchEventPage,
   SearchIndexCandidate,
   SearchQuery,
   SearchSuggestion,
   SearchSuggestionKind,
-} from '../../domain/search.types';
-import { PublishedEventSearch } from '../../application/ports/published-event-search';
+} from '../../application/models/search.models';
+import {
+  PublishedEventSearchReader,
+  SearchEmbeddingIndexStore,
+} from '../../application/ports/published-event-search';
 
 const HYBRID_CANDIDATE_LIMIT = 1_000;
 
@@ -51,10 +54,10 @@ interface IndexCandidateRow extends EventRow {
 }
 
 @Injectable()
-export class PostgresPublishedEventSearch extends PublishedEventSearch {
-  constructor(@Inject(POSTGRES_POOL) private readonly pool: Pool) {
-    super();
-  }
+export class PostgresPublishedEventSearch
+  implements PublishedEventSearchReader, SearchEmbeddingIndexStore
+{
+  constructor(@Inject(POSTGRES_POOL) private readonly pool: Pool) {}
 
   async searchLexical(query: SearchQuery): Promise<SearchEventPage> {
     const offset = (query.page - 1) * query.pageSize;

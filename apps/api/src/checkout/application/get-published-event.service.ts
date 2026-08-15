@@ -1,9 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { EventImageStorage } from '../../events/application/ports/event-image-storage';
 import { CheckoutError } from '../domain/checkout.errors';
-import type { PublishedEventDetail } from '../domain/checkout.types';
-import { ConfirmedCheckoutStore } from './ports/confirmed-checkout-store';
-import { InventoryHoldStore } from './ports/inventory-hold-store';
+import type { PublishedEventDetail } from './models/checkout.models';
+import {
+  InventorySynchronizer,
+  PublishedEventReader,
+} from './ports/confirmed-checkout-store';
+import { InventoryAvailabilityStore } from './ports/inventory-hold-store';
 
 export type PresentedPublishedEvent = Omit<
   PublishedEventDetail,
@@ -13,14 +16,15 @@ export type PresentedPublishedEvent = Omit<
 @Injectable()
 export class GetPublishedEventService {
   constructor(
-    private readonly store: ConfirmedCheckoutStore,
-    private readonly holds: InventoryHoldStore,
+    private readonly events: PublishedEventReader,
+    private readonly inventory: InventorySynchronizer,
+    private readonly holds: InventoryAvailabilityStore,
     private readonly images: EventImageStorage,
   ) {}
 
   /** Returns a published event and exposes whether it can still be purchased. */
   async bySlug(slug: string): Promise<PresentedPublishedEvent> {
-    const event = await this.store.findPublishedEventBySlug(slug);
+    const event = await this.events.findPublishedEventBySlug(slug);
     if (!event) {
       throw new CheckoutError(
         'EVENT_NOT_AVAILABLE',
@@ -34,7 +38,7 @@ export class GetPublishedEventService {
 
     if (isPurchasable) {
       try {
-        availableQuantity = await this.store.synchronizeInventory(
+        availableQuantity = await this.inventory.synchronizeInventory(
           event.id,
           (snapshot) => this.holds.available(snapshot),
         );

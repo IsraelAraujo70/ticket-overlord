@@ -1,4 +1,4 @@
-import type { ReservationRecord } from '../../domain/checkout.types';
+import type { ReservationRecord } from '../models/checkout.models';
 
 export interface EventInventorySnapshot {
   eventId: string;
@@ -14,9 +14,12 @@ export interface ProcessingHold extends ReservationRecord {
   fencingToken: number;
 }
 
-export abstract class InventoryHoldStore {
+export abstract class InventoryAvailabilityStore {
   abstract initialize(snapshot: EventInventorySnapshot): Promise<void>;
   abstract available(snapshot: EventInventorySnapshot): Promise<number>;
+}
+
+export abstract class ReservationHoldStore {
   abstract create(
     input: EventInventorySnapshot & { customerId: string; quantity: number },
   ): Promise<ReservationRecord>;
@@ -24,6 +27,9 @@ export abstract class InventoryHoldStore {
     reservationId: string,
     customerId: string,
   ): Promise<ReservationRecord | null>;
+}
+
+export abstract class PaymentHoldStore {
   abstract prepare(input: {
     reservationId: string;
     customerId: string;
@@ -36,6 +42,17 @@ export abstract class InventoryHoldStore {
     hold: ProcessingHold,
     confirmedQuantity: number,
   ): Promise<void>;
+}
+
+export abstract class HoldReconciliationStore {
+  abstract release(hold: ProcessingHold): Promise<void>;
+  abstract confirm(
+    hold: ProcessingHold,
+    confirmedQuantity: number,
+  ): Promise<void>;
+}
+
+export abstract class HoldMaintenanceStore {
   abstract cleanupExpired(): Promise<void>;
   abstract processing(): Promise<ProcessingHold[]>;
 }

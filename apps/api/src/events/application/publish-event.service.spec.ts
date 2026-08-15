@@ -1,8 +1,8 @@
 import type { AuthenticatedUser } from '../../auth/domain/auth.types';
-import type { EventRecord } from '../domain/event.types';
+import type { EventRecord } from './models/event.models';
 import { PublishEventService } from './publish-event.service';
 import { EventImageStorage } from './ports/event-image-storage';
-import { EventStore } from './ports/event-store';
+import { EventPublisher } from './ports/event-store';
 
 const organizer: AuthenticatedUser = {
   id: 'user-1',
@@ -50,12 +50,8 @@ class FakeImageStorage extends EventImageStorage {
   }
 }
 
-class FakeEventStore extends EventStore {
+class FakeEventStore extends EventPublisher {
   event: EventRecord | null = { ...draft };
-
-  create(): Promise<EventRecord> {
-    throw new Error('Not implemented for this test.');
-  }
 
   publishDraftForOrganization(
     eventId: string,
@@ -76,18 +72,6 @@ class FakeEventStore extends EventStore {
     return Promise.resolve(this.event);
   }
 
-  listForOrganization(): Promise<EventRecord[]> {
-    return Promise.resolve([]);
-  }
-
-  listAll(): Promise<EventRecord[]> {
-    return Promise.resolve(this.event ? [this.event] : []);
-  }
-
-  listPublished(): Promise<EventRecord[]> {
-    return Promise.resolve([]);
-  }
-
   findForOrganization(
     eventId: string,
     organizationId: string,
@@ -97,14 +81,6 @@ class FakeEventStore extends EventStore {
         ? this.event
         : null,
     );
-  }
-
-  findById(eventId: string): Promise<EventRecord | null> {
-    return Promise.resolve(this.event?.id === eventId ? this.event : null);
-  }
-
-  findPublished(): Promise<EventRecord | null> {
-    return Promise.resolve(null);
   }
 }
 

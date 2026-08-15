@@ -2,10 +2,10 @@ import { ApiProperty, ApiSchema } from '@nestjs/swagger';
 import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
 import type {
   GateEventView,
-  GateValidationResult,
   SharedTicketView,
   TicketView,
-} from '../../domain/ticket.types';
+} from '../../application/models/ticket.models';
+import type { GateValidationResult } from '../../domain/ticket.types';
 
 @ApiSchema({ name: 'TicketEvent' })
 export class TicketEventDto {
